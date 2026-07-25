@@ -19,6 +19,7 @@ import { fetcher } from '@/lib/fetcher'
 import { useUploadThing } from '@/lib/uploadthing'
 import type { Product } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import api from '@/lib/api'
 
 type SpecType = 'cpu' | 'gpu' | 'ram' | 'storage'
 type SpecGroups = Record<SpecType, { id: string; value: string }[]>
@@ -85,17 +86,13 @@ function SpecSelect({
     if (!trimmed) return
     setSaving(true)
     try {
-      const res = await fetch('/api/spec-options', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, value: trimmed }),
-      })
-      if (res.ok) {
-        await onAdded()
-        onChange(trimmed)
-        setNewValue('')
-        setAdding(false)
-      }
+      await api.create_spec_option({ type, value: trimmed })
+      await onAdded()
+      onChange(trimmed)
+      setNewValue('')
+      setAdding(false)
+    } catch {
+      // Error handling could be added here
     } finally {
       setSaving(false)
     }
@@ -236,22 +233,14 @@ function ProductFormModal({
         stockStatus: form.stockStatus,
         discountBadge: form.discountBadge.trim() || undefined,
       }
-      const res = await fetch(
-        initial ? `/api/products/${initial.id}` : '/api/products',
-        {
-          method: initial ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }
-      )
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(data.error || 'تعذّر حفظ المنتج')
-        return
+      if (initial) {
+        await api.update_product(initial.id, payload)
+      } else {
+        await api.create_product(payload)
       }
       onSaved(initial ? 'تم تحديث المنتج بنجاح' : 'تمت إضافة المنتج بنجاح')
-    } catch {
-      setError('حدث خطأ في الاتصال')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'حدث خطأ في الاتصال')
     } finally {
       setSaving(false)
     }
@@ -538,12 +527,13 @@ export default function ProductsTab() {
 
   const handleDelete = async () => {
     if (!deleting) return
-    const res = await fetch(`/api/products/${deleting.id}`, { method: 'DELETE' })
-    setDeleting(null)
-    if (res.ok) {
+    try {
+      await api.delete_product(deleting.id)
+      setDeleting(null)
       mutate()
       flash('success', 'تم حذف المنتج')
-    } else {
+    } catch {
+      setDeleting(null)
       flash('error', 'تعذّر حذف المنتج')
     }
   }

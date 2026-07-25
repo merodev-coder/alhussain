@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Lock, User, Loader2 } from 'lucide-react'
+import api from '@/lib/api'
 
 export default function AdminLogin() {
   const router = useRouter()
@@ -17,19 +18,10 @@ export default function AdminLogin() {
     setError(null)
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(data.error || 'تعذّر تسجيل الدخول')
-        return
-      }
+      await api.login(username, password)
       router.refresh()
-    } catch {
-      setError('حدث خطأ في الاتصال. حاول مرة أخرى.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'تعذّر تسجيل الدخول')
     } finally {
       setLoading(false)
     }
