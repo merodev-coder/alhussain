@@ -1,0 +1,131 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* Al-Hussein Brand Tokens */
+  --color-brand-primary: #0FC7C1;
+  --color-brand-accent: #FF7A29;
+  --color-ink: #0E1B1B;
+  --color-ink-muted: #6B7A7A;
+  --color-canvas: #FFFFFF;
+  --color-surface-1: #F5F9F9;
+  --color-surface-2: #EAF3F2;
+  --color-hairline: #E1E9E8;
+  --color-inverse-canvas: #0E1B1B;
+  --color-whatsapp: #25D366;
+
+  /* Override shadcn tokens with brand */
+  --color-background: #FFFFFF;
+  --color-foreground: #0E1B1B;
+  --color-primary: #0FC7C1;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F5F9F9;
+  --color-secondary-foreground: #0E1B1B;
+  --color-muted: #F5F9F9;
+  --color-muted-foreground: #6B7A7A;
+  --color-accent: #EAF3F2;
+  --color-accent-foreground: #0E1B1B;
+  --color-border: #E1E9E8;
+  --color-input: #E1E9E8;
+  --color-ring: #0FC7C1;
+  --color-destructive: #EF4444;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0E1B1B;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #0E1B1B;
+
+  --color-sidebar: #0E1B1B;
+  --color-sidebar-foreground: #FFFFFF;
+  --color-sidebar-primary: #0FC7C1;
+  --color-sidebar-primary-foreground: #FFFFFF;
+  --color-sidebar-accent: rgba(255,255,255,0.08);
+  --color-sidebar-accent-foreground: #FFFFFF;
+  --color-sidebar-border: rgba(255,255,255,0.1);
+  --color-sidebar-ring: #0FC7C1;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 1.875rem;
+  --radius: 0.75rem;
+
+  /* Fonts */
+  --font-sans: var(--font-cairo), 'Cairo', sans-serif;
+  --font-body: var(--font-tajawal), 'Tajawal', sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  --background: #FFFFFF;
+  --foreground: #0E1B1B;
+  --card: #FFFFFF;
+  --card-foreground: #0E1B1B;
+  --popover: #FFFFFF;
+  --popover-foreground: #0E1B1B;
+  --primary: #0FC7C1;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F5F9F9;
+  --secondary-foreground: #0E1B1B;
+  --muted: #F5F9F9;
+  --muted-foreground: #6B7A7A;
+  --accent: #EAF3F2;
+  --accent-foreground: #0E1B1B;
+  --destructive: #EF4444;
+  --border: #E1E9E8;
+  --input: #E1E9E8;
+  --ring: #0FC7C1;
+  --radius: 0.75rem;
+  --sidebar: #0E1B1B;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #0FC7C1;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: rgba(255,255,255,0.08);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255,255,255,0.1);
+  --sidebar-ring: #0FC7C1;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-canvas text-ink font-body;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans;
+  }
+}
+
+/* WhatsApp FAB pulse animation */
+@keyframes whatsapp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(37, 211, 102, 0); }
+}
+.whatsapp-pulse {
+  animation: whatsapp-pulse 2s ease-in-out infinite;
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(15, 199, 193, 0.12);
+}
+
+/* Stat counter animation */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-count {
+  animation: count-up 0.6s ease forwards;
+}
