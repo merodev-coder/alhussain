@@ -57,13 +57,13 @@ router.get('/admin/session', async (req: Request, res: Response): Promise<void> 
   try {
     const session = await getAdminSessionFromRequest(req)
     if (!session) {
-      res.status(401).json({ error: 'Unauthorized' })
+      res.json({ authenticated: false })
       return
     }
-    res.json({ session })
+    res.json({ authenticated: true, sub: session.sub })
   } catch (error) {
     console.error('[v0] Session check error:', error)
-    res.status(500).json({ error: 'حدث خطأ في الخادم' })
+    res.json({ authenticated: false })
   }
 })
 

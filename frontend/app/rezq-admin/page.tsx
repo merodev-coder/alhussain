@@ -1,4 +1,4 @@
-import { getAdminSession } from '@/lib/auth'
+import { api } from '@/lib/api'
 import AdminLogin from './admin-login'
 import AdminDashboard from './admin-dashboard'
 
@@ -8,9 +8,9 @@ export const metadata = {
 }
 
 export default async function AdminPage() {
-  const session = await getAdminSession()
+  const session = await api.check_session()
 
-  if (!session) {
+  if (!session.authenticated) {
     return <AdminLogin />
   }
 

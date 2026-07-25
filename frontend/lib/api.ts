@@ -84,7 +84,15 @@ export const api = {
   login: (username: string, password: string) =>
     apiRequest<any>('/admin/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
   logout: () => apiRequest<any>('/admin/logout', { method: 'POST' }),
-  get_admin_session: () => apiRequest<any>('/admin/session'),
+  check_session: async () => {
+    const response = await fetch(`${API_URL}/admin/session`, {
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      return { authenticated: false }
+    }
+    return response.json()
+  },
 }
 
 export default api

@@ -39,10 +39,10 @@ const ProductSchema = new Schema<ProductDoc>(
     toJSON: {
       virtuals: true,
       versionKey: false,
-      transform(_doc, ret) {
-        ret.id = ret._id?.toString()
-        delete ret._id
-      },
+      transform(_doc: any, ret: { id?: any; _id?: { toString: () => any } }) {
+  ret.id = ret._id?.toString()
+  delete ret._id
+},
     },
   }
 )
