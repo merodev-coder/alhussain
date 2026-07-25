@@ -32,7 +32,12 @@ router.get('/api/products', async (req: Request, res: Response): Promise<void> =
 // GET single product
 router.get('/api/products/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const product = await Product.findById(req.params.id).lean()
+    const { id } = req.params
+    if (!id || id === 'undefined') {
+      res.status(400).json({ error: 'معرف المنتج غير صالح' })
+      return
+    }
+    const product = await Product.findById(id).lean()
     if (!product) {
       res.status(404).json({ error: 'المنتج غير موجود' })
       return
@@ -50,7 +55,9 @@ router.post('/api/products', async (req: Request, res: Response): Promise<void> 
     const data = productInputSchema.parse(req.body)
     const product = new Product(data)
     await product.save()
-    res.status(201).json(product.toJSON())
+    const productJson = product.toJSON() as any
+    console.log('[v0] Created product with ID:', productJson.id, '_id:', productJson._id)
+    res.status(201).json(productJson)
   } catch (error) {
     console.error('[v0] Create product error:', error)
     if (error instanceof z.ZodError) {

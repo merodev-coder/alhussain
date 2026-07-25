@@ -3,6 +3,8 @@ import mongoose, { Schema, model } from 'mongoose'
 export type StockStatus = 'in_stock' | 'limited' | 'out_of_stock'
 
 export interface ProductDoc {
+  _id?: string
+  id?: string
   name: string
   price: number
   description: string
@@ -41,10 +43,11 @@ const ProductSchema = new Schema<ProductDoc>(
     toJSON: {
       virtuals: true,
       versionKey: false,
-      transform(_doc: any, ret: { id?: any; _id?: { toString: () => any } }) {
-  ret.id = ret._id?.toString()
-  delete ret._id
-},
+      transform: function (_doc: any, ret: any) {
+        ret.id = ret._id?.toString()
+        delete ret._id
+        delete ret.__v
+      },
     },
   }
 )
