@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import SpecOption from '../models/SpecOption.js'
 import { specOptionInputSchema } from '../lib/validators.js'
-import { requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -24,8 +23,8 @@ router.get('/api/spec-options', async (req: Request, res: Response): Promise<voi
   }
 })
 
-// POST create spec option (admin only)
-router.post('/api/spec-options', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+// POST create spec option
+router.post('/api/spec-options', async (req: Request, res: Response): Promise<void> => {
   try {
     const data = specOptionInputSchema.parse(req.body)
     const option = new SpecOption(data)
@@ -41,8 +40,8 @@ router.post('/api/spec-options', requireAdmin, async (req: Request, res: Respons
   }
 })
 
-// PATCH update spec option (admin only)
-router.patch('/api/spec-options/:id', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+// PATCH update spec option
+router.patch('/api/spec-options/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const data = specOptionInputSchema.partial().parse(req.body)
     const option = await SpecOption.findByIdAndUpdate(req.params.id, data, { new: true })
@@ -61,8 +60,8 @@ router.patch('/api/spec-options/:id', requireAdmin, async (req: Request, res: Re
   }
 })
 
-// DELETE spec option (admin only)
-router.delete('/api/spec-options/:id', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+// DELETE spec option
+router.delete('/api/spec-options/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const option = await SpecOption.findByIdAndDelete(req.params.id)
     if (!option) {

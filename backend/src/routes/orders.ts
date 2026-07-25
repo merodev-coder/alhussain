@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import Order from '../models/Order.js'
 import { orderInputSchema, orderStatusSchema } from '../lib/validators.js'
-import { requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -34,8 +33,8 @@ router.post('/api/orders', async (req: Request, res: Response): Promise<void> =>
   }
 })
 
-// GET all orders (admin only)
-router.get('/api/orders', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+// GET all orders
+router.get('/api/orders', async (req: Request, res: Response): Promise<void> => {
   try {
     const { status } = req.query
 
@@ -67,8 +66,8 @@ router.get('/api/orders/:id', async (req: Request, res: Response): Promise<void>
   }
 })
 
-// PATCH update order status (admin only)
-router.patch('/api/orders/:id', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+// PATCH update order status
+router.patch('/api/orders/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const { status } = req.body
 

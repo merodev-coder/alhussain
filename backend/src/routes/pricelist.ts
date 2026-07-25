@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express'
 import multer from 'multer'
 import mammoth from 'mammoth'
 import Pricelist from '../models/Pricelist.js'
-import { requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -41,10 +40,9 @@ router.get('/api/pricelist', async (req: Request, res: Response): Promise<void> 
   }
 })
 
-// POST publish new pricelist (admin only, accepts .docx file)
+// POST publish new pricelist (accepts .docx file)
 router.post(
   '/api/pricelist',
-  requireAdmin,
   upload.single('file'),
   async (req: Request, res: Response): Promise<void> => {
     try {
