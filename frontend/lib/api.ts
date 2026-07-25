@@ -5,12 +5,16 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
+console.log('[API] NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL)
+console.log('[API] Using API_URL:', API_URL)
+
 interface ApiRequestOptions extends RequestInit {
   // Extends the standard fetch options
 }
 
 async function apiRequest<T>(endpoint: string, options: ApiRequestOptions = {}): Promise<T> {
   const url = `${API_URL}${endpoint}`
+  console.log('[API] Requesting:', url, options.method || 'GET')
 
   const response = await fetch(url, {
     ...options,
@@ -21,8 +25,11 @@ async function apiRequest<T>(endpoint: string, options: ApiRequestOptions = {}):
     credentials: 'include', // Include cookies for JWT auth
   })
 
+  console.log('[API] Response status:', response.status, 'for', url)
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+    console.log('[API] Error:', error)
     throw new Error(error.error || `API error: ${response.status}`)
   }
 
