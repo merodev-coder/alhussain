@@ -6,34 +6,26 @@ import AdminDashboard from './admin-dashboard'
 import { useEffect, useState } from 'react'
 
 export default function AdminPageClient() {
-  const [session, setSession] = useState<{ authenticated: boolean } | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        console.log('[AdminPage] Checking session...')
-        const result = await api.check_session()
-        console.log('[AdminPage] Session result:', result)
-        setSession(result)
-      } catch (error) {
-        console.error('[v0] Session check error:', error)
-        setSession({ authenticated: false })
-      } finally {
-        setLoading(false)
-      }
+    const checkAuth = () => {
+      const auth = localStorage.getItem('admin_authenticated')
+      setIsAuthenticated(auth === 'true')
+      setLoading(false)
     }
 
-    checkSession()
+    checkAuth()
   }, [])
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">جاري التحميل...</div>
   }
 
-  if (!session?.authenticated) {
-    return <AdminLogin />
+  if (!isAuthenticated) {
+    return <AdminLogin onLoginSuccess={() => setIsAuthenticated(true)} />
   }
 
-  return <AdminDashboard />
+  return <AdminDashboard onLogout={() => setIsAuthenticated(false)} />
 }

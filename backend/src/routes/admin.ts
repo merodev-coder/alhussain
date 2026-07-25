@@ -1,7 +1,5 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
-import { signAdminToken, setAdminCookie, clearAdminCookie, getAdminSessionFromRequest } from '../lib/auth.js'
-import { requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -22,9 +20,6 @@ router.post('/admin/login', async (req: Request, res: Response): Promise<void> =
       return
     }
 
-    const token = await signAdminToken(body.username)
-    setAdminCookie(res, token)
-
     res.json({ success: true, message: 'تم تسجيل الدخول بنجاح' })
   } catch (error) {
     console.error('[v0] Login error:', error)
@@ -38,7 +33,6 @@ router.post('/admin/login', async (req: Request, res: Response): Promise<void> =
 
 router.post('/admin/logout', async (req: Request, res: Response): Promise<void> => {
   try {
-    clearAdminCookie(res)
     res.json({ success: true, message: 'تم تسجيل الخروج بنجاح' })
   } catch (error) {
     console.error('[v0] Logout error:', error)
@@ -48,14 +42,7 @@ router.post('/admin/logout', async (req: Request, res: Response): Promise<void> 
 
 router.get('/admin/session', async (req: Request, res: Response): Promise<void> => {
   try {
-    console.log('[Backend] Session check - cookies:', req.cookies)
-    const session = await getAdminSessionFromRequest(req)
-    console.log('[Backend] Session result:', session)
-    if (!session) {
-      res.json({ authenticated: false })
-      return
-    }
-    res.json({ authenticated: true, sub: session.sub })
+    res.json({ authenticated: false })
   } catch (error) {
     console.error('[v0] Session check error:', error)
     res.json({ authenticated: false })

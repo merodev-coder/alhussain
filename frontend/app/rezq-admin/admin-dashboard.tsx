@@ -30,6 +30,10 @@ import ProductsTab from './products-tab'
 import PricelistTab from './pricelist-tab'
 import api from '@/lib/api'
 
+interface AdminDashboardProps {
+  onLogout: () => void
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type OrderStatus = Order['status']
@@ -630,7 +634,7 @@ function DashboardTab() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'pricelist' | 'settings'>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -638,10 +642,12 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     try {
       await api.logout()
-      router.refresh()
+      localStorage.removeItem('admin_authenticated')
+      onLogout()
     } catch (err) {
       console.error('[v0] Logout error:', err)
-      router.refresh()
+      localStorage.removeItem('admin_authenticated')
+      onLogout()
     }
   }
 

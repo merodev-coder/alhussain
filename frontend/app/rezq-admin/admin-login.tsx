@@ -6,7 +6,11 @@ import Image from 'next/image'
 import { Lock, User, Loader2 } from 'lucide-react'
 import api from '@/lib/api'
 
-export default function AdminLogin() {
+interface AdminLoginProps {
+  onLoginSuccess: () => void
+}
+
+export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   const router = useRouter()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -20,9 +24,9 @@ export default function AdminLogin() {
     try {
       console.log('[Login] Attempting login with username:', username)
       await api.login(username, password)
-      console.log('[Login] Login successful, redirecting to dashboard')
-      router.push('/rezq-admin')
-      router.refresh()
+      console.log('[Login] Login successful')
+      localStorage.setItem('admin_authenticated', 'true')
+      onLoginSuccess()
     } catch (err) {
       console.error('[Login] Login failed:', err)
       setError(err instanceof Error ? err.message : 'تعذّر تسجيل الدخول')
