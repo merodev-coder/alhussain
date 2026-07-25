@@ -48,7 +48,9 @@ router.post('/admin/logout', async (req: Request, res: Response): Promise<void> 
 
 router.get('/admin/session', async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('[Backend] Session check - cookies:', req.cookies)
     const session = await getAdminSessionFromRequest(req)
+    console.log('[Backend] Session result:', session)
     if (!session) {
       res.json({ authenticated: false })
       return

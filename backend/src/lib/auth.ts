@@ -45,7 +45,7 @@ export async function setAdminCookie(res: Response, token: string): Promise<void
   res.cookie('ah_admin_session', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/',
     maxAge: SESSION_MAX_AGE * 1000, // milliseconds
   })
@@ -55,7 +55,7 @@ export async function clearAdminCookie(res: Response): Promise<void> {
   res.clearCookie('ah_admin_session', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/',
   })
 }
