@@ -55,7 +55,7 @@ router.post('/api/products', requireAdmin, async (req: Request, res: Response): 
   } catch (error) {
     console.error('[v0] Create product error:', error)
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'بيانات غير صحيحة', details: error.errors })
+      res.status(400).json({ error: 'بيانات غير صحيحة', details: error.issues })
       return
     }
     res.status(500).json({ error: 'حدث خطأ في الخادم' })
@@ -75,7 +75,7 @@ router.patch('/api/products/:id', requireAdmin, async (req: Request, res: Respon
   } catch (error) {
     console.error('[v0] Update product error:', error)
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'بيانات غير صحيحة', details: error.errors })
+      res.status(400).json({ error: 'بيانات غير صحيحة', details: error.issues })
       return
     }
     res.status(500).json({ error: 'حدث خطأ في الخادم' })

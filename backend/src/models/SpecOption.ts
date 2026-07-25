@@ -23,12 +23,12 @@ const SpecOptionSchema = new Schema<SpecOptionDoc>(
   {
     timestamps: true,
     toJSON: {
-      virtuals: true,s
+      virtuals: true,
       versionKey: false,
       transform(_doc: any, ret: { id?: any; _id?: { toString: () => any } }) {
-  ret.id = ret._id?.toString()
-  delete ret._id
-},
+        ret.id = ret._id?.toString()
+        delete ret._id
+      },
     },
   }
 )

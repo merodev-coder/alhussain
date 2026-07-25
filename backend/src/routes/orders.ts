@@ -27,7 +27,7 @@ router.post('/api/orders', async (req: Request, res: Response): Promise<void> =>
   } catch (error) {
     console.error('[v0] Create order error:', error)
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'بيانات غير صحيحة', details: error.errors })
+      res.status(400).json({ error: 'بيانات غير صحيحة', details: error.issues })
       return
     }
     res.status(500).json({ error: 'حدث خطأ في الخادم' })

@@ -34,7 +34,7 @@ router.post('/api/spec-options', requireAdmin, async (req: Request, res: Respons
   } catch (error) {
     console.error('[v0] Create spec option error:', error)
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'بيانات غير صحيحة', details: error.errors })
+      res.status(400).json({ error: 'بيانات غير صحيحة', details: error.issues })
       return
     }
     res.status(500).json({ error: 'حدث خطأ في الخادم' })
@@ -54,7 +54,7 @@ router.patch('/api/spec-options/:id', requireAdmin, async (req: Request, res: Re
   } catch (error) {
     console.error('[v0] Update spec option error:', error)
     if (error instanceof z.ZodError) {
-      res.status(400).json({ error: 'بيانات غير صحيحة', details: error.errors })
+      res.status(400).json({ error: 'بيانات غير صحيحة', details: error.issues })
       return
     }
     res.status(500).json({ error: 'حدث خطأ في الخادم' })
