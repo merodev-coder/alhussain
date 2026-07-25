@@ -13,6 +13,7 @@ export interface ProductDoc {
   photos: string[]
   stockStatus: StockStatus
   discountBadge?: string
+  visible: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -33,6 +34,7 @@ const ProductSchema = new Schema<ProductDoc>(
       default: 'in_stock',
     },
     discountBadge: { type: String },
+    visible: { type: Boolean, default: true },
   },
   {
     timestamps: true,

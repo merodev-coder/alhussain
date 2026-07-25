@@ -14,6 +14,8 @@ import {
   ArrowLeft,
   CheckCircle2,
   AlertCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { fetcher } from '@/lib/fetcher'
 import { useUploadThing } from '@/lib/uploadthing'
@@ -35,6 +37,7 @@ type ProductForm = {
   photos: string[]
   stockStatus: Product['stockStatus']
   discountBadge: string
+  visible: boolean
 }
 
 const EMPTY_FORM: ProductForm = {
@@ -48,6 +51,7 @@ const EMPTY_FORM: ProductForm = {
   photos: [],
   stockStatus: 'in_stock',
   discountBadge: '',
+  visible: true,
 }
 
 const SPEC_LABELS: Record<SpecType, string> = {
@@ -184,6 +188,7 @@ function ProductFormModal({
           photos: initial.photos ?? [],
           stockStatus: initial.stockStatus,
           discountBadge: initial.discountBadge ?? '',
+          visible: initial.visible ?? true,
         }
       : EMPTY_FORM
   )
@@ -232,6 +237,7 @@ function ProductFormModal({
         photos: form.photos,
         stockStatus: form.stockStatus,
         discountBadge: form.discountBadge.trim() || undefined,
+        visible: form.visible,
       }
       if (initial) {
         await api.update_product(initial.id, payload)
@@ -332,6 +338,19 @@ function ProductFormModal({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="visible"
+              checked={form.visible}
+              onChange={e => set('visible', e.target.checked)}
+              className="w-5 h-5 rounded border-hairline accent-brand-primary"
+            />
+            <label htmlFor="visible" className="font-body text-sm text-ink">
+              إظهار المنتج في الصفحة الرئيسية
+            </label>
           </div>
 
           {/* Photos */}
@@ -546,6 +565,16 @@ export default function ProductsTab() {
     }
   }
 
+  const toggleVisibility = async (product: Product) => {
+    try {
+      await api.update_product(product.id, { visible: !product.visible })
+      mutate()
+      flash('success', product.visible ? 'تم إخفاء المنتج' : 'تم إظهار المنتج')
+    } catch {
+      flash('error', 'تعذّر تغيير حالة الظهور')
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between gap-4 mb-6">
@@ -642,6 +671,13 @@ export default function ProductsTab() {
                   {STOCK_LABELS[p.stockStatus]}
                 </span>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleVisibility(p)}
+                    className="flex items-center gap-1 text-xs font-body text-ink-muted hover:text-ink"
+                    title={p.visible ? 'إخفاء' : 'إظهار'}
+                  >
+                    {p.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                  </button>
                   <button
                     onClick={() => openEdit(p)}
                     className="flex items-center gap-1 text-xs font-body text-brand-primary hover:underline"

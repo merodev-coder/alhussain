@@ -11,6 +11,7 @@ export const productInputSchema = z.object({
     photos: z.array(z.string().url()).default([]),
     stockStatus: stockStatusSchema.default('in_stock'),
     discountBadge: z.string().optional().or(z.literal('')),
+    visible: z.boolean().default(true),
 });
 export const specTypeSchema = z.enum(['cpu', 'gpu', 'ram', 'storage']);
 export const specOptionInputSchema = z.object({

@@ -112,6 +112,7 @@ export default function LaptopsPage() {
 
   const filtered = useMemo(() => {
     return products.filter(p => {
+      if (!p.visible) return false
       if (cpuFilter.length && !cpuFilter.some(c => p.cpu?.toLowerCase().includes(c.toLowerCase()))) return false
       if (gpuFilter.length && !gpuFilter.some(g => p.gpu?.toLowerCase().includes(g.toLowerCase()))) return false
       if (ramFilter.length && !ramFilter.some(r => p.ram?.toLowerCase().includes(r.toLowerCase()))) return false

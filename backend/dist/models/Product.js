@@ -14,6 +14,7 @@ const ProductSchema = new Schema({
         default: 'in_stock',
     },
     discountBadge: { type: String },
+    visible: { type: Boolean, default: true },
 }, {
     timestamps: true,
     toJSON: {

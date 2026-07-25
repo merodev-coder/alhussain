@@ -13,6 +13,7 @@ export const productInputSchema = z.object({
   photos: z.array(z.string().url()).default([]),
   stockStatus: stockStatusSchema.default('in_stock'),
   discountBadge: z.string().optional().or(z.literal('')),
+  visible: z.boolean().default(true),
 })
 
 export type ProductInput = z.infer<typeof productInputSchema>

@@ -15,7 +15,7 @@ export default function FeaturedSection() {
     const getFeatured = async () => {
       try {
         const products = await api.get_products()
-        setFeatured(products.slice(0, 6))
+        setFeatured(products.filter(p => p.visible).slice(0, 6))
       } catch (err) {
         console.error('[v0] Failed to fetch featured products:', err)
         setFeatured([])

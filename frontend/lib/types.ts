@@ -10,6 +10,7 @@ export type Product = {
   photos: string[]
   stockStatus: 'in_stock' | 'limited' | 'out_of_stock'
   discountBadge?: string
+  visible: boolean
 }
 
 export type OrderItem = {
