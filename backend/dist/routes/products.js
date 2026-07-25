@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { z } from 'zod';
 import Product from '../models/Product.js';
 import { productInputSchema } from '../lib/validators.js';
-import { requireAdmin } from '../middleware/auth.js';
 const router = Router();
 // GET all products or search
 router.get('/api/products', async (req, res) => {
@@ -42,7 +41,7 @@ router.get('/api/products/:id', async (req, res) => {
     }
 });
 // POST create product
-router.post('/api/products', requireAdmin, async (req, res) => {
+router.post('/api/products', async (req, res) => {
     try {
         const data = productInputSchema.parse(req.body);
         const product = new Product(data);
@@ -59,7 +58,7 @@ router.post('/api/products', requireAdmin, async (req, res) => {
     }
 });
 // PATCH update product
-router.patch('/api/products/:id', requireAdmin, async (req, res) => {
+router.patch('/api/products/:id', async (req, res) => {
     try {
         const data = productInputSchema.partial().parse(req.body);
         const product = await Product.findByIdAndUpdate(req.params.id, data, { new: true });
@@ -79,7 +78,7 @@ router.patch('/api/products/:id', requireAdmin, async (req, res) => {
     }
 });
 // DELETE product
-router.delete('/api/products/:id', requireAdmin, async (req, res) => {
+router.delete('/api/products/:id', async (req, res) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
         if (!product) {
