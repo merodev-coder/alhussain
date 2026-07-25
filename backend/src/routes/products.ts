@@ -22,7 +22,12 @@ router.get('/api/products', async (req: Request, res: Response): Promise<void> =
     }
 
     const products = await Product.find(query).lean()
-    res.json(products)
+    // Manually set id from _id since lean() bypasses schema transform
+    const productsWithId = products.map(p => ({
+      ...p,
+      id: p._id?.toString(),
+    }))
+    res.json(productsWithId)
   } catch (error) {
     console.error('[v0] Get products error:', error)
     res.status(500).json({ error: 'حدث خطأ في الخادم' })
@@ -42,7 +47,12 @@ router.get('/api/products/:id', async (req: Request, res: Response): Promise<voi
       res.status(404).json({ error: 'المنتج غير موجود' })
       return
     }
-    res.json(product)
+    // Manually set id from _id since lean() bypasses schema transform
+    const productWithId = {
+      ...product,
+      id: product._id?.toString(),
+    }
+    res.json(productWithId)
   } catch (error) {
     console.error('[v0] Get product error:', error)
     res.status(500).json({ error: 'حدث خطأ في الخادم' })
