@@ -92,13 +92,19 @@ export const api = {
     apiRequest<any>('/admin/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
   logout: () => apiRequest<any>('/admin/logout', { method: 'POST' }),
   check_session: async () => {
-    const response = await fetch(`${API_URL}/admin/session`, {
+    const url = `${API_URL}/admin/session`
+    console.log('[API] check_session requesting:', url)
+    const response = await fetch(url, {
       credentials: 'include',
     })
+    console.log('[API] check_session response status:', response.status)
     if (!response.ok) {
+      console.log('[API] check_session failed, returning authenticated: false')
       return { authenticated: false }
     }
-    return response.json()
+    const result = await response.json()
+    console.log('[API] check_session result:', result)
+    return result
   },
 }
 

@@ -12,7 +12,9 @@ export default function AdminPageClient() {
   useEffect(() => {
     const checkSession = async () => {
       try {
+        console.log('[AdminPage] Checking session...')
         const result = await api.check_session()
+        console.log('[AdminPage] Session result:', result)
         setSession(result)
       } catch (error) {
         console.error('[v0] Session check error:', error)

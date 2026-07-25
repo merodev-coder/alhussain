@@ -18,10 +18,13 @@ export default function AdminLogin() {
     setError(null)
     setLoading(true)
     try {
+      console.log('[Login] Attempting login with username:', username)
       await api.login(username, password)
+      console.log('[Login] Login successful, redirecting to dashboard')
       router.push('/rezq-admin')
       router.refresh()
     } catch (err) {
+      console.error('[Login] Login failed:', err)
       setError(err instanceof Error ? err.message : 'تعذّر تسجيل الدخول')
     } finally {
       setLoading(false)
