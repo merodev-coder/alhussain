@@ -21,7 +21,20 @@ const ProductSchema = new Schema({
         virtuals: true,
         versionKey: false,
         transform: function (_doc, ret) {
-            ret.id = ret._id?.toString();
+            if (ret._id) {
+                ret.id = ret._id.toString();
+            }
+            delete ret._id;
+            delete ret.__v;
+        },
+    },
+    toObject: {
+        virtuals: true,
+        versionKey: false,
+        transform: function (_doc, ret) {
+            if (ret._id) {
+                ret.id = ret._id.toString();
+            }
             delete ret._id;
             delete ret.__v;
         },
