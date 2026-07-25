@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from 'mongoose'
+import mongoose, { Schema, model } from 'mongoose'
 
 export type SpecType = 'cpu' | 'gpu' | 'ram' | 'storage'
 
@@ -37,7 +37,7 @@ const SpecOptionSchema = new Schema<SpecOptionDoc>(
 SpecOptionSchema.index({ type: 1, value: 1 }, { unique: true })
 
 const SpecOption =
-  (models.SpecOption as mongoose.Model<SpecOptionDoc>) ||
+  (mongoose.models.SpecOption as mongoose.Model<SpecOptionDoc>) ||
   model<SpecOptionDoc>('SpecOption', SpecOptionSchema)
 
 export default SpecOption

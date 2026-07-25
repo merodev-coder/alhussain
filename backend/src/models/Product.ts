@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from 'mongoose'
+import mongoose, { Schema, model } from 'mongoose'
 
 export type StockStatus = 'in_stock' | 'limited' | 'out_of_stock'
 
@@ -47,6 +47,6 @@ const ProductSchema = new Schema<ProductDoc>(
   }
 )
 
-const Product = (models.Product as mongoose.Model<ProductDoc>) || model<ProductDoc>('Product', ProductSchema)
+const Product = (mongoose.models.Product as mongoose.Model<ProductDoc>) || model<ProductDoc>('Product', ProductSchema)
 
 export default Product

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from 'mongoose'
+import mongoose, { Schema, model } from 'mongoose'
 
 export type OrderStatus = 'pending' | 'confirmed' | 'declined' | 'shipped' | 'completed'
 
@@ -68,6 +68,6 @@ const OrderSchema = new Schema<OrderDoc>(
   }
 )
 
-const Order = (models.Order as mongoose.Model<OrderDoc>) || model<OrderDoc>('Order', OrderSchema)
+const Order = (mongoose.models.Order as mongoose.Model<OrderDoc>) || model<OrderDoc>('Order', OrderSchema)
 
 export default Order

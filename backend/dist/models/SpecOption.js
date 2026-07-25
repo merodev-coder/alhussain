@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 const SpecOptionSchema = new Schema({
     type: {
         type: String,
@@ -20,6 +20,6 @@ const SpecOptionSchema = new Schema({
 });
 // Prevent duplicate values within the same type.
 SpecOptionSchema.index({ type: 1, value: 1 }, { unique: true });
-const SpecOption = models.SpecOption ||
+const SpecOption = mongoose.models.SpecOption ||
     model('SpecOption', SpecOptionSchema);
 export default SpecOption;

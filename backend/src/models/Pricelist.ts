@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from 'mongoose'
+import mongoose, { Schema, model } from 'mongoose'
 
 export interface PricelistDoc {
   sourceFileName: string
@@ -30,7 +30,7 @@ const PricelistSchema = new Schema<PricelistDoc>(
 )
 
 const Pricelist =
-  (models.Pricelist as mongoose.Model<PricelistDoc>) ||
+  (mongoose.models.Pricelist as mongoose.Model<PricelistDoc>) ||
   model<PricelistDoc>('Pricelist', PricelistSchema)
 
 export default Pricelist

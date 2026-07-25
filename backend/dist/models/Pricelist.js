@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 const PricelistSchema = new Schema({
     sourceFileName: { type: String, required: true },
     parsedHtml: { type: String, required: true },
@@ -15,6 +15,6 @@ const PricelistSchema = new Schema({
         },
     },
 });
-const Pricelist = models.Pricelist ||
+const Pricelist = mongoose.models.Pricelist ||
     model('Pricelist', PricelistSchema);
 export default Pricelist;
