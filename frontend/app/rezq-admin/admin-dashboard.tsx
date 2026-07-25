@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Phone,
   MapPin,
+  FileText,
 } from 'lucide-react'
 import { MOCK_ORDERS, MOCK_PRODUCTS } from '@/lib/mock-data'
 import type { Order } from '@/lib/types'
@@ -75,6 +76,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
   { id: 'orders', label: 'الطلبات', icon: ShoppingBag },
   { id: 'products', label: 'المنتجات', icon: Package },
+  { id: 'pricelist', label: 'قائمة الأسعار', icon: FileText },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ]
 

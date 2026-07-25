@@ -1,10 +1,9 @@
 import { Router } from 'express';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
-import { requireAdmin } from '../middleware/auth.js';
 const router = Router();
-// GET dashboard stats (admin only)
-router.get('/api/dashboard-stats', requireAdmin, async (req, res) => {
+// GET dashboard stats
+router.get('/api/dashboard-stats', async (req, res) => {
     try {
         // Get all orders
         const allOrders = await Order.find().lean();

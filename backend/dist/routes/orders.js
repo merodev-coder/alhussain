@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { z } from 'zod';
 import Order from '../models/Order.js';
 import { orderInputSchema, orderStatusSchema } from '../lib/validators.js';
-import { requireAdmin } from '../middleware/auth.js';
 const router = Router();
 // Generate unique order number
 function generateOrderNumber() {
@@ -29,8 +28,8 @@ router.post('/api/orders', async (req, res) => {
         res.status(500).json({ error: 'حدث خطأ في الخادم' });
     }
 });
-// GET all orders (admin only)
-router.get('/api/orders', requireAdmin, async (req, res) => {
+// GET all orders
+router.get('/api/orders', async (req, res) => {
     try {
         const { status } = req.query;
         let query = {};
@@ -60,8 +59,8 @@ router.get('/api/orders/:id', async (req, res) => {
         res.status(500).json({ error: 'حدث خطأ في الخادم' });
     }
 });
-// PATCH update order status (admin only)
-router.patch('/api/orders/:id', requireAdmin, async (req, res) => {
+// PATCH update order status
+router.patch('/api/orders/:id', async (req, res) => {
     try {
         const { status } = req.body;
         // Validate status

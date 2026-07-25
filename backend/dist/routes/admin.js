@@ -1,18 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { signAdminToken, setAdminCookie, clearAdminCookie, getAdminSessionFromRequest } from '../lib/auth.js';
-import rateLimit from 'express-rate-limit';
 const router = Router();
 const loginSchema = z.object({
     username: z.string().min(1),
     password: z.string().min(1),
 });
-const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts per window
-    message: 'محاولات دخول كثيرة جداً، يرجى المحاولة لاحقاً',
-});
-router.post('/admin/login', loginLimiter, async (req, res) => {
+router.post('/admin/login', async (req, res) => {
     try {
         const body = loginSchema.parse(req.body);
         const adminUsername = process.env.ADMIN_USERNAME || 'admin';
@@ -22,7 +16,7 @@ router.post('/admin/login', loginLimiter, async (req, res) => {
             return;
         }
         const token = await signAdminToken(body.username);
-        setAdminCookie(res, token);
+        await setAdminCookie(res, token);
         res.json({ success: true, message: 'تم تسجيل الدخول بنجاح' });
     }
     catch (error) {
@@ -36,7 +30,7 @@ router.post('/admin/login', loginLimiter, async (req, res) => {
 });
 router.post('/admin/logout', async (req, res) => {
     try {
-        clearAdminCookie(res);
+        await clearAdminCookie(res);
         res.json({ success: true, message: 'تم تسجيل الخروج بنجاح' });
     }
     catch (error) {
@@ -47,11 +41,12 @@ router.post('/admin/logout', async (req, res) => {
 router.get('/admin/session', async (req, res) => {
     try {
         const session = await getAdminSessionFromRequest(req);
-        if (!session) {
-            res.json({ authenticated: false });
-            return;
+        if (session) {
+            res.json({ authenticated: true, sub: session.sub });
         }
-        res.json({ authenticated: true, sub: session.sub });
+        else {
+            res.json({ authenticated: false });
+        }
     }
     catch (error) {
         console.error('[v0] Session check error:', error);

@@ -484,11 +484,11 @@ function DeleteConfirm({
 
 // ── Products Tab ────────────────────────────────────────────────────────────────
 export default function ProductsTab() {
-  const { data, isLoading, error, mutate } = useSWR<{ products: Product[] }>(
+  const { data, isLoading, error, mutate } = useSWR<Product[]>(
     '/api/products',
     fetcher
   )
-  const { data: specData, mutate: mutateSpecs } = useSWR<{ options: SpecGroups }>(
+  const { data: specData, mutate: mutateSpecs } = useSWR<{ id: string; type: string; value: string }[]>(
     '/api/spec-options',
     fetcher
   )
@@ -498,9 +498,17 @@ export default function ProductsTab() {
   const [deleting, setDeleting] = useState<Product | null>(null)
   const [banner, setBanner] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
-  const products = data?.products ?? []
+  const products = data ?? []
   const specs = useMemo<SpecGroups>(
-    () => specData?.options ?? { cpu: [], gpu: [], ram: [], storage: [] },
+    () => {
+      const grouped: SpecGroups = { cpu: [], gpu: [], ram: [], storage: [] }
+      specData?.forEach(opt => {
+        if (opt.type in grouped) {
+          grouped[opt.type as SpecType].push({ id: opt.id, value: opt.value })
+        }
+      })
+      return grouped
+    },
     [specData]
   )
 

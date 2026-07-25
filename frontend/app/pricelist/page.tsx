@@ -33,7 +33,6 @@ export default function PricelistPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="text-center mb-10">
-          <p className="font-body text-sm text-brand-primary font-medium mb-2">آخر تحديث: يوليو 2025</p>
           <h1 className="font-sans font-extrabold text-ink text-4xl mb-3">قائمة الأسعار</h1>
           <p className="font-body text-ink-muted text-lg max-w-xl mx-auto">
             أسعار جميع الموديلات المتوفرة بشفافية تامة — نحدّث القائمة أولاً بأول.

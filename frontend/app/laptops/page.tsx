@@ -59,11 +59,22 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
 }
 
 export default function LaptopsPage() {
-  const { data, isLoading } = useSWR<{ products: Product[] }>('/api/products', fetcher)
-  const { data: specData } = useSWR<{ options: SpecGroups }>('/api/spec-options', fetcher)
+  const { data, isLoading } = useSWR<Product[]>('/api/products', fetcher)
+  const { data: specData } = useSWR<{ id: string; type: string; value: string }[]>('/api/spec-options', fetcher)
 
-  const products = data?.products ?? []
-  const specs = specData?.options ?? { cpu: [], gpu: [], ram: [], storage: [] }
+  const products = data ?? []
+  const specs = useMemo<SpecGroups>(
+    () => {
+      const grouped: SpecGroups = { cpu: [], gpu: [], ram: [], storage: [] }
+      specData?.forEach(opt => {
+        if (opt.type in grouped) {
+          grouped[opt.type as SpecType].push({ id: opt.id, value: opt.value })
+        }
+      })
+      return grouped
+    },
+    [specData]
+  )
 
   const cpuOptions = specs.cpu.map(o => o.value)
   const gpuOptions = specs.gpu.map(o => o.value)

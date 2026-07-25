@@ -2,7 +2,6 @@ import { Router } from 'express';
 import multer from 'multer';
 import mammoth from 'mammoth';
 import Pricelist from '../models/Pricelist.js';
-import { requireAdmin } from '../middleware/auth.js';
 const router = Router();
 // Configure multer for memory storage
 const upload = multer({
@@ -37,8 +36,8 @@ router.get('/api/pricelist', async (req, res) => {
         res.status(500).json({ error: 'حدث خطأ في الخادم' });
     }
 });
-// POST publish new pricelist (admin only, accepts .docx file)
-router.post('/api/pricelist', requireAdmin, upload.single('file'), async (req, res) => {
+// POST publish new pricelist (accepts .docx file)
+router.post('/api/pricelist', upload.single('file'), async (req, res) => {
     try {
         const file = req.file;
         if (!file) {
