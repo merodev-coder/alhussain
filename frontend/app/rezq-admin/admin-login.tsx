@@ -19,6 +19,7 @@ export default function AdminLogin() {
     setLoading(true)
     try {
       await api.login(username, password)
+      router.push('/rezq-admin')
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'تعذّر تسجيل الدخول')

@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { signAdminToken, setAdminCookie, clearAdminCookie, getAdminSessionFromRequest } from '../lib/auth.js'
 import { requireAdmin } from '../middleware/auth.js'
-import rateLimit from 'express-rate-limit'
 
 const router = Router()
 
@@ -11,13 +10,7 @@ const loginSchema = z.object({
   password: z.string().min(1),
 })
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
-  message: 'محاولات دخول كثيرة جداً، يرجى المحاولة لاحقاً',
-})
-
-router.post('/admin/login', loginLimiter, async (req: Request, res: Response): Promise<void> => {
+router.post('/admin/login', async (req: Request, res: Response): Promise<void> => {
   try {
     const body = loginSchema.parse(req.body)
 
