@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import SpecOption from '../models/SpecOption.js';
 import { specOptionInputSchema } from '../lib/validators.js';
+import { requireAdmin } from '../middleware/auth.js';
 const router = Router();
 // GET all spec options or filter by type
 router.get('/api/spec-options', async (req, res) => {
@@ -20,7 +21,7 @@ router.get('/api/spec-options', async (req, res) => {
     }
 });
 // POST create spec option
-router.post('/api/spec-options', async (req, res) => {
+router.post('/api/spec-options', requireAdmin, async (req, res) => {
     try {
         const data = specOptionInputSchema.parse(req.body);
         const option = new SpecOption(data);
@@ -37,7 +38,7 @@ router.post('/api/spec-options', async (req, res) => {
     }
 });
 // PATCH update spec option
-router.patch('/api/spec-options/:id', async (req, res) => {
+router.patch('/api/spec-options/:id', requireAdmin, async (req, res) => {
     try {
         const data = specOptionInputSchema.partial().parse(req.body);
         const option = await SpecOption.findByIdAndUpdate(req.params.id, data, { new: true });
@@ -57,7 +58,7 @@ router.patch('/api/spec-options/:id', async (req, res) => {
     }
 });
 // DELETE spec option
-router.delete('/api/spec-options/:id', async (req, res) => {
+router.delete('/api/spec-options/:id', requireAdmin, async (req, res) => {
     try {
         const option = await SpecOption.findByIdAndDelete(req.params.id);
         if (!option) {

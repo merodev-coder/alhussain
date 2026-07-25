@@ -10,22 +10,44 @@ export default function AdminPageClient() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const checkAuth = () => {
-      const auth = localStorage.getItem('admin_authenticated')
-      setIsAuthenticated(auth === 'true')
-      setLoading(false)
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/admin/session`, {
+          credentials: 'include',
+        })
+        const data = await response.json()
+        setIsAuthenticated(data.authenticated === true)
+      } catch (err) {
+        console.error('[Auth check failed]', err)
+        setIsAuthenticated(false)
+      } finally {
+        setLoading(false)
+      }
     }
 
     checkAuth()
   }, [])
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await api.logout()
+    } catch (err) {
+      console.error('[Logout failed]', err)
+    }
+    setIsAuthenticated(false)
+  }
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">جاري التحميل...</div>
   }
 
   if (!isAuthenticated) {
-    return <AdminLogin onLoginSuccess={() => setIsAuthenticated(true)} />
+    return <AdminLogin onLoginSuccess={handleLoginSuccess} />
   }
 
-  return <AdminDashboard onLogout={() => setIsAuthenticated(false)} />
+  return <AdminDashboard onLogout={handleLogout} />
 }

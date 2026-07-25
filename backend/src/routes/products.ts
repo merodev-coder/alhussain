@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import Product from '../models/Product.js'
 import { productInputSchema } from '../lib/validators.js'
+import { requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
@@ -45,7 +46,7 @@ router.get('/api/products/:id', async (req: Request, res: Response): Promise<voi
 })
 
 // POST create product
-router.post('/api/products', async (req: Request, res: Response): Promise<void> => {
+router.post('/api/products', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     const data = productInputSchema.parse(req.body)
     const product = new Product(data)
@@ -62,7 +63,7 @@ router.post('/api/products', async (req: Request, res: Response): Promise<void> 
 })
 
 // PATCH update product
-router.patch('/api/products/:id', async (req: Request, res: Response): Promise<void> => {
+router.patch('/api/products/:id', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     const data = productInputSchema.partial().parse(req.body)
     const product = await Product.findByIdAndUpdate(req.params.id, data, { new: true })
@@ -82,7 +83,7 @@ router.patch('/api/products/:id', async (req: Request, res: Response): Promise<v
 })
 
 // DELETE product
-router.delete('/api/products/:id', async (req: Request, res: Response): Promise<void> => {
+router.delete('/api/products/:id', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id)
     if (!product) {
