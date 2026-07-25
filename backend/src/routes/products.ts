@@ -71,12 +71,15 @@ router.post('/api/products', async (req: Request, res: Response): Promise<void> 
 // PATCH update product
 router.patch('/api/products/:id', async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('[v0] PATCH /api/products/:id - ID:', req.params.id, 'Body:', req.body)
     const data = productInputSchema.partial().parse(req.body)
     const product = await Product.findByIdAndUpdate(req.params.id, data, { new: true })
     if (!product) {
+      console.log('[v0] Product not found for ID:', req.params.id)
       res.status(404).json({ error: 'المنتج غير موجود' })
       return
     }
+    console.log('[v0] Product updated successfully')
     res.json(product.toJSON())
   } catch (error) {
     console.error('[v0] Update product error:', error)
@@ -91,11 +94,14 @@ router.patch('/api/products/:id', async (req: Request, res: Response): Promise<v
 // DELETE product
 router.delete('/api/products/:id', async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('[v0] DELETE /api/products/:id - ID:', req.params.id)
     const product = await Product.findByIdAndDelete(req.params.id)
     if (!product) {
+      console.log('[v0] Product not found for ID:', req.params.id)
       res.status(404).json({ error: 'المنتج غير موجود' })
       return
     }
+    console.log('[v0] Product deleted successfully')
     res.json({ success: true })
   } catch (error) {
     console.error('[v0] Delete product error:', error)
