@@ -34,7 +34,7 @@ export const orderStatusSchema = z.enum([
   'completed',
 ])
 
-export const paymentMethodSchema = z.enum(['vodafone_cash', 'instapay', 'bank_transfer'])
+export const paymentMethodSchema = z.enum(['vodafone_cash', 'instapay'])
 export const paymentStatusSchema = z.enum(['pending_verification', 'confirmed', 'rejected'])
 
 export const selectedAddonSchema = z.object({
@@ -62,9 +62,8 @@ export const orderInputSchema = z.object({
   deliveryMethod: z.enum(['shipping', 'pickup']),
   depositPhotoUrl: z.string().url().optional(),
   items: z.array(orderItemSchema).min(1, 'السلة فارغة'),
-  total: z.coerce.number().min(0),
-  shippingCost: z.coerce.number().min(0).optional(),
   paymentMethod: paymentMethodSchema,
+  isCashOnDelivery: z.boolean().default(false),
 })
 
 export const addonCategorySchema = z.enum(['ram', 'storage', 'accessory', 'other'])

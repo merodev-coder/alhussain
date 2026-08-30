@@ -1,0 +1,105 @@
+import { Router, Request, Response } from 'express'
+import { z } from 'zod'
+import { getSiteSettingsModel } from '../models/SiteSettings.js'
+import { requireAdmin } from '../middleware/auth.js'
+import { logError, logInfo } from '../lib/logger.js'
+import { DatabaseRouter } from '../lib/db-router.js'
+import { withId } from '../lib/json.js'
+import { getAllConnections } from '../lib/db.js'
+
+const router = Router()
+
+const settingsSchema = z.object({
+  vodafoneCashNumber: z.string().min(1),
+  instapayNumber: z.string().min(1),
+})
+
+router.get('/api/settings', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const connections = getAllConnections()
+    let settings = null
+
+    for (const connection of connections) {
+      const SettingsModel = getSiteSettingsModel(connection)
+      const found = await SettingsModel.findOne().lean()
+      if (found) {
+        settings = withId(found)
+        break
+      }
+    }
+
+    if (!settings) {
+      // Return default/empty settings if none exist
+      res.json({
+        vodafoneCashNumber: '',
+        instapayNumber: '',
+      })
+      return
+    }
+
+    res.json({
+      vodafoneCashNumber: settings.vodafoneCashNumber,
+      instapayNumber: settings.instapayNumber,
+    })
+  } catch (error) {
+    logError('Get settings', error)
+    res.status(500).json({ error: 'حدث خطأ في الخادم' })
+  }
+})
+
+router.post('/api/settings', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const data = settingsSchema.parse(req.body)
+
+    // Check if settings already exist across all databases
+    const connections = getAllConnections()
+    let existing = null
+    let targetConnection = null
+    let targetDbIndex = 0
+
+    for (let i = 0; i < connections.length; i++) {
+      const SettingsModel = getSiteSettingsModel(connections[i])
+      const found = await SettingsModel.findOne().lean()
+      if (found) {
+        existing = found
+        targetConnection = connections[i]
+        targetDbIndex = i
+        break
+      }
+    }
+
+    if (existing && targetConnection) {
+      // Update existing settings
+      const SettingsModel = getSiteSettingsModel(targetConnection)
+      const updated = await SettingsModel.findOneAndUpdate(
+        { _id: existing._id },
+        { vodafoneCashNumber: data.vodafoneCashNumber, instapayNumber: data.instapayNumber },
+        { new: true }
+      ).lean()
+      res.json(withId(updated!))
+    } else {
+      // Create new settings on primary database
+      const primary = connections[0]
+      const { result } = await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
+        const SettingsModel = getSiteSettingsModel(connection)
+        const settings = new SettingsModel({
+          vodafoneCashNumber: data.vodafoneCashNumber,
+          instapayNumber: data.instapayNumber,
+          dbIndex,
+        })
+        await settings.save()
+        return settings
+      }, 'settings')
+      res.status(201).json(result.toJSON())
+    }
+  } catch (error) {
+    logError('Update settings', error)
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'بيانات غير صحيحة', details: error.issues })
+      return
+    }
+    res.status(500).json({ error: 'حدث خطأ في الخادم' })
+  }
+})
+
+export default router

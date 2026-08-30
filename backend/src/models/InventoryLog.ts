@@ -21,7 +21,7 @@ const InventoryLogSchema = new Schema<InventoryLogDoc>(
     itemType: { type: String, enum: ['laptop', 'addon', 'accessory'], required: true },
     itemId: { type: String, required: true },
     itemName: { type: String, required: true },
-    adminUser: { type: String, default: 'admin' },
+    adminUser: { type: String, required: true },
     oldQty: { type: Number, required: true },
     newQty: { type: Number, required: true },
     reason: { type: String, default: '' },

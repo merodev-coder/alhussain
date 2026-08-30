@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Info, RefreshCw } from 'lucide-react'
 import StoreLayout from '@/components/store-layout'
 import api from '@/lib/api'
+import { clientLogger } from '@/lib/client-logger'
 
 export default function PricelistPage() {
   const [priceList, setPriceList] = useState<any>(null)
@@ -18,7 +19,7 @@ export default function PricelistPage() {
         const data = await api.get_pricelist()
         setPriceList(data)
       } catch (err) {
-        console.error('[v0] Failed to fetch pricelist:', err)
+        clientLogger.error('Failed to fetch pricelist:', err)
         setError(err instanceof Error ? err.message : 'فشل تحميل قائمة الأسعار')
         setPriceList(null)
       } finally {
@@ -49,8 +50,13 @@ export default function PricelistPage() {
 
         {/* Table */}
         {loading && (
-          <div className="text-center py-12">
-            <p className="font-body text-ink-muted">جاري تحميل قائمة الأسعار...</p>
+          <div className="space-y-4">
+            <div className="h-12 bg-surface-1 rounded-xl animate-pulse" />
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="h-10 bg-surface-1 rounded-lg animate-pulse" />
+              ))}
+            </div>
           </div>
         )}
 
@@ -73,7 +79,7 @@ export default function PricelistPage() {
                 api.get_pricelist()
                   .then(data => setPriceList(data))
                   .catch(err => {
-                    console.error('[v0] Retry failed:', err)
+                    clientLogger.error('Retry failed:', err)
                     setError(err instanceof Error ? err.message : 'فشل تحميل قائمة الأسعار')
                   })
                   .finally(() => setLoading(false))

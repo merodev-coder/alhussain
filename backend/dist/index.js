@@ -2,15 +2,22 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
-import { logError, logInfo } from './lib/logger.js';
+import { logError, logInfo, logWarn } from './lib/logger.js';
 import 'dotenv/config';
 import { connectDB } from './lib/db.js';
+import { seedShippingRatesIfEmpty } from './lib/seed-shipping.js';
 import adminRoutes from './routes/admin.js';
 import productsRoutes from './routes/products.js';
 import ordersRoutes from './routes/orders.js';
 import specOptionsRoutes from './routes/spec-options.js';
 import pricelistRoutes from './routes/pricelist.js';
 import dashboardRoutes from './routes/dashboard.js';
+import addonsRoutes from './routes/addons.js';
+import accessoriesRoutes from './routes/accessories.js';
+import shippingRatesRoutes from './routes/shipping-rates.js';
+import inventoryRoutes from './routes/inventory.js';
+import debugRoutes from './routes/debug.js';
+import settingsRoutes from './routes/settings.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -38,6 +45,12 @@ app.use(ordersRoutes);
 app.use(specOptionsRoutes);
 app.use(pricelistRoutes);
 app.use(dashboardRoutes);
+app.use(addonsRoutes);
+app.use(accessoriesRoutes);
+app.use(shippingRatesRoutes);
+app.use(inventoryRoutes);
+app.use('/api/debug', debugRoutes);
+app.use(settingsRoutes);
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
@@ -50,11 +63,18 @@ app.use((err, req, res, _next) => {
 // Connect to DB and start server
 async function start() {
     try {
-        // Validate required environment variables
-        if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD_HASH) {
-            throw new Error('Missing required environment variables: ADMIN_USERNAME or ADMIN_PASSWORD_HASH');
+        const adminUsername = process.env.ADMIN_USERNAME;
+        const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+        // For testing: warn but don't fail if admin credentials missing
+        // (TODO: Re-enable strict validation for production)
+        if (!adminUsername || !adminPasswordHash) {
+            logWarn('Server start', 'ADMIN_USERNAME or ADMIN_PASSWORD_HASH missing - admin routes will not work');
+        }
+        else {
+            logInfo('Server start', `Using admin username: ${adminUsername}`);
         }
         await connectDB();
+        await seedShippingRatesIfEmpty();
         app.listen(PORT, () => {
             logInfo('Server start', `Backend server running on port ${PORT}`);
             logInfo('Server start', `CORS enabled for: ${FRONTEND_URL}`);

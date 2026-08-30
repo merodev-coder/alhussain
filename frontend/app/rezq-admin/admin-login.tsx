@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Lock, User, Loader2 } from 'lucide-react'
 import api from '@/lib/api'
+import { clientLogger } from '@/lib/client-logger'
 
 interface AdminLoginProps {
   onLoginSuccess: () => void
@@ -22,13 +23,13 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     setError(null)
     setLoading(true)
     try {
-      console.log('[Login] Attempting login with username:', username)
+      clientLogger.log('Attempting login with username:', username)
       await api.login(username, password)
-      console.log('[Login] Login successful')
+      clientLogger.log('Login successful')
       localStorage.setItem('admin_authenticated', 'true')
       onLoginSuccess()
     } catch (err) {
-      console.error('[Login] Login failed:', err)
+      clientLogger.error('Login failed:', err)
       setError(err instanceof Error ? err.message : 'تعذّر تسجيل الدخول')
     } finally {
       setLoading(false)

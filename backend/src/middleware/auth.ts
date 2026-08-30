@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { getAdminSessionFromRequest } from '../lib/auth.js'
+import { logError } from '../lib/logger.js'
 
 declare global {
   namespace Express {
@@ -19,7 +20,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     req.adminSession = session
     next()
   } catch (error) {
-    console.error('[v0] Auth middleware error:', error)
+    logError('Auth middleware', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 }

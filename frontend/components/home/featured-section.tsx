@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import ProductCard from '@/components/product-card'
 import type { Product } from '@/lib/types'
 import api from '@/lib/api'
+import { clientLogger } from '@/lib/client-logger'
 
 export default function FeaturedSection() {
   const [featured, setFeatured] = useState<Product[]>([])
@@ -17,7 +18,7 @@ export default function FeaturedSection() {
         const products = await api.get_products()
         setFeatured(products.filter(p => p.visible).slice(0, 6))
       } catch (err) {
-        console.error('[v0] Failed to fetch featured products:', err)
+        clientLogger.error('Failed to fetch featured products:', err)
         setFeatured([])
       } finally {
         setLoading(false)

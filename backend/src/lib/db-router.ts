@@ -3,14 +3,20 @@
  *
  * HOW FAILOVER TRIGGERS (creates)
  * --------------------------------
- * 1. createWithFailover() tries connection 0 (MONGODB_URI).
- * 2. If the write throws an Atlas/storage-quota error (message contains
- *    quota / storage / disk / "exceeded"), it logs a warning and retries
- *    on connection 1 (MONGODB_URI_2), then 2, etc.
+ * 1. createWithFailover() uses round-robin to pick a database, then tries it.
+ * 2. If the write throws an Atlas/storage-quota error (MongoDB error code 8000,
+ *    codeName 'AtlasError', or message contains "over your space quota"), it logs
+ *    a warning and retries on the next database in round-robin order.
  * 3. Non-quota errors (validation, duplicate key, network) are NOT retried —
  *    they bubble up immediately so we don't silently write to the wrong cluster.
- * 4. The saved document's `dbIndex` is the connection index that succeeded
- *    (0 = primary).
+ * 4. The saved document's `dbIndex` is the connection index that succeeded.
+ *
+ * HOW ROUND-ROBIN WORKS
+ * ---------------------
+ * - Simple counter increments synchronously before any async operations
+ * - This prevents race conditions where concurrent requests could pick same db
+ * - When a storage-quota error occurs, the write continues to the next database
+ * - The counter only advances on successful writes, not on retries
  *
  * HOW READS WORK
  * --------------
@@ -39,28 +45,41 @@ import mongoose from 'mongoose'
 import { getConnection, getAllConnections, getConnectionCount } from './db.js'
 import { logError, logInfo, logWarn } from './logger.js'
 
-const STORAGE_FULL_PATTERNS = [
-  'storage quota exceeded',
-  'quotaexceeded',
-  'storage limit',
-  'disk space',
-  'atlas.*quota',
-  'you have exceeded',
-  'quota',
-]
+// Round-robin counter for write distribution
+let currentDbIndex = 0
 
 export function isStorageFullError(error: unknown): boolean {
-  const message =
-    error instanceof Error
-      ? `${error.name} ${error.message} ${JSON.stringify((error as { code?: unknown }).code ?? '')}`
-      : String(error)
-  const lower = message.toLowerCase()
-  return STORAGE_FULL_PATTERNS.some(pattern => new RegExp(pattern, 'i').test(lower))
+  // Primary check: MongoDB Atlas error code 8000 (space quota exceeded)
+  if (typeof error === 'object' && error !== null) {
+    const errorObj = error as { code?: number; codeName?: string; message?: string }
+    if (errorObj.code === 8000 || errorObj.codeName === 'AtlasError') {
+      return true
+    }
+  }
+
+  // Secondary fallback: message text check (in case driver wraps error differently)
+  if (error instanceof Error && error.message) {
+    return error.message.toLowerCase().includes('over your space quota')
+  }
+
+  return false
+}
+
+function logFullError(error: unknown, context: string): void {
+  if (typeof error === 'object' && error !== null) {
+    const errorObj = error as { code?: number; codeName?: string; message?: string; name?: string }
+    logError(
+      context,
+      `Error details - code: ${errorObj.code}, codeName: ${errorObj.codeName}, name: ${errorObj.name}, message: ${errorObj.message}`
+    )
+  } else {
+    logError(context, `Error details (non-object): ${String(error)}`)
+  }
 }
 
 export class DatabaseRouter {
   /**
-   * Create: try primary, then numbered fallbacks, only on storage-full errors.
+   * Create: round-robin distribution with storage-quota failover.
    * `modelCreator` receives the connection AND the index so the caller can stamp dbIndex.
    */
   static async createWithFailover<T>(
@@ -69,22 +88,30 @@ export class DatabaseRouter {
   ): Promise<{ result: T; dbIndex: number }> {
     const connectionCount = getConnectionCount()
 
-    for (let i = 0; i < connectionCount; i++) {
+    // Pick starting database using round-robin (synchronous increment before async operations)
+    const startDbIndex = currentDbIndex
+    currentDbIndex = (currentDbIndex + 1) % connectionCount
+
+    // Try the chosen database first, then failover on storage-full errors
+    for (let attempt = 0; attempt < connectionCount; attempt++) {
+      const dbIndex = (startDbIndex + attempt) % connectionCount
+
       try {
-        const connection = getConnection(i)
-        logInfo('DatabaseRouter', `Attempting ${recordType} creation on database index ${i}`)
-        const result = await modelCreator(connection, i)
-        logInfo('DatabaseRouter', `Created ${recordType} on database index ${i}`)
-        return { result, dbIndex: i }
+        const connection = getConnection(dbIndex)
+        logInfo('DatabaseRouter', `Attempting ${recordType} creation on database index ${dbIndex}`)
+        const result = await modelCreator(connection, dbIndex)
+        logInfo('DatabaseRouter', `Created ${recordType} on database index ${dbIndex}`)
+        return { result, dbIndex }
       } catch (error) {
-        if (isStorageFullError(error) && i < connectionCount - 1) {
+        logFullError(error, `DatabaseRouter write attempt ${dbIndex} for ${recordType}`)
+        if (isStorageFullError(error) && attempt < connectionCount - 1) {
           logWarn(
             'DatabaseRouter',
-            `Database index ${i} storage full, trying next database for ${recordType}`
+            `Database index ${dbIndex} storage full (code 8000/AtlasError detected), trying next database for ${recordType}`
           )
           continue
         }
-        logError('DatabaseRouter', `Failed to create ${recordType} on database ${i}: ${error}`)
+        logError('DatabaseRouter', `Failed to create ${recordType} on database ${dbIndex}: ${error}`)
         throw error
       }
     }
@@ -127,6 +154,7 @@ export class DatabaseRouter {
       logInfo('DatabaseRouter', `Updating ${recordType} on database index ${dbIndex}`)
       return await modelUpdater(connection)
     } catch (error) {
+      logFullError(error, `DatabaseRouter update on database ${dbIndex} for ${recordType}`)
       logError('DatabaseRouter', `Failed to update ${recordType} on database ${dbIndex}: ${error}`)
       throw error
     }
@@ -168,5 +196,57 @@ export class DatabaseRouter {
 
     logWarn('DatabaseRouter', `${recordType} ${id} not found in any database`)
     return null
+  }
+
+  /**
+   * Get database status for debugging - checks connection health and counts
+   */
+  static async getDatabaseStatus(): Promise<
+    Array<{
+      index: number
+      alive: boolean
+      collections: Record<string, number>
+    }>
+  > {
+    const connections = getAllConnections()
+    const status = []
+
+    for (let i = 0; i < connections.length; i++) {
+      try {
+        const connection = connections[i]
+        const collections = ['products', 'orders', 'addons', 'accessories', 'specOptions', 'pricelists', 'shippingRates', 'inventoryLogs']
+        const counts: Record<string, number> = {}
+
+        for (const collection of collections) {
+          try {
+            const count = await connection.collection(collection).countDocuments()
+            counts[collection] = count
+          } catch {
+            counts[collection] = 0
+          }
+        }
+
+        status.push({
+          index: i,
+          alive: connection.readyState === 1, // 1 = connected
+          collections: counts,
+        })
+      } catch (error) {
+        status.push({
+          index: i,
+          alive: false,
+          collections: {},
+        })
+      }
+    }
+
+    return status
+  }
+
+  /**
+   * Get current round-robin index for debugging
+   */
+  static getCurrentRoundRobinIndex(): number {
+    return currentDbIndex
   }
 }

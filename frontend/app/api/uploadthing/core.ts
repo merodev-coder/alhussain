@@ -4,8 +4,6 @@ import { headers } from 'next/headers'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
-const f = createUploadthing()
-
 async function checkAdminSessionServerSide(): Promise<{ authenticated: boolean; sub?: string }> {
   try {
     const headersList = await headers()
@@ -24,10 +22,15 @@ async function checkAdminSessionServerSide(): Promise<{ authenticated: boolean; 
 
     return response.json()
   } catch (error) {
-    console.error('Session check failed:', error)
+    // Session check failed silently
     return { authenticated: false }
   }
 }
+
+// Create UploadThing instance with server-side token (not exposed to browser)
+const f = createUploadthing({
+  token: process.env.UPLOADTHING_TOKEN || '',
+})
 
 export const ourFileRouter = {
   // Admin-only: product gallery photos.

@@ -14,6 +14,7 @@ import {
   ChevronDown,
   X,
   Check,
+  CheckCircle,
   Truck,
   Clock,
   Ban,
@@ -27,10 +28,11 @@ import {
   PlusCircle,
   Headphones,
   Boxes,
+  Loader2,
 } from 'lucide-react'
-import { MOCK_ORDERS, MOCK_PRODUCTS } from '@/lib/mock-data'
 import type { Order } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { clientLogger } from '@/lib/client-logger'
 import ProductsTab from './products-tab'
 import PricelistTab from './pricelist-tab'
 import AddonsTab from './addons-tab'
@@ -38,7 +40,9 @@ import AccessoriesTab from './accessories-tab'
 import ShippingTab from './shipping-tab'
 import InventoryTab from './inventory-tab'
 import PaymentsTab from './payments-tab'
+import SettingsTab from './settings-tab'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { Skeleton } from '@/components/ui/skeleton'
 import api from '@/lib/api'
 
 interface AdminDashboardProps {
@@ -151,16 +155,38 @@ function OrderDetailModal({
   onClose: () => void
   onStatusChange: (id: string, status: OrderStatus) => void
 }) {
-  const STATUS_FLOW: OrderStatus[] = ['pending', 'confirmed', 'shipped', 'completed', 'declined']
+  const [paymentAction, setPaymentAction] = useState<'confirming' | 'rejecting' | null>(null)
+  const [receiptImage, setReceiptImage] = useState<string | null>(null)
+
+  const PAYMENT_METHOD_LABELS: Record<string, string> = {
+    vodafone_cash: 'فودافون كاش',
+    instapay: 'إنستا باي',
+  }
+
+  const handlePaymentAction = async (action: 'confirm' | 'reject') => {
+    setPaymentAction(action === 'confirm' ? 'confirming' : 'rejecting')
+    try {
+      await api.update_payment_status(order.id, action === 'confirm' ? 'confirmed' : 'rejected')
+      onStatusChange(order.id, action === 'confirm' ? 'confirmed' : 'declined')
+      onClose()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'فشل تحديث حالة الدفع')
+    } finally {
+      setPaymentAction(null)
+    }
+  }
+
+  // Calculate expected transfer amount
+  const expectedTransferAmount = order.isCashOnDelivery ? (order.depositAmount || 0) : order.total
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-canvas rounded-[24px] border border-hairline w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div className="relative bg-canvas rounded-[24px] border border-hairline w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-hairline sticky top-0 bg-canvas z-10">
           <h2 className="font-sans font-bold text-ink text-lg">
-            طلب رقم <span className="text-brand-primary">{order.id}</span>
+            طلب رقم <span className="text-brand-primary">{order.orderNumber || order.id}</span>
           </h2>
           <button
             onClick={onClose}
@@ -172,10 +198,24 @@ function OrderDetailModal({
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Status */}
+          {/* Status badges */}
           <div className="flex flex-wrap items-center gap-3">
             <span className="font-body text-sm text-ink-muted">الحالة الحالية:</span>
             <StatusBadge status={order.status} />
+            {order.paymentStatus && (
+              <>
+                <span className="font-body text-sm text-ink-muted">حالة الدفع:</span>
+                <span className={cn(
+                  'inline-flex items-center gap-1 text-xs font-body font-medium px-2.5 py-1 rounded-full',
+                  order.paymentStatus === 'confirmed' ? 'bg-green-100 text-green-700' :
+                  order.paymentStatus === 'rejected' ? 'bg-red-100 text-red-600' :
+                  'bg-amber-100 text-amber-700'
+                )}>
+                  {order.paymentStatus === 'confirmed' ? 'مؤكد' :
+                   order.paymentStatus === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
+                </span>
+              </>
+            )}
           </div>
 
           {/* Customer Info */}
@@ -213,35 +253,92 @@ function OrderDetailModal({
             </div>
           </div>
 
+          {/* Payment Information */}
+          <div className="bg-surface-1 rounded-[20px] p-4 space-y-3">
+            <h3 className="font-sans font-bold text-ink text-sm">معلومات الدفع</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-ink-muted">طريقة الدفع:</span>{' '}
+                <strong className="text-ink">
+                  {PAYMENT_METHOD_LABELS[order.paymentMethod || ''] || order.paymentMethod || 'غير محدد'}
+                </strong>
+                {order.isCashOnDelivery && (
+                  <span className="mr-2 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-body font-semibold">
+                    دفع عند الاستلام
+                  </span>
+                )}
+              </div>
+              {order.isCashOnDelivery && (
+                <div>
+                  <span className="text-ink-muted">مبلغ التأمين:</span>{' '}
+                  <strong className="text-brand-primary font-sans text-sm">
+                    {(order.depositAmount || 0).toLocaleString('ar-EG')} ج.م
+                  </strong>
+                </div>
+              )}
+              <div>
+                <span className="text-ink-muted">المبلغ المطلوب تحويله:</span>{' '}
+                <strong className="text-brand-primary font-sans text-sm">
+                  {expectedTransferAmount.toLocaleString('ar-EG')} ج.م
+                </strong>
+              </div>
+              {order.isCashOnDelivery && (
+                <div>
+                  <span className="text-ink-muted">المتبقي عند الاستلام:</span>{' '}
+                  <strong className="text-ink font-sans text-sm">
+                    {(order.total - (order.depositAmount || 0)).toLocaleString('ar-EG')} ج.م
+                  </strong>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Receipt Photo */}
+          {order.depositPhotoUrl && (
+            <div className="bg-surface-1 rounded-[20px] p-4 space-y-3">
+              <h3 className="font-sans font-bold text-ink text-sm">صورة إيصال التحويل</h3>
+              <div
+                onClick={() => setReceiptImage(order.depositPhotoUrl!)}
+                className="relative w-full h-64 rounded-xl overflow-hidden border border-hairline bg-canvas cursor-pointer group"
+              >
+                <Image
+                  src={order.depositPhotoUrl}
+                  alt="إيصال الدفع"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform"
+                />
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-body gap-1">
+                  <Eye className="w-4 h-4" />
+                  تكبير الصورة
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Order Items */}
           <div>
             <h3 className="font-sans font-bold text-ink text-sm mb-3">المنتجات</h3>
             <div className="space-y-3">
-              {order.items.map(item => {
-                const product = MOCK_PRODUCTS.find(p => p.id === item.productId)
-                return (
-                  <div key={item.productId} className="flex gap-3 bg-surface-1 rounded-[16px] p-3 items-center">
-                    {product && (
-                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-canvas shrink-0">
-                        <Image
-                          src={product.photos[0]}
-                          alt={item.name}
-                          width={48}
-                          height={48}
-                          className="w-full h-full object-cover"
-                        />
+              {order.items.map((item, idx) => (
+                <div key={`${item.productId}-${idx}`} className="flex gap-3 bg-surface-1 rounded-[16px] p-3 items-center">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-body text-sm font-semibold text-ink line-clamp-1">{item.name}</p>
+                    <p className="font-body text-xs text-ink-muted">السعر عند الطلب: {item.priceAtOrder || item.price} ج.م</p>
+                    <p className="font-body text-xs text-ink-muted">الكمية: × {item.qty}</p>
+                    {item.selectedAddons && item.selectedAddons.length > 0 && (
+                      <div className="mt-1 text-xs text-ink-muted">
+                        <span>الإضافات: </span>
+                        {item.selectedAddons.map((addon, aIdx) => (
+                          <span key={aIdx}>{addon.name} ({addon.price} ج.م × {addon.qty}){aIdx < item.selectedAddons.length - 1 ? ', ' : ''}</span>
+                        ))}
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-body text-sm font-semibold text-ink line-clamp-1">{item.name}</p>
-                      <p className="font-body text-xs text-ink-muted">× {item.qty}</p>
-                    </div>
-                    <p className="font-sans font-bold text-sm text-ink shrink-0">
-                      {(item.price * item.qty).toLocaleString('ar-EG')} ج.م
-                    </p>
                   </div>
-                )
-              })}
+                  <p className="font-sans font-bold text-sm text-ink shrink-0">
+                    {((item.priceAtOrder || item.price) * item.qty).toLocaleString('ar-EG')} ج.م
+                  </p>
+                </div>
+              ))}
             </div>
             <div className="flex justify-between items-center mt-4 pt-4 border-t border-hairline">
               <span className="font-body text-sm text-ink-muted">الإجمالي</span>
@@ -251,9 +348,37 @@ function OrderDetailModal({
             </div>
           </div>
 
-          {/* Status Actions */}
+          {/* Payment Verification Actions */}
+          {order.paymentStatus === 'pending_verification' && (
+            <div className="bg-surface-1 rounded-[20px] p-4 space-y-3">
+              <h3 className="font-sans font-bold text-ink text-sm">مراجعة الدفع</h3>
+              <p className="font-body text-xs text-ink-muted">
+                تحقق من المبلغ المحول ({expectedTransferAmount.toLocaleString('ar-EG')} ج.م) مع الإيصال المرفق، ثم تأكد أو ارفض الدفع.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handlePaymentAction('reject')}
+                  disabled={paymentAction === 'rejecting'}
+                  className="flex-1 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-sans font-bold text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <Ban className="w-4 h-4" />
+                  رفض الدفع
+                </button>
+                <button
+                  onClick={() => handlePaymentAction('confirm')}
+                  disabled={paymentAction === 'confirming'}
+                  className="flex-1 py-2.5 rounded-xl bg-green-600 text-white hover:bg-green-700 font-sans font-bold text-xs transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  تأكيد الدفع
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Order Status Actions */}
           <div>
-            <h3 className="font-sans font-bold text-ink text-sm mb-3">تغيير الحالة</h3>
+            <h3 className="font-sans font-bold text-ink text-sm mb-3">تغيير حالة الطلب</h3>
             <div className="flex flex-wrap gap-2">
               {STATUS_FLOW.filter(s => s !== order.status).map(s => {
                 const meta = STATUS_META[s]
@@ -277,6 +402,35 @@ function OrderDetailModal({
           </div>
         </div>
       </div>
+
+      {/* Receipt Image Modal */}
+      {receiptImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80" onClick={() => setReceiptImage(null)} />
+          <div className="relative bg-canvas p-2 rounded-2xl max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between p-2">
+              <a
+                href={receiptImage}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-body text-brand-primary hover:underline flex items-center gap-1"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                فتح الصورة الأصلية
+              </a>
+              <button
+                onClick={() => setReceiptImage(null)}
+                className="w-8 h-8 rounded-full hover:bg-surface-1 flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="relative w-full h-[70vh]">
+              <Image src={receiptImage} alt="إيصال الدفع" fill className="object-contain" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -305,7 +459,7 @@ function OrdersTab() {
         setAllOrders(orders)
         setTotalPages(data?.pages || 1)
       } catch (err) {
-        console.error('[v0] Failed to fetch orders:', err)
+        clientLogger.error('Failed to fetch orders:', err)
         setError(err instanceof Error ? err.message : 'فشل تحميل الطلبات من الخادم')
         setAllOrders([])
       } finally {
@@ -327,7 +481,7 @@ function OrdersTab() {
       setAllOrders(orders)
       setTotalPages(data?.pages || 1)
     } catch (err) {
-      console.error('[v0] Failed to fetch orders:', err)
+      clientLogger.error('Failed to fetch orders:', err)
       setError(err instanceof Error ? err.message : 'فشل تحميل الطلبات من الخادم')
       setAllOrders([])
     } finally {
@@ -340,7 +494,7 @@ function OrdersTab() {
       await api.update_order_status(id, status)
       setAllOrders(prev => prev.map(o => (o.id === id ? { ...o, status } : o)))
     } catch (err) {
-      console.error('[v0] Failed to update order status:', err)
+      clientLogger.error('Failed to update order status:', err)
       alert('فشل تحديث حالة الطلب')
     }
   }
@@ -357,7 +511,13 @@ function OrdersTab() {
   }, [allOrders, search])
 
   if (loading && allOrders.length === 0) {
-    return <div className="text-center py-8 text-ink-muted">جاري تحميل الطلبات...</div>
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3, 4, 5].map(i => (
+          <Skeleton key={i} className="h-20 w-full" />
+        ))}
+      </div>
+    )
   }
 
   if (error) {
@@ -528,7 +688,7 @@ function DashboardTab() {
         const data = await api.get_dashboard_stats()
         setStats(data)
       } catch (err) {
-        console.error('[v0] Failed to fetch dashboard stats:', err)
+        clientLogger.error('Failed to fetch dashboard stats:', err)
         setError(err instanceof Error ? err.message : 'فشل تحميل البيانات من الخادم')
         setStats(null)
       } finally {
@@ -548,7 +708,7 @@ function DashboardTab() {
         const products = Array.isArray(data) ? data : (data?.items || [])
         setProducts(products)
       } catch (err) {
-        console.error('[v0] Failed to fetch products:', err)
+        clientLogger.error('Failed to fetch products:', err)
         setProducts([])
       } finally {
         setProductsLoading(false)
@@ -559,7 +719,13 @@ function DashboardTab() {
   }, [])
 
   if (loading) {
-    return <div className="text-center py-8 text-ink-muted">جاري تحميل لوحة التحكم...</div>
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map(i => (
+          <Skeleton key={i} className="h-32" />
+        ))}
+      </div>
+    )
   }
 
   if (error) {
@@ -574,7 +740,7 @@ function DashboardTab() {
               api.get_dashboard_stats()
                 .then(data => setStats(data))
                 .catch(err => {
-                  console.error('[v0] Retry failed:', err)
+                  clientLogger.error('Retry failed:', err)
                   setError(err instanceof Error ? err.message : 'فشل تحميل البيانات')
                 })
                 .finally(() => setLoading(false))
@@ -715,7 +881,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       localStorage.removeItem('admin_authenticated')
       onLogout()
     } catch (err) {
-      console.error('[v0] Logout error:', err)
+      clientLogger.error('Logout error:', err)
       localStorage.removeItem('admin_authenticated')
       onLogout()
     }
@@ -836,15 +1002,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           {activeTab === 'inventory' && <InventoryTab />}
           {activeTab === 'shipping' && <ShippingTab />}
           {activeTab === 'pricelist' && <PricelistTab />}
-          {activeTab === 'settings' && (
-            <div>
-              <h2 className="font-sans font-bold text-ink text-2xl mb-6">الإعدادات</h2>
-              <div className="bg-canvas border border-hairline rounded-[20px] p-8 text-center">
-                <Settings className="w-10 h-10 text-ink-muted mx-auto mb-3" />
-                <p className="font-body text-ink-muted text-sm">صفحة الإعدادات قيد التطوير.</p>
-              </div>
-            </div>
-          )}
+          {activeTab === 'settings' && <SettingsTab />}
         </main>
       </div>
     </div>

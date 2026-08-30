@@ -152,6 +152,11 @@ export const api = {
   // Dashboard
   get_dashboard_stats: () => apiRequest<any>('/api/dashboard-stats'),
 
+  // Settings
+  get_settings: () => apiRequest<{ vodafoneCashNumber: string; instapayNumber: string }>('/api/settings'),
+  update_settings: (data: { vodafoneCashNumber: string; instapayNumber: string }) =>
+    apiRequest<any>('/api/settings', { method: 'POST', body: JSON.stringify(data) }),
+
   // Admin Auth
   login: (username: string, password: string) =>
     apiRequest<any>('/admin/login', { method: 'POST', body: JSON.stringify({ username, password }) }),

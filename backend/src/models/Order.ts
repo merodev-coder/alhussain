@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose'
 
 export type OrderStatus = 'pending' | 'confirmed' | 'declined' | 'shipped' | 'completed'
-export type PaymentMethod = 'vodafone_cash' | 'instapay' | 'bank_transfer'
+export type PaymentMethod = 'vodafone_cash' | 'instapay'
 export type PaymentStatus = 'pending_verification' | 'confirmed' | 'rejected'
 export type OrderItemType = 'laptop' | 'accessory'
 
@@ -35,6 +35,8 @@ export interface OrderDoc {
   total: number
   status: OrderStatus
   paymentMethod?: PaymentMethod
+  isCashOnDelivery: boolean
+  depositAmount: number
   paymentStatus: PaymentStatus
   stockDecremented: boolean
   dbIndex: number
@@ -88,8 +90,10 @@ const OrderSchema = new Schema<OrderDoc>(
     },
     paymentMethod: {
       type: String,
-      enum: ['vodafone_cash', 'instapay', 'bank_transfer'],
+      enum: ['vodafone_cash', 'instapay'],
     },
+    isCashOnDelivery: { type: Boolean, default: false },
+    depositAmount: { type: Number, required: true, min: 0, default: 0 },
     paymentStatus: {
       type: String,
       enum: ['pending_verification', 'confirmed', 'rejected'],

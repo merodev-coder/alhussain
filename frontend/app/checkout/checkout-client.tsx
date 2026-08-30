@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Truck, Store, Upload, MapPin, CheckCircle, ChevronRight, CreditCard, ShieldCheck } from 'lucide-react'
+import { Truck, Store, Upload, MapPin, CheckCircle, ChevronRight, CreditCard, ShieldCheck, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +11,7 @@ import { useCart } from '@/lib/cart-context'
 import type { ShippingRate, PaymentMethod } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
+import { clientLogger } from '@/lib/client-logger'
 
 type FormData = {
   name: string
@@ -18,7 +19,8 @@ type FormData = {
   address: string
   governorate: string
   deliveryMethod: 'shipping' | 'pickup'
-  paymentMethod: PaymentMethod
+  paymentMethod: 'vodafone_cash' | 'instapay'
+  isCashOnDelivery: boolean
   depositFile: File | null
 }
 
@@ -33,6 +35,8 @@ function validate(form: FormData): Errors {
     if (!form.address.trim()) errors.address = 'العنوان مطلوب'
     if (!form.governorate) errors.governorate = 'المحافظة مطلوبة'
   }
+  // Receipt upload is required for all payment methods (full payment or deposit)
+  if (!form.depositFile) errors.depositFile = 'صورة إيصال التحويل مطلوبة'
   return errors
 }
 
@@ -40,7 +44,7 @@ export default function CheckoutClient() {
   const { items, total: subtotal, clearCart } = useCart()
 
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([])
-  const [paymentInstructions, setPaymentInstructions] = useState<any[]>([])
+  const [settings, setSettings] = useState<{ vodafoneCashNumber: string; instapayNumber: string } | null>(null)
 
   const [form, setForm] = useState<FormData>({
     name: '',
@@ -49,6 +53,7 @@ export default function CheckoutClient() {
     governorate: '',
     deliveryMethod: 'shipping',
     paymentMethod: 'vodafone_cash',
+    isCashOnDelivery: false,
     depositFile: null,
   })
 
@@ -57,6 +62,7 @@ export default function CheckoutClient() {
   const [orderId, setOrderId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string>('')
+  const [initialLoading, setInitialLoading] = useState(true)
 
   useEffect(() => {
     // Fetch shipping rates
@@ -64,17 +70,22 @@ export default function CheckoutClient() {
       .then(res => setShippingRates(res || []))
       .catch(() => {})
 
-    // Fetch payment methods
-    api.get_payment_methods()
-      .then(res => setPaymentInstructions(res.methods || []))
+    // Fetch settings (phone numbers)
+    api.get_settings()
+      .then(res => setSettings(res))
       .catch(() => {})
+      .finally(() => setInitialLoading(false))
   }, [])
 
   const currentShippingRate = shippingRates.find(r => r.governorate === form.governorate)
   const shippingCost = form.deliveryMethod === 'shipping' && currentShippingRate ? currentShippingRate.cost : 0
   const grandTotal = subtotal + shippingCost
 
-  const currentPaymentInfo = paymentInstructions.find(p => p.method === form.paymentMethod)
+  // Calculate deposit amount for cash_on_delivery (shipping cost only)
+  const depositAmount = form.isCashOnDelivery ? shippingCost : 0
+  const amountToTransfer = form.isCashOnDelivery ? depositAmount : grandTotal
+
+  const paymentPhoneNumber = form.paymentMethod === 'vodafone_cash' ? settings?.vodafoneCashNumber : settings?.instapayNumber
 
   const set = (field: keyof FormData, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -125,9 +136,8 @@ export default function CheckoutClient() {
         deliveryMethod: form.deliveryMethod,
         depositPhotoUrl,
         items: orderItems,
-        total: grandTotal,
-        shippingCost,
         paymentMethod: form.paymentMethod,
+        isCashOnDelivery: form.isCashOnDelivery,
       }
 
       const response = await api.create_order(orderData)
@@ -135,11 +145,21 @@ export default function CheckoutClient() {
       setSubmitted(true)
       clearCart()
     } catch (error) {
-      console.error('[Checkout] Order error:', error)
+      clientLogger.error('Order error:', error)
       setSubmitError(error instanceof Error ? error.message : 'حدث خطأ في إرسال الطلب')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (initialLoading) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="animate-spin text-brand-primary h-12 w-12" />
+        </div>
+      </div>
+    )
   }
 
   if (items.length === 0 && !submitted) {
@@ -322,17 +342,18 @@ export default function CheckoutClient() {
 
             {/* Payment Method Section */}
             <div className="bg-canvas border border-hairline rounded-[20px] p-6">
-              <h2 className="font-sans font-bold text-ink text-lg mb-5">3. طريقة الدفع الإلكتروني</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+              <h2 className="font-sans font-bold text-ink text-lg mb-5">3. طريقة الدفع</h2>
+
+              {/* Transfer method selection */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                 {[
-                  { value: 'vodafone_cash', label: 'فودافون كاش' },
-                  { value: 'instapay', label: 'إنستا باي (InstaPay)' },
-                  { value: 'bank_transfer', label: 'تحويل بنكي' },
+                  { value: 'vodafone_cash' as const, label: 'فودافون كاش' },
+                  { value: 'instapay' as const, label: 'إنستا باي (InstaPay)' },
                 ].map(m => (
                   <button
                     key={m.value}
                     type="button"
-                    onClick={() => set('paymentMethod', m.value as PaymentMethod)}
+                    onClick={() => set('paymentMethod', m.value)}
                     className={cn(
                       'flex items-center justify-center gap-2 p-3.5 rounded-[16px] border-2 font-sans font-bold text-xs transition-all',
                       form.paymentMethod === m.value
@@ -346,29 +367,64 @@ export default function CheckoutClient() {
                 ))}
               </div>
 
+              {/* Cash on delivery option (only for shipping) */}
+              {form.deliveryMethod === 'shipping' && (
+                <div className="mb-5">
+                  <label className="flex items-center gap-3 p-4 rounded-[16px] border-2 cursor-pointer transition-all bg-canvas hover:bg-surface-1">
+                    <input
+                      type="checkbox"
+                      checked={form.isCashOnDelivery}
+                      onChange={e => set('isCashOnDelivery', e.target.checked)}
+                      className="w-5 h-5 rounded border-hairline text-brand-primary focus:ring-[#0FC7C1]"
+                    />
+                    <div className="flex-1">
+                      <span className="font-sans font-bold text-ink text-sm">الدفع عند الاستلام</span>
+                      <p className="font-body text-xs text-ink-muted mt-0.5">
+                        ادفع مبلغ التأمين ({shippingCost.toLocaleString('ar-EG')} ج.م) الآن، وادفع المتبقي عند الاستلام
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              )}
+
               {/* Payment details box */}
               <div className="bg-surface-1 border border-hairline rounded-[20px] p-5 space-y-3">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-brand-primary" />
                   <h4 className="font-sans font-bold text-ink text-sm">
-                    بيانات التحويل ({currentPaymentInfo?.labelAr || form.paymentMethod})
+                    بيانات التحويل ({form.paymentMethod === 'vodafone_cash' ? 'فودافون كاش' : 'إنستا باي'})
                   </h4>
                 </div>
                 <div className="p-3 bg-canvas rounded-xl border border-hairline">
-                  <p className="font-body text-xs text-ink-muted mb-1">الرقم / العنوان المخصص للتحويل:</p>
+                  <p className="font-body text-xs text-ink-muted mb-1">الرقم المخصص للتحويل:</p>
                   <p className="font-sans font-bold text-lg text-brand-primary dir-ltr text-start">
-                    {currentPaymentInfo?.destination || '01000000000'}
+                    {paymentPhoneNumber || 'جاري التحميل...'}
                   </p>
                 </div>
+                <div className="p-3 bg-canvas rounded-xl border border-hairline">
+                  <p className="font-body text-xs text-ink-muted mb-1">المبلغ المطلوب تحويله:</p>
+                  <p className="font-sans font-bold text-xl text-brand-primary">
+                    {amountToTransfer.toLocaleString('ar-EG')} ج.م
+                  </p>
+                  {form.isCashOnDelivery && (
+                    <p className="font-body text-xs text-ink-muted mt-1">
+                      مبلغ التأمين فقط — المتبقي ({(grandTotal - depositAmount).toLocaleString('ar-EG')} ج.م) يُدفع عند الاستلام
+                    </p>
+                  )}
+                </div>
                 <p className="font-body text-xs text-ink-muted leading-relaxed">
-                  {currentPaymentInfo?.notesAr ||
-                    'قم بتحويل المبلغ المطلوب، ثم ارفع صورة إيصال التحويل أدناه لمراجعة الطلب.'}
+                  {form.isCashOnDelivery
+                    ? 'قم بتحويل مبلغ التأمين المحدد أعلاه، ثم ارفع صورة إيصال التحويل أدناه لمراجعة الطلب.'
+                    : 'قم بتحويل المبلغ الكامل، ثم ارفع صورة إيصال التحويل أدناه لمراجعة الطلب.'}
                 </p>
 
-                {/* Deposit photo upload */}
+                {/* Deposit photo upload (required) */}
                 <div className="pt-2">
-                  <Label className="font-body text-xs text-ink font-semibold mb-1.5 block">صورة إيصال التحويل (اختياري الآن)</Label>
-                  <label className="flex flex-col items-center gap-2 border-2 border-dashed border-hairline rounded-[16px] p-4 cursor-pointer hover:border-brand-primary/50 hover:bg-canvas transition-colors">
+                  <Label className="font-body text-xs text-ink font-semibold mb-1.5 block">صورة إيصال التحويل *</Label>
+                  <label className={cn(
+                    'flex flex-col items-center gap-2 border-2 border-dashed rounded-[16px] p-4 cursor-pointer transition-colors',
+                    errors.depositFile ? 'border-red-400 bg-red-50' : 'border-hairline hover:border-brand-primary/50 hover:bg-canvas'
+                  )}>
                     <Upload className="w-5 h-5 text-ink-muted" />
                     <span className="font-body text-xs text-ink-muted">
                       {form.depositFile ? form.depositFile.name : 'اضغط هنا لرفع صورة الإيصال'}
@@ -376,10 +432,12 @@ export default function CheckoutClient() {
                     <input
                       type="file"
                       accept="image/*"
+                      required
                       className="hidden"
                       onChange={e => set('depositFile', e.target.files?.[0] ?? null)}
                     />
                   </label>
+                  {errors.depositFile && <p className="font-body text-xs text-red-500 mt-1">{errors.depositFile}</p>}
                 </div>
               </div>
             </div>
@@ -435,8 +493,20 @@ export default function CheckoutClient() {
                     {form.deliveryMethod === 'pickup' ? 'مجاناً' : `${shippingCost.toLocaleString('ar-EG')} ج.م`}
                   </span>
                 </div>
+                {form.isCashOnDelivery && (
+                  <div className="flex justify-between text-brand-primary font-semibold">
+                    <span>مبلغ التأمين (يُدفع الآن)</span>
+                    <span className="font-sans">{depositAmount.toLocaleString('ar-EG')} ج.م</span>
+                  </div>
+                )}
+                {form.isCashOnDelivery && (
+                  <div className="flex justify-between text-ink-muted">
+                    <span>المتبقي للدفع عند الاستلام</span>
+                    <span className="font-sans">{(grandTotal - depositAmount).toLocaleString('ar-EG')} ج.م</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-sans font-bold text-ink text-lg border-t border-hairline pt-3 mt-2">
-                  <span>الإجمالي النهائي</span>
+                  <span>{form.isCashOnDelivery ? 'الإجمالي الكامل' : 'الإجمالي النهائي'}</span>
                   <span className="text-brand-primary">{grandTotal.toLocaleString('ar-EG')} ج.م</span>
                 </div>
               </div>
@@ -456,26 +526,6 @@ export default function CheckoutClient() {
               </Button>
               <p className="font-body text-xs text-ink-muted text-center mt-3">
                 تأكيد مجاني وسيتواصل معك موظف المبيعات لإنهاء الدفع
-              </p>
-            </div>
-          </div>
-        </div>
-      </form>
-    </div>
-  )
-}
-</p>
-                </div>
-              )}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full mt-4 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-sans font-bold h-12 active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? 'جاري إرسال الطلب...' : 'تأكيد الطلب'}
-              </Button>
-              <p className="font-body text-xs text-ink-muted text-center mt-3">
-                سنتواصل معك خلال 24 ساعة
               </p>
             </div>
           </div>

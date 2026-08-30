@@ -13,7 +13,10 @@ const router = Router()
 
 router.get('/api/addons', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { compatibleWith } = req.query
+    const { compatibleWith, page = '1', limit = '24' } = req.query
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1)
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 24))
+
     const session = await getAdminSessionFromRequest(req)
     const all = await DatabaseRouter.readAcrossAllDatabases(async connection => {
       const query: Record<string, unknown> = {}
@@ -28,7 +31,14 @@ router.get('/api/addons', async (req: Request, res: Response): Promise<void> => 
       )
     }
 
-    res.json(items)
+    const total = items.length
+    const pages = Math.max(1, Math.ceil(total / limitNum))
+    res.json({
+      items: items.slice((pageNum - 1) * limitNum, pageNum * limitNum),
+      total,
+      page: pageNum,
+      pages,
+    })
   } catch (error) {
     logError('Get addons', error)
     res.status(500).json({ error: 'حدث خطأ في الخادم' })

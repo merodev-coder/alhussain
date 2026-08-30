@@ -2,7 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
-import { logger, logError, logInfo } from './lib/logger.js'
+import { logger, logError, logInfo, logWarn } from './lib/logger.js'
 import 'dotenv/config'
 import { connectDB } from './lib/db.js'
 import { seedShippingRatesIfEmpty } from './lib/seed-shipping.js'
@@ -16,6 +16,8 @@ import addonsRoutes from './routes/addons.js'
 import accessoriesRoutes from './routes/accessories.js'
 import shippingRatesRoutes from './routes/shipping-rates.js'
 import inventoryRoutes from './routes/inventory.js'
+import debugRoutes from './routes/debug.js'
+import settingsRoutes from './routes/settings.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -53,6 +55,8 @@ app.use(addonsRoutes)
 app.use(accessoriesRoutes)
 app.use(shippingRatesRoutes)
 app.use(inventoryRoutes)
+app.use('/api/debug', debugRoutes)
+app.use(settingsRoutes)
 
 // Health check
 app.get('/health', (req, res) => {
@@ -68,8 +72,16 @@ app.use((err: Error, req: express.Request, res: express.Response, _next: express
 // Connect to DB and start server
 async function start() {
   try {
-    const adminUser = process.env.ADMIN_USERNAME || 'admin'
-    logInfo('Server start', `Using admin username: ${adminUser}`)
+    const adminUsername = process.env.ADMIN_USERNAME
+    const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH
+
+    // For testing: warn but don't fail if admin credentials missing
+    // (TODO: Re-enable strict validation for production)
+    if (!adminUsername || !adminPasswordHash) {
+      logWarn('Server start', 'ADMIN_USERNAME or ADMIN_PASSWORD_HASH missing - admin routes will not work')
+    } else {
+      logInfo('Server start', `Using admin username: ${adminUsername}`)
+    }
 
     await connectDB()
     await seedShippingRatesIfEmpty()

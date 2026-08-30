@@ -54,6 +54,7 @@ const AddonSchema = new Schema<AddonDoc>(
   }
 )
 
+AddonSchema.index({ visible: 1, createdAt: -1 })
 AddonSchema.index({ visible: 1, category: 1 })
 AddonSchema.index({ dbIndex: 1 })
 

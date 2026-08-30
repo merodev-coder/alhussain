@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 const SpecOptionSchema = new Schema({
     type: {
         type: String,
@@ -7,6 +7,7 @@ const SpecOptionSchema = new Schema({
     },
     value: { type: String, required: true, trim: true },
     active: { type: Boolean, default: true },
+    dbIndex: { type: Number, required: true, default: 0 },
 }, {
     timestamps: true,
     toJSON: {
@@ -20,6 +21,14 @@ const SpecOptionSchema = new Schema({
 });
 // Prevent duplicate values within the same type.
 SpecOptionSchema.index({ type: 1, value: 1 }, { unique: true });
-const SpecOption = mongoose.models.SpecOption ||
-    model('SpecOption', SpecOptionSchema);
+SpecOptionSchema.index({ dbIndex: 1 });
+// Helper function to get SpecOption model for a specific connection
+export function getSpecOptionModel(connection) {
+    if (connection.models.SpecOption) {
+        return connection.models.SpecOption;
+    }
+    return connection.model('SpecOption', SpecOptionSchema);
+}
+// Legacy export for backward compatibility (uses default connection)
+const SpecOption = getSpecOptionModel(mongoose.connection);
 export default SpecOption;

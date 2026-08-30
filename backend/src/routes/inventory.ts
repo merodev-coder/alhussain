@@ -140,7 +140,13 @@ router.get('/api/inventory/export.csv', requireAdmin, async (_req: Request, res:
 router.patch('/api/inventory', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     const data = inventoryAdjustSchema.parse(req.body)
-    const adminUser = req.adminSession?.sub || 'admin'
+    const adminUser = req.adminSession?.sub
+
+    if (!adminUser) {
+      logError('Adjust inventory', 'Admin session missing user identifier')
+      res.status(401).json({ error: 'جلسة المسؤول غير صالحة' })
+      return
+    }
 
     const lookup =
       data.itemType === 'laptop'

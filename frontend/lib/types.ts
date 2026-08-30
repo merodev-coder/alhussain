@@ -70,7 +70,7 @@ export type OrderItem = {
   selectedAddons?: SelectedAddon[]
 }
 
-export type PaymentMethod = 'vodafone_cash' | 'instapay' | 'bank_transfer'
+export type PaymentMethod = 'vodafone_cash' | 'instapay'
 export type PaymentStatus = 'pending_verification' | 'confirmed' | 'rejected'
 
 export type Order = {
@@ -87,6 +87,8 @@ export type Order = {
   total: number
   status: 'pending' | 'confirmed' | 'declined' | 'shipped' | 'completed'
   paymentMethod?: PaymentMethod
+  isCashOnDelivery?: boolean
+  depositAmount?: number
   paymentStatus?: PaymentStatus
   stockDecremented?: boolean
   dbIndex?: number

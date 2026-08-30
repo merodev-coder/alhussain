@@ -1,4 +1,5 @@
 import { getAdminSessionFromRequest } from '../lib/auth.js';
+import { logError } from '../lib/logger.js';
 export async function requireAdmin(req, res, next) {
     try {
         const session = await getAdminSessionFromRequest(req);
@@ -10,7 +11,7 @@ export async function requireAdmin(req, res, next) {
         next();
     }
     catch (error) {
-        console.error('[v0] Auth middleware error:', error);
+        logError('Auth middleware', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 }

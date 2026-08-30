@@ -9,7 +9,6 @@ import { logError, logInfo } from '../lib/logger.js'
 import { DatabaseRouter } from '../lib/db-router.js'
 import { withId, withIds } from '../lib/json.js'
 import { findAccessoryById, findAddonById, findProductById, findShippingRate } from '../lib/catalog.js'
-import { getPaymentProvider } from '../lib/payment-provider.js'
 import { decrementStockForOrder } from '../lib/inventory.js'
 
 const router = Router()
@@ -26,16 +25,13 @@ function generateOrderNumber(): string {
   return `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`
 }
 
-router.get('/api/payment-methods', (_req: Request, res: Response): void => {
-  res.json({ methods: getPaymentProvider().listMethods() })
-})
-
 router.post('/api/orders', orderRateLimit, async (req: Request, res: Response): Promise<void> => {
   try {
     const data = orderInputSchema.parse(req.body)
-    const provider = getPaymentProvider()
-    if (!provider.getInstructions(data.paymentMethod)) {
-      res.status(400).json({ error: 'طريقة الدفع غير صحيحة' })
+
+    // Validate cash_on_delivery is only allowed for shipping
+    if (data.isCashOnDelivery && data.deliveryMethod === 'pickup') {
+      res.status(400).json({ error: 'الدفع عند الاستلام غير متاح لطلبات الاستلام من المتجر' })
       return
     }
 
@@ -115,6 +111,9 @@ router.post('/api/orders', orderRateLimit, async (req: Request, res: Response): 
 
     const calculatedTotal = itemsTotal + shippingCost
 
+    // Calculate deposit amount for cash_on_delivery (shipping cost only)
+    const depositAmount = data.isCashOnDelivery ? shippingCost : 0
+
     const { result } = await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
       const OrderModel = getOrderModel(connection)
       const order = new OrderModel({
@@ -130,6 +129,8 @@ router.post('/api/orders', orderRateLimit, async (req: Request, res: Response): 
         orderNumber: generateOrderNumber(),
         status: 'pending',
         paymentMethod: data.paymentMethod,
+        isCashOnDelivery: data.isCashOnDelivery,
+        depositAmount,
         paymentStatus: 'pending_verification',
         stockDecremented: false,
         dbIndex,
@@ -217,12 +218,23 @@ router.patch('/api/orders/:id', requireAdmin, async (req: Request, res: Response
       return
     }
 
+    const current: any = found.result
+    const shouldDecrement =
+      statusValidation.data === 'shipped' && !current.stockDecremented && current.status !== 'shipped'
+
+    if (shouldDecrement) {
+      await decrementStockForOrder(current.toObject())
+    }
+
     const order = await DatabaseRouter.updateOnDatabase(
       found.dbIndex,
       async connection =>
         getOrderModel(connection).findByIdAndUpdate(
           req.params.id,
-          { status: statusValidation.data },
+          {
+            status: statusValidation.data,
+            ...(shouldDecrement ? { stockDecremented: true } : {}),
+          },
           { new: true }
         ),
       'order'
@@ -250,18 +262,12 @@ router.patch(
         async (connection, id) => getOrderModel(connection).findById(id),
         'order'
       )
-      if (!found) {
+      if (!found || !found.result) {
         res.status(404).json({ error: 'الطلب غير موجود' })
         return
       }
 
-      const current = found.result
-      const shouldDecrement =
-        parsed.data === 'confirmed' && !current.stockDecremented && current.paymentStatus !== 'confirmed'
-
-      if (shouldDecrement) {
-        await decrementStockForOrder(current.toObject())
-      }
+      const current: any = found.result
 
       const order = await DatabaseRouter.updateOnDatabase(
         found.dbIndex,
@@ -270,7 +276,6 @@ router.patch(
             req.params.id,
             {
               paymentStatus: parsed.data,
-              ...(shouldDecrement ? { stockDecremented: true, status: 'confirmed' } : {}),
               ...(parsed.data === 'rejected' && current.status === 'pending' ? { status: 'declined' } : {}),
             },
             { new: true }

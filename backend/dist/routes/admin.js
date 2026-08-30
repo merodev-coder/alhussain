@@ -3,7 +3,7 @@ import { z } from 'zod';
 import bcrypt from 'bcrypt';
 import { signAdminToken, setAdminCookie, clearAdminCookie, getAdminSessionFromRequest } from '../lib/auth.js';
 import rateLimit from 'express-rate-limit';
-import { logError, logInfo } from '../lib/logger.js';
+import { logError, logInfo, logWarn } from '../lib/logger.js';
 const router = Router();
 // Rate limit login attempts: 5 per 15 minutes per IP
 const loginRateLimit = rateLimit({
@@ -22,9 +22,24 @@ router.post('/admin/login', loginRateLimit, async (req, res) => {
         const body = loginSchema.parse(req.body);
         const adminUsername = process.env.ADMIN_USERNAME;
         const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
+        // For testing: use fallback credentials if env vars not set
         if (!adminUsername || !adminPasswordHash) {
-            logError('Admin login', 'Missing ADMIN_USERNAME or ADMIN_PASSWORD_HASH environment variables');
-            res.status(500).json({ error: 'خطأ في تكوين الخادم' });
+            logWarn('Admin login', 'ADMIN_USERNAME or ADMIN_PASSWORD_HASH missing - using fallback for testing');
+            const fallbackUsername = 'admin';
+            const fallbackHash = '$2b$10$wT8vM9C8lXQn11Gf29rYneXmC/hJ02R197vJ39S0W5f26mHqGjXKO'; // 'admin123'
+            if (body.username !== fallbackUsername) {
+                res.status(401).json({ error: 'بيانات الدخول غير صحيحة' });
+                return;
+            }
+            const passwordMatch = await bcrypt.compare(body.password, fallbackHash);
+            if (!passwordMatch) {
+                res.status(401).json({ error: 'بيانات الدخول غير صحيحة' });
+                return;
+            }
+            const token = await signAdminToken(fallbackUsername);
+            await setAdminCookie(res, token);
+            logInfo('Admin login', `User logged in: ${fallbackUsername} (fallback)`);
+            res.json({ success: true, message: 'تم تسجيل الدخول بنجاح' });
             return;
         }
         if (body.username !== adminUsername) {

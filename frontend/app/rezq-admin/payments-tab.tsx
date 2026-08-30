@@ -20,7 +20,6 @@ import api from '@/lib/api'
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   vodafone_cash: 'فودافون كاش',
   instapay: 'إنستا باي',
-  bank_transfer: 'تحويل بنكي',
 }
 
 export default function PaymentsTab() {
@@ -139,7 +138,23 @@ export default function PaymentsTab() {
                       <strong className="text-ink">
                         {PAYMENT_METHOD_LABELS[order.paymentMethod || ''] || order.paymentMethod || 'غير محدد'}
                       </strong>
+                      {order.isCashOnDelivery && (
+                        <span className="mr-2 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-body font-semibold">
+                          دفع عند الاستلام
+                        </span>
+                      )}
                     </div>
+                    {order.isCashOnDelivery && (
+                      <div>
+                        <span className="text-ink-muted">مبلغ التأمين:</span>{' '}
+                        <strong className="text-brand-primary font-sans text-sm">
+                          {order.depositAmount?.toLocaleString('ar-EG') || 0} ج.م
+                        </strong>
+                        <span className="text-ink-muted text-[10px] block">
+                          المتبقى للدفع عند الاستلام: {(order.total - (order.depositAmount || 0)).toLocaleString('ar-EG')} ج.م
+                        </span>
+                      </div>
+                    )}
                     <div>
                       <span className="text-ink-muted">الهاتف:</span>{' '}
                       <a href={`tel:${order.phone}`} className="text-brand-primary font-semibold hover:underline">

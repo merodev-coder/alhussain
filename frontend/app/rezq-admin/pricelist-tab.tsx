@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { Upload, CheckCircle, AlertCircle } from 'lucide-react'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { clientLogger } from '@/lib/client-logger'
 
 export default function PricelistTab() {
   const [file, setFile] = useState<File | null>(null)
@@ -45,7 +46,7 @@ export default function PricelistTab() {
         fileInputRef.current.value = ''
       }
     } catch (err) {
-      console.error('[v0] Pricelist upload error:', err)
+      clientLogger.error('Pricelist upload error:', err)
       setError(err instanceof Error ? err.message : 'فشل رفع قائمة الأسعار')
     } finally {
       setLoading(false)

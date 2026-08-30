@@ -6,6 +6,7 @@ import StoreLayout from '@/components/store-layout'
 import type { Product } from '@/lib/types'
 import ProductDetailClient from './product-detail-client'
 import api from '@/lib/api'
+import { clientLogger } from '@/lib/client-logger'
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [product, setProduct] = useState<Product | null>(null)
@@ -17,7 +18,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       try {
         const { id: paramId } = await params
         if (!paramId) {
-          console.error('[v0] No product ID provided')
+          clientLogger.error('No product ID provided')
           setProduct(null)
           setLoading(false)
           return
@@ -26,7 +27,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         setProduct(prod)
         setAllProducts([prod, ...all.filter(p => p.id !== paramId).slice(0, 3)])
       } catch (err) {
-        console.error('[v0] Failed to fetch product:', err)
+        clientLogger.error('Failed to fetch product:', err)
         setProduct(null)
       } finally {
         setLoading(false)
@@ -38,7 +39,26 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   if (loading) {
     return (
       <StoreLayout>
-        <div className="text-center py-20">جاري التحميل...</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div className="aspect-square bg-surface-1 rounded-[20px] animate-pulse" />
+              <div className="flex gap-2">
+                <div className="w-20 h-20 bg-surface-1 rounded-xl animate-pulse" />
+                <div className="w-20 h-20 bg-surface-1 rounded-xl animate-pulse" />
+                <div className="w-20 h-20 bg-surface-1 rounded-xl animate-pulse" />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="h-8 bg-surface-1 rounded-xl animate-pulse w-3/4" />
+              <div className="h-6 bg-surface-1 rounded-xl animate-pulse w-1/2" />
+              <div className="h-4 bg-surface-1 rounded-xl animate-pulse w-full" />
+              <div className="h-4 bg-surface-1 rounded-xl animate-pulse w-full" />
+              <div className="h-24 bg-surface-1 rounded-xl animate-pulse" />
+              <div className="h-12 bg-surface-1 rounded-xl animate-pulse w-1/3" />
+            </div>
+          </div>
+        </div>
       </StoreLayout>
     )
   }
