@@ -1,20 +1,19 @@
 import { Router, Request, Response } from 'express'
 import multer from 'multer'
 import mammoth from 'mammoth'
-import Pricelist from '../models/Pricelist.js'
+import { getPricelistModel } from '../models/Pricelist.js'
+import { requireAdmin } from '../middleware/auth.js'
+import { logError, logInfo } from '../lib/logger.js'
+import { DatabaseRouter } from '../lib/db-router.js'
+import { withId } from '../lib/json.js'
 
 const router = Router()
 
-// Configure multer for memory storage
 const upload = multer({
   storage: multer.memoryStorage(),
   fileFilter: (_req, file, cb) => {
-    // Only accept .docx files
     const ext = file.mimetype || file.originalname
-    if (
-      ext.includes('officedocument.wordprocessingml') ||
-      file.originalname?.endsWith('.docx')
-    ) {
+    if (ext.includes('officedocument.wordprocessingml') || file.originalname?.endsWith('.docx')) {
       cb(null, true)
     } else {
       cb(new Error('يجب أن يكون الملف بصيغة .docx فقط'))
@@ -22,63 +21,71 @@ const upload = multer({
   },
 })
 
-// GET current published pricelist
-router.get('/api/pricelist', async (req: Request, res: Response): Promise<void> => {
+router.get('/api/pricelist', async (_req: Request, res: Response): Promise<void> => {
   try {
-    // Get the most recent published pricelist
-    const pricelist = await Pricelist.findOne({ published: true })
-      .sort({ uploadedAt: -1 })
-      .lean()
+    const lists = await DatabaseRouter.readAcrossAllDatabases(
+      async connection =>
+        getPricelistModel(connection).find({ published: true }).sort({ uploadedAt: -1 }).lean(),
+      'pricelists'
+    )
+    const pricelist = lists.sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    )[0]
     if (!pricelist) {
       res.status(404).json({ error: 'لا توجد قائمة أسعار منشورة حالياً' })
       return
     }
-    res.json(pricelist)
+    res.json(withId(pricelist))
   } catch (error) {
-    console.error('[v0] Get pricelist error:', error)
+    logError('Get pricelist', error)
     res.status(500).json({ error: 'حدث خطأ في الخادم' })
   }
 })
 
-// POST publish new pricelist (accepts .docx file)
 router.post(
   '/api/pricelist',
+  requireAdmin,
   upload.single('file'),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const file = req.file
-
       if (!file) {
         res.status(400).json({ error: 'الملف مطلوب' })
         return
       }
-
       if (!file.originalname?.endsWith('.docx')) {
         res.status(400).json({ error: 'يجب أن يكون الملف بصيغة .docx فقط' })
         return
       }
 
-      // Parse .docx file with Mammoth
       const result = await mammoth.convertToHtml({ buffer: file.buffer })
       const parsedHtml = result.value
 
-      // Unpublish any previously published pricelists
-      await Pricelist.updateMany({ published: true }, { published: false })
+      await DatabaseRouter.readAcrossAllDatabases(async connection => {
+        await getPricelistModel(connection).updateMany({ published: true }, { published: false })
+        return []
+      }, 'pricelists-unpublish')
 
-      // Create and save new pricelist
-      const pricelist = new Pricelist({
-        sourceFileName: file.originalname,
-        parsedHtml: parsedHtml,
-        uploadedAt: new Date(),
-        published: true,
-      })
+      const { result: pricelist } = await DatabaseRouter.createWithFailover(
+        async (connection, dbIndex) => {
+          const doc = new (getPricelistModel(connection))({
+            sourceFileName: file.originalname,
+            parsedHtml,
+            uploadedAt: new Date(),
+            published: true,
+            dbIndex,
+          })
+          await doc.save()
+          return doc
+        },
+        'pricelist'
+      )
 
-      await pricelist.save()
+      logInfo('Publish pricelist', `Published pricelist: ${pricelist.sourceFileName}`)
       res.status(201).json(pricelist.toJSON())
     } catch (error) {
-      console.error('[v0] Publish pricelist error:', error)
-      const message =
-        error instanceof Error ? error.message : 'حدث خطأ في الخادم'
+      logError('Publish pricelist', error)
+      const message = error instanceof Error ? error.message : 'حدث خطأ في الخادم'
       res.status(500).json({ error: message })
     }
   }

@@ -28,7 +28,8 @@ export const orderStatusSchema = z.enum([
 export const orderItemSchema = z.object({
     productId: z.string().min(1),
     name: z.string().min(1),
-    price: z.coerce.number().min(0),
+    price: z.coerce.number().min(0), // Client-provided price (will be overridden server-side)
+    priceAtOrder: z.coerce.number().min(0).optional(), // Server-side only
     qty: z.coerce.number().min(1),
 });
 export const orderInputSchema = z.object({

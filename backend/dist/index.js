@@ -1,5 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
+import { logError, logInfo } from './lib/logger.js';
 import 'dotenv/config';
 import { connectDB } from './lib/db.js';
 import adminRoutes from './routes/admin.js';
@@ -16,8 +19,18 @@ app.use(cors({
     origin: FRONTEND_URL,
     credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+// Global rate limiter: 100 requests per 15 minutes per IP
+const globalRateLimit = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,
+    message: { error: 'طلبات كثيرة جداً، يرجى المحاولة لاحقاً' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/api', globalRateLimit);
 // Routes
 app.use(adminRoutes);
 app.use(productsRoutes);
@@ -29,17 +42,26 @@ app.use(dashboardRoutes);
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
+// Global error handler (must be after all routes)
+app.use((err, req, res, _next) => {
+    logError('Unhandled error', err);
+    res.status(500).json({ error: 'حدث خطأ في الخادم' });
+});
 // Connect to DB and start server
 async function start() {
     try {
+        // Validate required environment variables
+        if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD_HASH) {
+            throw new Error('Missing required environment variables: ADMIN_USERNAME or ADMIN_PASSWORD_HASH');
+        }
         await connectDB();
         app.listen(PORT, () => {
-            console.log(`[v0] Backend server running on port ${PORT}`);
-            console.log(`[v0] CORS enabled for: ${FRONTEND_URL}`);
+            logInfo('Server start', `Backend server running on port ${PORT}`);
+            logInfo('Server start', `CORS enabled for: ${FRONTEND_URL}`);
         });
     }
     catch (error) {
-        console.error('[v0] Failed to start server:', error);
+        logError('Failed to start server', error);
         process.exit(1);
     }
 }

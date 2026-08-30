@@ -503,7 +503,7 @@ function DeleteConfirm({
 
 // ── Products Tab ────────────────────────────────────────────────────────────────
 export default function ProductsTab() {
-  const { data, isLoading, error, mutate } = useSWR<Product[]>(
+  const { data, isLoading, error, mutate } = useSWR<{ items: Product[]; total: number; page: number; pages: number }>(
     '/api/products',
     fetcher
   )
@@ -517,7 +517,7 @@ export default function ProductsTab() {
   const [deleting, setDeleting] = useState<Product | null>(null)
   const [banner, setBanner] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
-  const products = data ?? []
+  const products = data?.items ?? []
   const specs = useMemo<SpecGroups>(
     () => {
       const grouped: SpecGroups = { cpu: [], gpu: [], ram: [], storage: [] }
@@ -632,70 +632,73 @@ export default function ProductsTab() {
             <p className="font-body text-ink-muted text-sm">لا توجد منتجات بعد. أضف أول منتج.</p>
           </div>
         ) : (
-          <div className="divide-y divide-hairline">
-            {products.map(p => (
-              <div
-                key={p.id}
-                className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto_auto_auto] gap-3 md:gap-4 px-5 py-4 items-center hover:bg-surface-1 transition-colors"
-              >
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-surface-1 shrink-0">
-                  {p.photos?.[0] ? (
-                    <Image
-                      src={p.photos[0]}
-                      alt={p.name}
-                      width={48}
-                      height={48}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : null}
-                </div>
-                <div>
-                  <p className="font-body text-sm font-semibold text-ink">{p.name}</p>
-                  <p className="font-body text-xs text-ink-muted">
-                    {[p.cpu, p.ram, p.storage].filter(Boolean).join(' · ')}
-                  </p>
-                </div>
-                <span className="font-sans font-bold text-sm text-ink">
-                  {p.price.toLocaleString('ar-EG')} ج.م
-                </span>
-                <span
-                  className={cn(
-                    'text-xs font-body px-2.5 py-1 rounded-full font-medium w-fit',
-                    p.stockStatus === 'in_stock'
-                      ? 'bg-green-100 text-green-700'
-                      : p.stockStatus === 'limited'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-red-100 text-red-600'
-                  )}
+          <>
+            <div className="divide-y divide-hairline">
+              {products.map(p => (
+                <div
+                  key={p.id}
+                  className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto_auto_auto] gap-3 md:gap-4 px-5 py-4 items-center hover:bg-surface-1 transition-colors"
                 >
-                  {STOCK_LABELS[p.stockStatus]}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => toggleVisibility(p)}
-                    className="flex items-center gap-1 text-xs font-body text-ink-muted hover:text-ink"
-                    title={p.visible ? 'إخفاء' : 'إظهار'}
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-surface-1 shrink-0">
+                    {p.photos?.[0] ? (
+                      <Image
+                        src={p.photos[0]}
+                        alt={p.name}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : null}
+                  </div>
+                  <div>
+                    <p className="font-body text-sm font-semibold text-ink">{p.name}</p>
+                    <p className="font-body text-xs text-ink-muted">
+                      {[p.cpu, p.ram, p.storage].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                  <span className="font-sans font-bold text-sm text-ink">
+                    {p.price.toLocaleString('ar-EG')} ج.م
+                  </span>
+                  <span
+                    className={cn(
+                      'text-xs font-body px-2.5 py-1 rounded-full font-medium w-fit',
+                      p.stockStatus === 'in_stock'
+                        ? 'bg-green-100 text-green-700'
+                        : p.stockStatus === 'limited'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-red-100 text-red-600'
+                    )}
                   >
-                    {p.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                  </button>
-                  <button
-                    onClick={() => openEdit(p)}
-                    className="flex items-center gap-1 text-xs font-body text-brand-primary hover:underline"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                    تعديل
-                  </button>
-                  <button
-                    onClick={() => setDeleting(p)}
-                    className="flex items-center gap-1 text-xs font-body text-red-500 hover:underline"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    حذف
-                  </button>
+                    {STOCK_LABELS[p.stockStatus]}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleVisibility(p)}
+                      className="flex items-center gap-1 text-xs font-body text-ink-muted hover:text-ink"
+                      title={p.visible ? 'إخفاء' : 'إظهار'}
+                    >
+                      {p.visible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                    </button>
+                    <button
+                      onClick={() => openEdit(p)}
+                      className="flex items-center gap-1 text-xs font-body text-brand-primary hover:underline"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      تعديل
+                    </button>
+                    <button
+                      onClick={() => setDeleting(p)}
+                      className="flex items-center gap-1 text-xs font-body text-red-500 hover:underline"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      حذف
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+            {/* Pagination could be added here if needed */}
+          </>
         )}
       </div>
 

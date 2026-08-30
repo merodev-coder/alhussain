@@ -31,8 +31,16 @@ async function apiRequest<T>(endpoint: string, options: ApiRequestOptions = {}):
 
 export const api = {
   // Products
-  get_products: (search?: string) =>
-    apiRequest<any[]>(search ? `/api/products?search=${encodeURIComponent(search)}` : '/api/products'),
+  get_products: (search?: string, page?: number, limit?: number) => {
+    const params = new URLSearchParams()
+    if (search) params.append('search', search)
+    if (page) params.append('page', page.toString())
+    if (limit) params.append('limit', limit.toString())
+    const queryString = params.toString()
+    return apiRequest<{ items: any[]; total: number; page: number; pages: number }>(
+      queryString ? `/api/products?${queryString}` : '/api/products'
+    )
+  },
   get_product: (id: string) => apiRequest<any>(`/api/products/${id}`),
   create_product: (data: any) => apiRequest<any>('/api/products', { method: 'POST', body: JSON.stringify(data) }),
   update_product: (id: string, data: any) =>
@@ -41,11 +49,75 @@ export const api = {
 
   // Orders
   create_order: (data: any) => apiRequest<any>('/api/orders', { method: 'POST', body: JSON.stringify(data) }),
-  get_orders: (status?: string) =>
-    apiRequest<any[]>(status ? `/api/orders?status=${encodeURIComponent(status)}` : '/api/orders'),
+  get_orders: (status?: string, page?: number, limit?: number, paymentStatus?: string) => {
+    const params = new URLSearchParams()
+    if (status) params.append('status', status)
+    if (paymentStatus) params.append('paymentStatus', paymentStatus)
+    if (page) params.append('page', page.toString())
+    if (limit) params.append('limit', limit.toString())
+    const queryString = params.toString()
+    return apiRequest<{ items: any[]; total: number; page: number; pages: number }>(
+      queryString ? `/api/orders?${queryString}` : '/api/orders'
+    )
+  },
   get_order: (id: string) => apiRequest<any>(`/api/orders/${id}`),
   update_order_status: (id: string, status: string) =>
     apiRequest<any>(`/api/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  update_payment_status: (id: string, paymentStatus: string) =>
+    apiRequest<any>(`/api/orders/${id}/payment`, { method: 'PATCH', body: JSON.stringify({ paymentStatus }) }),
+  get_payment_methods: () => apiRequest<{ methods: any[] }>('/api/payment-methods'),
+
+  // Addons
+  get_addons: (compatibleWith?: string) => {
+    const query = compatibleWith ? `?compatibleWith=${encodeURIComponent(compatibleWith)}` : ''
+    return apiRequest<any[]>(`/api/addons${query}`)
+  },
+  create_addon: (data: any) => apiRequest<any>('/api/addons', { method: 'POST', body: JSON.stringify(data) }),
+  update_addon: (id: string, data: any) =>
+    apiRequest<any>(`/api/addons/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete_addon: (id: string) => apiRequest<any>(`/api/addons/${id}`, { method: 'DELETE' }),
+
+  // Accessories
+  get_accessories: (search?: string, page?: number, limit?: number) => {
+    const params = new URLSearchParams()
+    if (search) params.append('search', search)
+    if (page) params.append('page', page.toString())
+    if (limit) params.append('limit', limit.toString())
+    const queryString = params.toString()
+    return apiRequest<{ items: any[]; total: number; page: number; pages: number }>(
+      queryString ? `/api/accessories?${queryString}` : '/api/accessories'
+    )
+  },
+  get_accessory: (id: string) => apiRequest<any>(`/api/accessories/${id}`),
+  create_accessory: (data: any) => apiRequest<any>('/api/accessories', { method: 'POST', body: JSON.stringify(data) }),
+  update_accessory: (id: string, data: any) =>
+    apiRequest<any>(`/api/accessories/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete_accessory: (id: string) => apiRequest<any>(`/api/accessories/${id}`, { method: 'DELETE' }),
+
+  // Shipping Rates
+  get_shipping_rates: () => apiRequest<any[]>('/api/shipping-rates'),
+  update_shipping_rate: (governorate: string, data: { cost?: number; estimatedDays?: number; active?: boolean }) =>
+    apiRequest<any>(`/api/shipping-rates/${encodeURIComponent(governorate)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  // Inventory
+  get_inventory: (category?: string, lowStock?: boolean) => {
+    const params = new URLSearchParams()
+    if (category) params.append('category', category)
+    if (lowStock) params.append('lowStock', 'true')
+    const query = params.toString()
+    return apiRequest<any[]>(query ? `/api/inventory?${query}` : '/api/inventory')
+  },
+  adjust_inventory: (data: {
+    itemType: 'laptop' | 'addon' | 'accessory'
+    itemId: string
+    quantity: number
+    reason: string
+    stockStatus?: string
+  }) => apiRequest<any>('/api/inventory', { method: 'PATCH', body: JSON.stringify(data) }),
+  get_inventory_logs: () => apiRequest<any[]>('/api/inventory/logs'),
 
   // Spec Options
   get_spec_options: (type?: string) =>

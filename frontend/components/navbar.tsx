@@ -8,9 +8,12 @@ import { useCart } from '@/lib/cart-context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
+import { ThemeToggle } from '@/components/theme-toggle'
+
 const NAV_LINKS = [
   { href: '/', label: 'الرئيسية' },
   { href: '/laptops', label: 'اللابتوبات' },
+  { href: '/accessories', label: 'الإكسسوارات' },
   { href: '/pricelist', label: 'قائمة الأسعار' },
   { href: '/about', label: 'من نحن' },
 ]
@@ -50,8 +53,9 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Cart + Mobile toggle */}
+          {/* Cart + ThemeToggle + Mobile toggle */}
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <button
               onClick={openCart}
               className="relative p-2 rounded-full hover:bg-surface-1 transition-colors"

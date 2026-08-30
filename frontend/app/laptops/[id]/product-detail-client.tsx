@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ChevronRight, Minus, Plus, ShoppingCart, CheckCircle } from 'lucide-react'
+import useSWR from 'swr'
+import { ChevronRight, Minus, Plus, ShoppingCart, CheckCircle, PackagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/cart-context'
-import type { Product } from '@/lib/types'
+import { fetcher } from '@/lib/fetcher'
+import type { Product, Addon, SelectedAddon } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const stockStyles = {
@@ -24,12 +26,74 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
   const [activePhoto, setActivePhoto] = useState(0)
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
+  const [selectedAddonsMap, setSelectedAddonsMap] = useState<Record<string, number>>({})
+  const [showPopupModal, setShowPopupModal] = useState(false)
+
   const { addItem } = useCart()
 
-  const handleAddToCart = () => {
-    addItem(product, qty)
+  const { data: addonsData } = useSWR<Addon[]>(
+    `/api/addons?compatibleWith=${product.id}`,
+    fetcher
+  )
+
+  const compatibleAddons = addonsData || []
+
+  const toggleAddon = (addonId: string) => {
+    setSelectedAddonsMap(prev => {
+      const next = { ...prev }
+      if (next[addonId]) {
+        delete next[addonId]
+      } else {
+        next[addonId] = 1
+      }
+      return next
+    })
+  }
+
+  const updateAddonQty = (addonId: string, delta: number) => {
+    setSelectedAddonsMap(prev => {
+      const current = prev[addonId] || 0
+      const nextQty = current + delta
+      if (nextQty <= 0) {
+        const next = { ...prev }
+        delete next[addonId]
+        return next
+      }
+      return { ...prev, [addonId]: nextQty }
+    })
+  }
+
+  const getSelectedAddonsList = (): SelectedAddon[] => {
+    return Object.entries(selectedAddonsMap)
+      .map(([addonId, addonQty]) => {
+        const addon = compatibleAddons.find(a => a.id === addonId)
+        if (!addon) return null
+        return {
+          addonId: addon.id,
+          name: addon.name,
+          price: addon.price,
+          qty: addonQty,
+        }
+      })
+      .filter((x): x is SelectedAddon => x !== null)
+  }
+
+  const executeAddToCart = () => {
+    const addonsList = getSelectedAddonsList()
+    addItem(product, qty, addonsList, 'laptop')
     setAdded(true)
+    setShowPopupModal(false)
     setTimeout(() => setAdded(false), 2000)
+  }
+
+  const handleAddToCartClick = () => {
+    const selectedCount = Object.keys(selectedAddonsMap).length
+    // If user hasn't picked any addons and there are compatible addons available, suggest them via popup modal
+    if (selectedCount === 0 && compatibleAddons.length > 0) {
+      setShowPopupModal(true)
+    } else {
+      executeAddToCart()
+    }
   }
 
   const stock = stockStyles[product.stockStatus]
@@ -120,6 +184,67 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
             </table>
           </div>
 
+          {/* Compatible Addons List */}
+          {compatibleAddons.length > 0 && (
+            <div className="bg-canvas border border-hairline rounded-[20px] p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <PackagePlus className="w-4 h-4 text-brand-primary" />
+                <h3 className="font-sans font-bold text-ink text-sm">ترقيات وإضافات متوافقة (اختياري)</h3>
+              </div>
+              <div className="space-y-2">
+                {compatibleAddons.map(addon => {
+                  const isChecked = !!selectedAddonsMap[addon.id]
+                  const addonQty = selectedAddonsMap[addon.id] || 1
+
+                  return (
+                    <div
+                      key={addon.id}
+                      className={cn(
+                        'flex items-center justify-between p-3 rounded-xl border transition-colors',
+                        isChecked ? 'border-brand-primary bg-surface-2/50' : 'border-hairline bg-surface-1'
+                      )}
+                    >
+                      <label className="flex items-center gap-3 flex-1 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleAddon(addon.id)}
+                          className="w-4 h-4 rounded border-hairline text-brand-primary focus:ring-[#0FC7C1]"
+                        />
+                        <div>
+                          <p className="font-body text-xs font-semibold text-ink">{addon.name}</p>
+                          <p className="font-sans font-bold text-xs text-brand-primary">
+                            +{addon.price.toLocaleString('ar-EG')} ج.م
+                          </p>
+                        </div>
+                      </label>
+
+                      {isChecked && (
+                        <div className="flex items-center gap-1.5 bg-canvas border border-hairline rounded-full px-2 py-1 ms-2">
+                          <button
+                            type="button"
+                            onClick={() => updateAddonQty(addon.id, -1)}
+                            className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-surface-2"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="font-body text-xs font-bold w-4 text-center">{addonQty}</span>
+                          <button
+                            type="button"
+                            onClick={() => updateAddonQty(addon.id, 1)}
+                            className="w-5 h-5 rounded-full flex items-center justify-center hover:bg-surface-2"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Description */}
           <p className="font-body text-ink-muted text-sm leading-relaxed">{product.description}</p>
 
@@ -145,7 +270,7 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
               </div>
 
               <Button
-                onClick={handleAddToCart}
+                onClick={handleAddToCartClick}
                 size="lg"
                 className={cn(
                   'flex-1 rounded-full font-sans font-bold h-12 gap-2 active:scale-[0.97] transition-all',
@@ -177,34 +302,101 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
         </div>
       </div>
 
+      {/* Suggested Addons Popup Dialog */}
+      {showPopupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowPopupModal(false)} />
+          <div className="relative bg-canvas border border-hairline rounded-[24px] w-full max-w-md p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-hairline">
+              <div className="flex items-center gap-2">
+                <PackagePlus className="w-5 h-5 text-brand-primary" />
+                <h3 className="font-sans font-bold text-ink text-base">هل ترغب بإضافة ملحقات للجهاز؟</h3>
+              </div>
+              <button
+                onClick={() => setShowPopupModal(false)}
+                className="w-7 h-7 rounded-full hover:bg-surface-1 flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="font-body text-xs text-ink-muted">
+              أضف رام إضافية، هارد SSD إضافي، أو ملصقات كيبورد مع جهازك بسهولة:
+            </p>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {compatibleAddons.map(addon => {
+                const isChecked = !!selectedAddonsMap[addon.id]
+                return (
+                  <label
+                    key={addon.id}
+                    className={cn(
+                      'flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors',
+                      isChecked ? 'border-brand-primary bg-surface-2/60' : 'border-hairline bg-surface-1'
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleAddon(addon.id)}
+                        className="w-4 h-4 rounded border-hairline text-brand-primary focus:ring-[#0FC7C1]"
+                      />
+                      <div>
+                        <p className="font-body text-xs font-semibold text-ink">{addon.name}</p>
+                        <p className="font-sans font-bold text-xs text-brand-primary">
+                          +{addon.price.toLocaleString('ar-EG')} ج.م
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                )
+              })}
+            </div>
+
+            <div className="flex gap-2 pt-3 border-t border-hairline">
+              <button
+                onClick={executeAddToCart}
+                className="flex-1 py-2.5 rounded-full border border-hairline font-body text-xs text-ink hover:bg-surface-1"
+              >
+                تخطي ومتابعة
+              </button>
+              <button
+                onClick={executeAddToCart}
+                className="flex-1 py-2.5 rounded-full bg-brand-primary text-white font-sans font-bold text-xs hover:bg-brand-primary/90"
+              >
+                إضافة وإضافة للسلة
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Related products */}
       <section className="mt-16">
         <h2 className="font-sans font-bold text-ink text-2xl mb-6">منتجات مشابهة</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {allProducts.filter(p => p.id !== product.id).slice(0, 4).map(p => {
-            const stockInfo = stockStyles[p.stockStatus]
-            return (
-              <Link
-                key={p.id}
-                href={`/laptops/${p.id}`}
-                className="group bg-canvas rounded-[20px] border border-hairline card-hover overflow-hidden"
-              >
-                <div className="aspect-[4/3] overflow-hidden bg-surface-1">
-                  <Image
-                    src={p.photos[0]}
-                    alt={p.name}
-                    width={300}
-                    height={225}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <div className="p-3">
-                  <p className="font-sans font-bold text-sm text-ink line-clamp-2 mb-2">{p.name}</p>
-                  <p className="font-sans font-bold text-brand-primary">{p.price.toLocaleString('ar-EG')} ج.م</p>
-                </div>
-              </Link>
-            )
-          })}
+          {allProducts.filter(p => p.id !== product.id).slice(0, 4).map(p => (
+            <Link
+              key={p.id}
+              href={`/laptops/${p.id}`}
+              className="group bg-canvas rounded-[20px] border border-hairline card-hover overflow-hidden"
+            >
+              <div className="aspect-[4/3] overflow-hidden bg-surface-1">
+                <Image
+                  src={p.photos[0]}
+                  alt={p.name}
+                  width={300}
+                  height={225}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div className="p-3">
+                <p className="font-sans font-bold text-sm text-ink line-clamp-2 mb-2">{p.name}</p>
+                <p className="font-sans font-bold text-brand-primary">{p.price.toLocaleString('ar-EG')} ج.م</p>
+              </div>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -216,7 +408,7 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
             <p className="font-sans font-bold text-brand-primary text-sm">{product.price.toLocaleString('ar-EG')} ج.م</p>
           </div>
           <Button
-            onClick={handleAddToCart}
+            onClick={handleAddToCartClick}
             className={cn(
               'rounded-full font-sans font-bold h-10 gap-2 active:scale-[0.97] transition-all px-6 shrink-0',
               added ? 'bg-green-500 text-white' : 'bg-brand-primary text-white'
@@ -230,3 +422,4 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
     </div>
   )
 }
+

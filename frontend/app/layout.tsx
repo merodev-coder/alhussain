@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Cairo, Tajawal } from 'next/font/google'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 const cairo = Cairo({
@@ -36,11 +37,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ar" dir="rtl" className={`${cairo.variable} ${tajawal.variable} bg-canvas`}>
+    <html lang="ar" dir="rtl" suppressHydrationWarning className={`${cairo.variable} ${tajawal.variable} bg-canvas`}>
       <body className="antialiased font-body text-ink">
-        {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <ThemeProvider>
+          {children}
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </ThemeProvider>
       </body>
     </html>
   )
 }
+

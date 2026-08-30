@@ -59,10 +59,15 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
 }
 
 export default function LaptopsPage() {
-  const { data, isLoading } = useSWR<Product[]>('/api/products', fetcher)
+  const [page, setPage] = useState(1)
+  const { data, isLoading } = useSWR<{ items: Product[]; total: number; page: number; pages: number }>(
+    `/api/products?page=${page}`,
+    fetcher
+  )
   const { data: specData } = useSWR<{ id: string; type: string; value: string }[]>('/api/spec-options', fetcher)
 
-  const products = data ?? []
+  const products = data?.items ?? []
+  const totalPages = data?.pages || 1
   const specs = useMemo<SpecGroups>(
     () => {
       const grouped: SpecGroups = { cpu: [], gpu: [], ram: [], storage: [] }
@@ -91,6 +96,7 @@ export default function LaptopsPage() {
 
   const toggle = (arr: string[], setArr: (v: string[]) => void, val: string) => {
     setArr(arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val])
+    setPage(1) // Reset to page 1 when filters change
   }
 
   const clearAll = () => {
@@ -100,6 +106,7 @@ export default function LaptopsPage() {
     setStorageFilter([])
     setStockFilter([])
     setPriceMax(PRICE_CEILING)
+    setPage(1)
   }
 
   const hasFilters =
@@ -172,7 +179,10 @@ export default function LaptopsPage() {
             max={PRICE_CEILING}
             step={5000}
             value={priceMax}
-            onChange={e => setPriceMax(Number(e.target.value))}
+            onChange={e => {
+              setPriceMax(Number(e.target.value))
+              setPage(1)
+            }}
             className="w-full accent-[#0FC7C1]"
           />
           <div className="flex justify-between font-body text-xs text-ink-muted">
@@ -238,11 +248,35 @@ export default function LaptopsPage() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {filtered.map(product => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {filtered.map(product => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-8">
+                    <button
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="px-4 py-2 rounded-full border border-hairline font-body text-sm text-ink hover:bg-surface-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      السابق
+                    </button>
+                    <span className="font-body text-sm text-ink-muted">
+                      الصفحة {page} من {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                      className="px-4 py-2 rounded-full border border-hairline font-body text-sm text-ink hover:bg-surface-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      التالي
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

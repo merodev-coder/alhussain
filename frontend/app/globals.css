@@ -89,6 +89,42 @@
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: rgba(255,255,255,0.1);
   --sidebar-ring: #0FC7C1;
+
+  --color-canvas: #FFFFFF;
+  --color-surface-1: #F5F9F9;
+  --color-surface-2: #EAF3F2;
+  --color-hairline: #E1E9E8;
+  --color-ink: #0E1B1B;
+  --color-ink-muted: #6B7A7A;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0A0F10;
+  --foreground: #E8F0EF;
+  --card: #121A1A;
+  --card-foreground: #E8F0EF;
+  --popover: #121A1A;
+  --popover-foreground: #E8F0EF;
+  --primary: #0FC7C1;
+  --primary-foreground: #FFFFFF;
+  --secondary: #162222;
+  --secondary-foreground: #E8F0EF;
+  --muted: #162222;
+  --muted-foreground: #8C9E9D;
+  --accent: #1D2E2E;
+  --accent-foreground: #E8F0EF;
+  --destructive: #EF4444;
+  --border: #233535;
+  --input: #233535;
+  --ring: #0FC7C1;
+
+  --color-canvas: #0A0F10;
+  --color-surface-1: #121A1A;
+  --color-surface-2: #182424;
+  --color-hairline: #233535;
+  --color-ink: #E8F0EF;
+  --color-ink-muted: #8C9E9D;
 }
 
 @layer base {

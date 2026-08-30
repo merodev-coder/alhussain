@@ -40,5 +40,8 @@ const ProductSchema = new Schema({
         },
     },
 });
+// Add indexes
+ProductSchema.index({ visible: 1, createdAt: -1 });
+ProductSchema.index({ name: 'text', description: 'text' });
 const Product = mongoose.models.Product || model('Product', ProductSchema);
 export default Product;

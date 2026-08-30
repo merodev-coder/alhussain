@@ -1,13 +1,21 @@
 import express from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
+import rateLimit from 'express-rate-limit'
+import { logger, logError, logInfo } from './lib/logger.js'
 import 'dotenv/config'
 import { connectDB } from './lib/db.js'
+import { seedShippingRatesIfEmpty } from './lib/seed-shipping.js'
 import adminRoutes from './routes/admin.js'
 import productsRoutes from './routes/products.js'
 import ordersRoutes from './routes/orders.js'
 import specOptionsRoutes from './routes/spec-options.js'
 import pricelistRoutes from './routes/pricelist.js'
 import dashboardRoutes from './routes/dashboard.js'
+import addonsRoutes from './routes/addons.js'
+import accessoriesRoutes from './routes/accessories.js'
+import shippingRatesRoutes from './routes/shipping-rates.js'
+import inventoryRoutes from './routes/inventory.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -20,8 +28,19 @@ app.use(
     credentials: true,
   })
 )
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(cookieParser())
+app.use(express.json({ limit: '1mb' }))
+app.use(express.urlencoded({ extended: true, limit: '1mb' }))
+
+// Global rate limiter: 100 requests per 15 minutes per IP
+const globalRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  message: { error: 'طلبات كثيرة جداً، يرجى المحاولة لاحقاً' },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+app.use('/api', globalRateLimit)
 
 // Routes
 app.use(adminRoutes)
@@ -30,22 +49,36 @@ app.use(ordersRoutes)
 app.use(specOptionsRoutes)
 app.use(pricelistRoutes)
 app.use(dashboardRoutes)
+app.use(addonsRoutes)
+app.use(accessoriesRoutes)
+app.use(shippingRatesRoutes)
+app.use(inventoryRoutes)
 
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' })
 })
 
+// Global error handler (must be after all routes)
+app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  logError('Unhandled error', err)
+  res.status(500).json({ error: 'حدث خطأ في الخادم' })
+})
+
 // Connect to DB and start server
 async function start() {
   try {
+    const adminUser = process.env.ADMIN_USERNAME || 'admin'
+    logInfo('Server start', `Using admin username: ${adminUser}`)
+
     await connectDB()
+    await seedShippingRatesIfEmpty()
     app.listen(PORT, () => {
-      console.log(`[v0] Backend server running on port ${PORT}`)
-      console.log(`[v0] CORS enabled for: ${FRONTEND_URL}`)
+      logInfo('Server start', `Backend server running on port ${PORT}`)
+      logInfo('Server start', `CORS enabled for: ${FRONTEND_URL}`)
     })
   } catch (error) {
-    console.error('[v0] Failed to start server:', error)
+    logError('Failed to start server', error)
     process.exit(1)
   }
 }

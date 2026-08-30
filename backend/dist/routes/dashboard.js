@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
+import { requireAdmin } from '../middleware/auth.js';
+import { logError } from '../lib/logger.js';
 const router = Router();
 // GET dashboard stats
-router.get('/api/dashboard-stats', async (req, res) => {
+router.get('/api/dashboard-stats', requireAdmin, async (req, res) => {
     try {
         // Get all orders
         const allOrders = await Order.find().lean();
@@ -30,7 +32,7 @@ router.get('/api/dashboard-stats', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('[v0] Dashboard stats error:', error);
+        logError('Dashboard stats', error);
         res.status(500).json({ error: 'حدث خطأ في الخادم' });
     }
 });

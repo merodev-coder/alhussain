@@ -23,12 +23,22 @@ import {
   Phone,
   MapPin,
   FileText,
+  CreditCard,
+  PlusCircle,
+  Headphones,
+  Boxes,
 } from 'lucide-react'
 import { MOCK_ORDERS, MOCK_PRODUCTS } from '@/lib/mock-data'
 import type { Order } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import ProductsTab from './products-tab'
 import PricelistTab from './pricelist-tab'
+import AddonsTab from './addons-tab'
+import AccessoriesTab from './accessories-tab'
+import ShippingTab from './shipping-tab'
+import InventoryTab from './inventory-tab'
+import PaymentsTab from './payments-tab'
+import { ThemeToggle } from '@/components/theme-toggle'
 import api from '@/lib/api'
 
 interface AdminDashboardProps {
@@ -74,8 +84,13 @@ const STATUS_META: Record<
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
+  { id: 'payments', label: 'مراجعة الدفع', icon: CreditCard },
   { id: 'orders', label: 'الطلبات', icon: ShoppingBag },
   { id: 'products', label: 'المنتجات', icon: Package },
+  { id: 'addons', label: 'الإضافات', icon: PlusCircle },
+  { id: 'accessories', label: 'الإكسسوارات', icon: Headphones },
+  { id: 'inventory', label: 'الجرد والمخزون', icon: Boxes },
+  { id: 'shipping', label: 'الشحن والمحافظات', icon: Truck },
   { id: 'pricelist', label: 'قائمة الأسعار', icon: FileText },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ]
@@ -269,42 +284,52 @@ function OrderDetailModal({
 // ─── Orders Tab ───────────────────────────────────────────────────────────────
 
 function OrdersTab() {
-  const [orders, setOrders] = useState<Order[]>([])
+  const [allOrders, setAllOrders] = useState<Order[]>([]) // All orders for client-side search
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true)
         setError('')
-        const data = await api.get_orders()
-        setOrders(data)
+        const statusParam = statusFilter === 'all' ? undefined : statusFilter
+        const data = await api.get_orders(statusParam, page)
+        // Handle new paginated response shape
+        const orders = Array.isArray(data) ? data : (data?.items || [])
+        setAllOrders(orders)
+        setTotalPages(data?.pages || 1)
       } catch (err) {
         console.error('[v0] Failed to fetch orders:', err)
         setError(err instanceof Error ? err.message : 'فشل تحميل الطلبات من الخادم')
-        setOrders([])
+        setAllOrders([])
       } finally {
         setLoading(false)
       }
     }
 
     fetchOrders()
-  }, [])
+  }, [page, statusFilter])
 
   const retry = async () => {
     try {
       setLoading(true)
       setError('')
-      const data = await api.get_orders()
-      setOrders(data)
+      const statusParam = statusFilter === 'all' ? undefined : statusFilter
+      const data = await api.get_orders(statusParam, page)
+      // Handle new paginated response shape
+      const orders = Array.isArray(data) ? data : (data?.items || [])
+      setAllOrders(orders)
+      setTotalPages(data?.pages || 1)
     } catch (err) {
       console.error('[v0] Failed to fetch orders:', err)
       setError(err instanceof Error ? err.message : 'فشل تحميل الطلبات من الخادم')
-      setOrders([])
+      setAllOrders([])
     } finally {
       setLoading(false)
     }
@@ -313,7 +338,7 @@ function OrdersTab() {
   const updateStatus = async (id: string, status: OrderStatus) => {
     try {
       await api.update_order_status(id, status)
-      setOrders(prev => prev.map(o => (o.id === id ? { ...o, status } : o)))
+      setAllOrders(prev => prev.map(o => (o.id === id ? { ...o, status } : o)))
     } catch (err) {
       console.error('[v0] Failed to update order status:', err)
       alert('فشل تحديث حالة الطلب')
@@ -321,17 +346,17 @@ function OrdersTab() {
   }
 
   const filtered = useMemo(() => {
-    return orders.filter(o => {
+    return allOrders.filter(o => {
       const matchSearch =
+        search.trim().length === 0 ||
         o.id.toLowerCase().includes(search.toLowerCase()) ||
         o.customerName.includes(search) ||
         o.phone.includes(search)
-      const matchStatus = statusFilter === 'all' || o.status === statusFilter
-      return matchSearch && matchStatus
+      return matchSearch
     })
-  }, [orders, search, statusFilter])
+  }, [allOrders, search])
 
-  if (loading && orders.length === 0) {
+  if (loading && allOrders.length === 0) {
     return <div className="text-center py-8 text-ink-muted">جاري تحميل الطلبات...</div>
   }
 
@@ -356,7 +381,7 @@ function OrdersTab() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="font-sans font-bold text-ink text-2xl">الطلبات</h2>
-          <p className="font-body text-sm text-ink-muted">{orders.length} طلب إجمالي</p>
+          <p className="font-body text-sm text-ink-muted">{allOrders.length} طلب إجمالي</p>
         </div>
       </div>
 
@@ -366,7 +391,10 @@ function OrdersTab() {
           <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
             placeholder="ابحث برقم الطلب، الاسم، أو الهاتف..."
             className="w-full ps-9 pe-4 py-2.5 rounded-xl border border-hairline font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
           />
@@ -375,7 +403,10 @@ function OrdersTab() {
           {(['all', 'pending', 'confirmed', 'shipped', 'completed', 'declined'] as const).map(s => (
             <button
               key={s}
-              onClick={() => setStatusFilter(s)}
+              onClick={() => {
+                setStatusFilter(s)
+                setPage(1)
+              }}
               className={cn(
                 'px-3 py-2 rounded-full text-xs font-body font-medium transition-colors',
                 statusFilter === s
@@ -407,47 +438,71 @@ function OrdersTab() {
             <p className="font-body text-ink-muted text-sm">لا توجد طلبات مطابقة</p>
           </div>
         ) : (
-          <div className="divide-y divide-hairline">
-            {filtered.map(order => (
-              <div
-                key={order.id}
-                className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-3 md:gap-4 px-5 py-4 items-center hover:bg-surface-1 transition-colors"
-              >
-                {/* ID */}
-                <span className="font-sans font-bold text-brand-primary text-sm">{order.id}</span>
-                {/* Customer */}
-                <div>
-                  <p className="font-body text-sm text-ink font-semibold">{order.customerName}</p>
-                  <p className="font-body text-xs text-ink-muted">{order.phone}</p>
-                </div>
-                {/* Items */}
-                <p className="font-body text-xs text-ink-muted line-clamp-1">
-                  {order.items.map(i => `${i.name} (×${i.qty})`).join('، ')}
-                </p>
-                {/* Total */}
-                <span className="font-sans font-bold text-sm text-ink">
-                  {order.total.toLocaleString('ar-EG')} ج.م
-                </span>
-                {/* Status */}
-                <StatusBadge status={order.status} />
-                {/* Action */}
-                <button
-                  onClick={() => setSelectedOrder(order)}
-                  className="flex items-center gap-1 text-xs font-body text-brand-primary hover:underline"
+          <>
+            <div className="divide-y divide-hairline">
+              {filtered.map(order => (
+                <div
+                  key={order.id}
+                  className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-3 md:gap-4 px-5 py-4 items-center hover:bg-surface-1 transition-colors"
                 >
-                  <Eye className="w-3.5 h-3.5" />
-                  عرض
+                  {/* ID */}
+                  <span className="font-sans font-bold text-brand-primary text-sm">{order.id}</span>
+                  {/* Customer */}
+                  <div>
+                    <p className="font-body text-sm text-ink font-semibold">{order.customerName}</p>
+                    <p className="font-body text-xs text-ink-muted">{order.phone}</p>
+                  </div>
+                  {/* Items */}
+                  <p className="font-body text-xs text-ink-muted line-clamp-1">
+                    {order.items.map(i => `${i.name} (×${i.qty})`).join('، ')}
+                  </p>
+                  {/* Total */}
+                  <span className="font-sans font-bold text-sm text-ink">
+                    {order.total.toLocaleString('ar-EG')} ج.م
+                  </span>
+                  {/* Status */}
+                  <StatusBadge status={order.status} />
+                  {/* Action */}
+                  <button
+                    onClick={() => setSelectedOrder(order)}
+                    className="flex items-center gap-1 text-xs font-body text-brand-primary hover:underline"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    عرض
+                  </button>
+                </div>
+              ))}
+            </div>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 p-4 border-t border-hairline">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-4 py-2 rounded-full border border-hairline font-body text-sm text-ink hover:bg-surface-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  السابق
+                </button>
+                <span className="font-body text-sm text-ink-muted">
+                  الصفحة {page} من {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-4 py-2 rounded-full border border-hairline font-body text-sm text-ink hover:bg-surface-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  التالي
                 </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Modal */}
       {selectedOrder && (
         <OrderDetailModal
-          order={orders.find(o => o.id === selectedOrder.id)!}
+          order={allOrders.find(o => o.id === selectedOrder.id)!}
           onClose={() => setSelectedOrder(null)}
           onStatusChange={updateStatus}
         />
@@ -489,7 +544,9 @@ function DashboardTab() {
       try {
         setProductsLoading(true)
         const data = await api.get_products()
-        setProducts(data)
+        // Handle new paginated response shape
+        const products = Array.isArray(data) ? data : (data?.items || [])
+        setProducts(products)
       } catch (err) {
         console.error('[v0] Failed to fetch products:', err)
         setProducts([])
@@ -638,7 +695,18 @@ function DashboardTab() {
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'products' | 'pricelist' | 'settings'>('dashboard')
+  const [activeTab, setActiveTab] = useState<
+    | 'dashboard'
+    | 'payments'
+    | 'orders'
+    | 'products'
+    | 'addons'
+    | 'accessories'
+    | 'inventory'
+    | 'shipping'
+    | 'pricelist'
+    | 'settings'
+  >('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleLogout = async () => {
@@ -748,7 +816,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               {NAV_ITEMS.find(n => n.id === activeTab)?.label ?? 'الإدارة'}
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
             <div className="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center">
               <span className="font-sans font-bold text-white text-xs">م</span>
             </div>
@@ -757,12 +826,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </header>
 
         {/* Content */}
-  <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
-        {activeTab === 'dashboard' && <DashboardTab />}
-        {activeTab === 'orders' && <OrdersTab />}
-        {activeTab === 'products' && <ProductsTab />}
-        {activeTab === 'pricelist' && <PricelistTab />}
-        {activeTab === 'settings' && (
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+          {activeTab === 'dashboard' && <DashboardTab />}
+          {activeTab === 'payments' && <PaymentsTab />}
+          {activeTab === 'orders' && <OrdersTab />}
+          {activeTab === 'products' && <ProductsTab />}
+          {activeTab === 'addons' && <AddonsTab />}
+          {activeTab === 'accessories' && <AccessoriesTab />}
+          {activeTab === 'inventory' && <InventoryTab />}
+          {activeTab === 'shipping' && <ShippingTab />}
+          {activeTab === 'pricelist' && <PricelistTab />}
+          {activeTab === 'settings' && (
             <div>
               <h2 className="font-sans font-bold text-ink text-2xl mb-6">الإعدادات</h2>
               <div className="bg-canvas border border-hairline rounded-[20px] p-8 text-center">

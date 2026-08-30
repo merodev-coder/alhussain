@@ -2,6 +2,8 @@ import { Router } from 'express';
 import multer from 'multer';
 import mammoth from 'mammoth';
 import Pricelist from '../models/Pricelist.js';
+import { requireAdmin } from '../middleware/auth.js';
+import { logError, logInfo } from '../lib/logger.js';
 const router = Router();
 // Configure multer for memory storage
 const upload = multer({
@@ -32,12 +34,12 @@ router.get('/api/pricelist', async (req, res) => {
         res.json(pricelist);
     }
     catch (error) {
-        console.error('[v0] Get pricelist error:', error);
+        logError('Get pricelist', error);
         res.status(500).json({ error: 'حدث خطأ في الخادم' });
     }
 });
 // POST publish new pricelist (accepts .docx file)
-router.post('/api/pricelist', upload.single('file'), async (req, res) => {
+router.post('/api/pricelist', requireAdmin, upload.single('file'), async (req, res) => {
     try {
         const file = req.file;
         if (!file) {
@@ -61,10 +63,11 @@ router.post('/api/pricelist', upload.single('file'), async (req, res) => {
             published: true,
         });
         await pricelist.save();
+        logInfo('Publish pricelist', `Published pricelist: ${pricelist.sourceFileName}`);
         res.status(201).json(pricelist.toJSON());
     }
     catch (error) {
-        console.error('[v0] Publish pricelist error:', error);
+        logError('Publish pricelist', error);
         const message = error instanceof Error ? error.message : 'حدث خطأ في الخادم';
         res.status(500).json({ error: message });
     }

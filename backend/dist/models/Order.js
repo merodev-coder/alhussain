@@ -3,6 +3,7 @@ const OrderItemSchema = new Schema({
     productId: { type: String, required: true },
     name: { type: String, required: true },
     price: { type: Number, required: true, min: 0 },
+    priceAtOrder: { type: Number, required: true, min: 0 },
     qty: { type: Number, required: true, min: 1 },
 }, { _id: false });
 const OrderSchema = new Schema({
@@ -35,5 +36,8 @@ const OrderSchema = new Schema({
         },
     },
 });
+// Add indexes
+OrderSchema.index({ status: 1, createdAt: -1 });
+OrderSchema.index({ orderNumber: 1 }, { unique: true });
 const Order = mongoose.models.Order || model('Order', OrderSchema);
 export default Order;

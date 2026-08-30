@@ -33,12 +33,11 @@ export const ourFileRouter = {
   // Admin-only: product gallery photos.
   productPhotos: f({ image: { maxFileSize: '8MB', maxFileCount: 8 } })
     .middleware(async () => {
-      // Temporarily disable auth check to debug
-      // const session = await checkAdminSessionServerSide()
-      // if (!session.authenticated) throw new UploadThingError('غير مصرح')
+      const session = await checkAdminSessionServerSide()
+      if (!session.authenticated) throw new UploadThingError('غير مصرح')
       return { by: 'admin' }
     })
-    .onUploadComplete(async ({ file }) => {
+    .onUploadComplete(async ({ file }: { file: { ufsUrl: string } }) => {
       return { url: file.ufsUrl }
     }),
 
@@ -47,7 +46,7 @@ export const ourFileRouter = {
     .middleware(async () => {
       return {}
     })
-    .onUploadComplete(async ({ file }) => {
+    .onUploadComplete(async ({ file }: { file: { ufsUrl: string } }) => {
       return { url: file.ufsUrl }
     }),
 } satisfies FileRouter

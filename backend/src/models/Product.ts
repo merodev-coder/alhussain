@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from 'mongoose'
+import mongoose, { Schema } from 'mongoose'
 
 export type StockStatus = 'in_stock' | 'limited' | 'out_of_stock'
 
@@ -14,8 +14,10 @@ export interface ProductDoc {
   storage: string
   photos: string[]
   stockStatus: StockStatus
+  quantity: number
   discountBadge?: string
   visible: boolean
+  dbIndex: number
   createdAt: Date
   updatedAt: Date
 }
@@ -35,17 +37,19 @@ const ProductSchema = new Schema<ProductDoc>(
       enum: ['in_stock', 'limited', 'out_of_stock'],
       default: 'in_stock',
     },
+    quantity: { type: Number, default: 0, min: 0 },
     discountBadge: { type: String },
     visible: { type: Boolean, default: true },
+    dbIndex: { type: Number, required: true, default: 0 },
   },
   {
     timestamps: true,
     toJSON: {
       virtuals: true,
       versionKey: false,
-      transform: function (_doc: any, ret: any) {
+      transform(_doc, ret: Record<string, unknown>) {
         if (ret._id) {
-          ret.id = ret._id.toString()
+          ret.id = (ret._id as { toString: () => string }).toString()
         }
         delete ret._id
         delete ret.__v
@@ -54,9 +58,9 @@ const ProductSchema = new Schema<ProductDoc>(
     toObject: {
       virtuals: true,
       versionKey: false,
-      transform: function (_doc: any, ret: any) {
+      transform(_doc, ret: Record<string, unknown>) {
         if (ret._id) {
-          ret.id = ret._id.toString()
+          ret.id = (ret._id as { toString: () => string }).toString()
         }
         delete ret._id
         delete ret.__v
@@ -65,6 +69,16 @@ const ProductSchema = new Schema<ProductDoc>(
   }
 )
 
-const Product = (mongoose.models.Product as mongoose.Model<ProductDoc>) || model<ProductDoc>('Product', ProductSchema)
+ProductSchema.index({ visible: 1, createdAt: -1 })
+ProductSchema.index({ name: 'text', description: 'text' })
+ProductSchema.index({ dbIndex: 1 })
 
+export function getProductModel(connection: mongoose.Connection): mongoose.Model<ProductDoc> {
+  if (connection.models.Product) {
+    return connection.models.Product as mongoose.Model<ProductDoc>
+  }
+  return connection.model<ProductDoc>('Product', ProductSchema)
+}
+
+const Product = getProductModel(mongoose.connection)
 export default Product
