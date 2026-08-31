@@ -34,9 +34,9 @@ function validate(form: FormData): Errors {
   if (form.deliveryMethod === 'shipping') {
     if (!form.address.trim()) errors.address = 'العنوان مطلوب'
     if (!form.governorate) errors.governorate = 'المحافظة مطلوبة'
+    // Receipt upload is required for shipping
+    if (!form.depositFile) errors.depositFile = 'صورة إيصال التحويل مطلوبة'
   }
-  // Receipt upload is required for all payment methods (full payment or deposit)
-  if (!form.depositFile) errors.depositFile = 'صورة إيصال التحويل مطلوبة'
   return errors
 }
 
@@ -340,107 +340,109 @@ export default function CheckoutClient() {
               )}
             </div>
 
-            {/* Payment Method Section */}
-            <div className="bg-canvas border border-hairline rounded-[20px] p-6">
-              <h2 className="font-sans font-bold text-ink text-lg mb-5">3. طريقة الدفع</h2>
+            {/* Payment Method Section - only for shipping */}
+            {form.deliveryMethod === 'shipping' && (
+              <div className="bg-canvas border border-hairline rounded-[20px] p-6">
+                <h2 className="font-sans font-bold text-ink text-lg mb-5">3. طريقة الدفع</h2>
 
-              {/* Transfer method selection */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                {[
-                  { value: 'vodafone_cash' as const, label: 'فودافون كاش' },
-                  { value: 'instapay' as const, label: 'إنستا باي (InstaPay)' },
-                ].map(m => (
-                  <button
-                    key={m.value}
-                    type="button"
-                    onClick={() => set('paymentMethod', m.value)}
-                    className={cn(
-                      'flex items-center justify-center gap-2 p-3.5 rounded-[16px] border-2 font-sans font-bold text-xs transition-all',
-                      form.paymentMethod === m.value
-                        ? 'border-brand-primary bg-surface-2 text-brand-primary'
-                        : 'border-hairline bg-canvas text-ink hover:bg-surface-1'
-                    )}
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    {m.label}
-                  </button>
-                ))}
-              </div>
+                {/* Transfer method selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                  {[
+                    { value: 'vodafone_cash' as const, label: 'فودافون كاش' },
+                    { value: 'instapay' as const, label: 'إنستا باي (InstaPay)' },
+                  ].map(m => (
+                    <button
+                      key={m.value}
+                      type="button"
+                      onClick={() => set('paymentMethod', m.value)}
+                      className={cn(
+                        'flex items-center justify-center gap-2 p-3.5 rounded-[16px] border-2 font-sans font-bold text-xs transition-all',
+                        form.paymentMethod === m.value
+                          ? 'border-brand-primary bg-surface-2 text-brand-primary'
+                          : 'border-hairline bg-canvas text-ink hover:bg-surface-1'
+                      )}
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
 
-              {/* Cash on delivery option (only for shipping) */}
-              {form.deliveryMethod === 'shipping' && (
-                <div className="mb-5">
-                  <label className="flex items-center gap-3 p-4 rounded-[16px] border-2 cursor-pointer transition-all bg-canvas hover:bg-surface-1">
-                    <input
-                      type="checkbox"
-                      checked={form.isCashOnDelivery}
-                      onChange={e => set('isCashOnDelivery', e.target.checked)}
-                      className="w-5 h-5 rounded border-hairline text-brand-primary focus:ring-[#0FC7C1]"
-                    />
-                    <div className="flex-1">
-                      <span className="font-sans font-bold text-ink text-sm">الدفع عند الاستلام</span>
-                      <p className="font-body text-xs text-ink-muted mt-0.5">
-                        ادفع مبلغ التأمين ({shippingCost.toLocaleString('ar-EG')} ج.م) الآن، وادفع المتبقي عند الاستلام
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              )}
+                {/* Cash on delivery option (only for shipping) */}
+                {form.deliveryMethod === 'shipping' && (
+                  <div className="mb-5">
+                    <label className="flex items-center gap-3 p-4 rounded-[16px] border-2 cursor-pointer transition-all bg-canvas hover:bg-surface-1">
+                      <input
+                        type="checkbox"
+                        checked={form.isCashOnDelivery}
+                        onChange={e => set('isCashOnDelivery', e.target.checked)}
+                        className="w-5 h-5 rounded border-hairline text-brand-primary focus:ring-[#0FC7C1]"
+                      />
+                      <div className="flex-1">
+                        <span className="font-sans font-bold text-ink text-sm">الدفع عند الاستلام</span>
+                        <p className="font-body text-xs text-ink-muted mt-0.5">
+                          ادفع مبلغ التأمين ({shippingCost.toLocaleString('ar-EG')} ج.م) الآن، وادفع المتبقي عند الاستلام
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                )}
 
-              {/* Payment details box */}
-              <div className="bg-surface-1 border border-hairline rounded-[20px] p-5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-brand-primary" />
-                  <h4 className="font-sans font-bold text-ink text-sm">
-                    بيانات التحويل ({form.paymentMethod === 'vodafone_cash' ? 'فودافون كاش' : 'إنستا باي'})
-                  </h4>
-                </div>
-                <div className="p-3 bg-canvas rounded-xl border border-hairline">
-                  <p className="font-body text-xs text-ink-muted mb-1">الرقم المخصص للتحويل:</p>
-                  <p className="font-sans font-bold text-lg text-brand-primary dir-ltr text-start">
-                    {paymentPhoneNumber || 'جاري التحميل...'}
-                  </p>
-                </div>
-                <div className="p-3 bg-canvas rounded-xl border border-hairline">
-                  <p className="font-body text-xs text-ink-muted mb-1">المبلغ المطلوب تحويله:</p>
-                  <p className="font-sans font-bold text-xl text-brand-primary">
-                    {amountToTransfer.toLocaleString('ar-EG')} ج.م
-                  </p>
-                  {form.isCashOnDelivery && (
-                    <p className="font-body text-xs text-ink-muted mt-1">
-                      مبلغ التأمين فقط — المتبقي ({(grandTotal - depositAmount).toLocaleString('ar-EG')} ج.م) يُدفع عند الاستلام
+                {/* Payment details box */}
+                <div className="bg-surface-1 border border-hairline rounded-[20px] p-5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-brand-primary" />
+                    <h4 className="font-sans font-bold text-ink text-sm">
+                      بيانات التحويل ({form.paymentMethod === 'vodafone_cash' ? 'فودافون كاش' : 'إنستا باي'})
+                    </h4>
+                  </div>
+                  <div className="p-3 bg-canvas rounded-xl border border-hairline">
+                    <p className="font-body text-xs text-ink-muted mb-1">الرقم المخصص للتحويل:</p>
+                    <p className="font-sans font-bold text-lg text-brand-primary dir-ltr text-start">
+                      {paymentPhoneNumber || 'جاري التحميل...'}
                     </p>
-                  )}
-                </div>
-                <p className="font-body text-xs text-ink-muted leading-relaxed">
-                  {form.isCashOnDelivery
-                    ? 'قم بتحويل مبلغ التأمين المحدد أعلاه، ثم ارفع صورة إيصال التحويل أدناه لمراجعة الطلب.'
-                    : 'قم بتحويل المبلغ الكامل، ثم ارفع صورة إيصال التحويل أدناه لمراجعة الطلب.'}
-                </p>
+                  </div>
+                  <div className="p-3 bg-canvas rounded-xl border border-hairline">
+                    <p className="font-body text-xs text-ink-muted mb-1">المبلغ المطلوب تحويله:</p>
+                    <p className="font-sans font-bold text-xl text-brand-primary">
+                      {amountToTransfer.toLocaleString('ar-EG')} ج.م
+                    </p>
+                    {form.isCashOnDelivery && (
+                      <p className="font-body text-xs text-ink-muted mt-1">
+                        مبلغ التأمين فقط — المتبقي ({(grandTotal - depositAmount).toLocaleString('ar-EG')} ج.م) يُدفع عند الاستلام
+                      </p>
+                    )}
+                  </div>
+                  <p className="font-body text-xs text-ink-muted leading-relaxed">
+                    {form.isCashOnDelivery
+                      ? 'قم بتحويل مبلغ التأمين المحدد أعلاه، ثم ارفع صورة إيصال التحويل أدناه لمراجعة الطلب.'
+                      : 'قم بتحويل المبلغ الكامل، ثم ارفع صورة إيصال التحويل أدناه لمراجعة الطلب.'}
+                  </p>
 
-                {/* Deposit photo upload (required) */}
-                <div className="pt-2">
-                  <Label className="font-body text-xs text-ink font-semibold mb-1.5 block">صورة إيصال التحويل *</Label>
-                  <label className={cn(
-                    'flex flex-col items-center gap-2 border-2 border-dashed rounded-[16px] p-4 cursor-pointer transition-colors',
-                    errors.depositFile ? 'border-red-400 bg-red-50' : 'border-hairline hover:border-brand-primary/50 hover:bg-canvas'
-                  )}>
-                    <Upload className="w-5 h-5 text-ink-muted" />
-                    <span className="font-body text-xs text-ink-muted">
-                      {form.depositFile ? form.depositFile.name : 'اضغط هنا لرفع صورة الإيصال'}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      required
-                      className="hidden"
-                      onChange={e => set('depositFile', e.target.files?.[0] ?? null)}
-                    />
-                  </label>
-                  {errors.depositFile && <p className="font-body text-xs text-red-500 mt-1">{errors.depositFile}</p>}
+                  {/* Deposit photo upload (required) */}
+                  <div className="pt-2">
+                    <Label className="font-body text-xs text-ink font-semibold mb-1.5 block">صورة إيصال التحويل *</Label>
+                    <label className={cn(
+                      'flex flex-col items-center gap-2 border-2 border-dashed rounded-[16px] p-4 cursor-pointer transition-colors',
+                      errors.depositFile ? 'border-red-400 bg-red-50' : 'border-hairline hover:border-brand-primary/50 hover:bg-canvas'
+                    )}>
+                      <Upload className="w-5 h-5 text-ink-muted" />
+                      <span className="font-body text-xs text-ink-muted">
+                        {form.depositFile ? form.depositFile.name : 'اضغط هنا لرفع صورة الإيصال'}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        required
+                        className="hidden"
+                        onChange={e => set('depositFile', e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                    {errors.depositFile && <p className="font-body text-xs text-red-500 mt-1">{errors.depositFile}</p>}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Order summary */}

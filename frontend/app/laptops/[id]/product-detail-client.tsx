@@ -29,6 +29,9 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
   const [selectedAddonsMap, setSelectedAddonsMap] = useState<Record<string, number>>({})
   const [showPopupModal, setShowPopupModal] = useState(false)
 
+  // Handle empty photos array
+  const photos = product.photos && product.photos.length > 0 ? product.photos : ['/placeholder-laptop.jpg']
+
   const { addItem } = useCart()
 
   const { data: addonsData } = useSWR<Addon[]>(
@@ -114,7 +117,7 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
         <div className="flex flex-col gap-3">
           <div className="relative aspect-[4/3] rounded-[20px] overflow-hidden bg-surface-1">
             <Image
-              src={product.photos[activePhoto]}
+              src={photos[activePhoto]}
               alt={product.name}
               fill
               className="object-cover transition-opacity duration-300"
@@ -127,7 +130,7 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
           </div>
           {/* Thumbnails */}
           <div className="flex gap-2">
-            {product.photos.map((photo, i) => (
+            {photos.map((photo, i) => (
               <button
                 key={i}
                 onClick={() => setActivePhoto(i)}
@@ -376,27 +379,30 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
       <section className="mt-16">
         <h2 className="font-sans font-bold text-ink text-2xl mb-6">منتجات مشابهة</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {allProducts.filter(p => p.id !== product.id).slice(0, 4).map(p => (
-            <Link
-              key={p.id}
-              href={`/laptops/${p.id}`}
-              className="group bg-canvas rounded-[20px] border border-hairline card-hover overflow-hidden"
-            >
-              <div className="aspect-[4/3] overflow-hidden bg-surface-1">
-                <Image
-                  src={p.photos[0]}
-                  alt={p.name}
-                  width={300}
-                  height={225}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <div className="p-3">
-                <p className="font-sans font-bold text-sm text-ink line-clamp-2 mb-2">{p.name}</p>
-                <p className="font-sans font-bold text-brand-primary">{p.price.toLocaleString('ar-EG')} ج.م</p>
-              </div>
-            </Link>
-          ))}
+          {allProducts.filter(p => p.id !== product.id).slice(0, 4).map(p => {
+            const pPhotos = p.photos && p.photos.length > 0 ? p.photos : ['/placeholder-laptop.jpg']
+            return (
+              <Link
+                key={p.id}
+                href={`/laptops/${p.id}`}
+                className="group bg-canvas rounded-[20px] border border-hairline card-hover overflow-hidden"
+              >
+                <div className="aspect-[4/3] overflow-hidden bg-surface-1">
+                  <Image
+                    src={pPhotos[0]}
+                    alt={p.name}
+                    width={300}
+                    height={225}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-3">
+                  <p className="font-sans font-bold text-sm text-ink line-clamp-2 mb-2">{p.name}</p>
+                  <p className="font-sans font-bold text-brand-primary">{p.price.toLocaleString('ar-EG')} ج.م</p>
+                </div>
+              </Link>
+            )
+          })}
         </div>
       </section>
 

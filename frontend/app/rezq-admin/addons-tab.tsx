@@ -76,9 +76,9 @@ export default function AddonsTab() {
         api.get_products(),
       ])
       // Handle paginated response shape for addons
-      setAddons(Array.isArray(addonsRes) ? addonsRes : addonsRes?.items || [])
+      setAddons(Array.isArray(addonsRes) ? addonsRes : (addonsRes as any)?.items || [])
       // Handle paginated response shape for products
-      setProducts(Array.isArray(prodsRes) ? prodsRes : prodsRes?.items || [])
+      setProducts(Array.isArray(prodsRes) ? prodsRes : (prodsRes as any)?.items || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'فشل تحميل البيانات')
     } finally {
@@ -368,7 +368,22 @@ export default function AddonsTab() {
               </div>
 
               <div>
-                <label className="block font-body text-xs text-ink-muted mb-1">التوافق مع الأجهزة</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-body text-xs text-ink-muted">التوافق مع الأجهزة</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (form.compatibleWith.length === products.length) {
+                        setForm(f => ({ ...f, compatibleWith: [] }))
+                      } else {
+                        setForm(f => ({ ...f, compatibleWith: products.map(p => p.id) }))
+                      }
+                    }}
+                    className="text-xs font-body text-brand-primary hover:underline"
+                  >
+                    {form.compatibleWith.length === products.length ? 'إلغاء الكل' : 'اختيار الكل'}
+                  </button>
+                </div>
                 <p className="font-body text-[11px] text-ink-muted mb-2">
                   اترك القائمة غير محددة لتكون الإضافة متاحة لجميع الأجهزة، أو اختر أجهزة محددة:
                 </p>
