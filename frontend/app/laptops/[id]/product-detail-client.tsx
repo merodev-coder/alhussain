@@ -34,12 +34,14 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
 
   const { addItem } = useCart()
 
-  const { data: addonsData } = useSWR<Addon[]>(
+  const { data: addonsData } = useSWR<Addon[] | { items: Addon[] }>(
     `/api/addons?compatibleWith=${product.id}`,
     fetcher
   )
 
-  const compatibleAddons = addonsData || []
+  const compatibleAddons: Addon[] = Array.isArray(addonsData)
+    ? addonsData
+    : (addonsData as { items?: Addon[] })?.items || []
 
   const toggleAddon = (addonId: string) => {
     setSelectedAddonsMap(prev => {

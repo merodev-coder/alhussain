@@ -70,7 +70,7 @@ export const api = {
   // Addons
   get_addons: (compatibleWith?: string) => {
     const query = compatibleWith ? `?compatibleWith=${encodeURIComponent(compatibleWith)}` : ''
-    return apiRequest<any[]>(`/api/addons${query}`)
+    return apiRequest<{ items: any[]; total: number; page: number; pages: number } | any[]>(`/api/addons${query}`)
   },
   create_addon: (data: any) => apiRequest<any>('/api/addons', { method: 'POST', body: JSON.stringify(data) }),
   update_addon: (id: string, data: any) =>
