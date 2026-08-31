@@ -32,8 +32,14 @@ async function checkAdminSessionServerSide(): Promise<{ authenticated: boolean; 
 // Middleware functions run per-request but cannot swap out the underlying uploader instance.
 // Therefore, per-request database reads to select different uploaders do not actually change which token is used.
 // Manual token rotation requires changing the environment variable and redeploying/restarting the frontend.
+// UploadThing automatically reads the token from UPLOADTHING_TOKEN environment variable
 const f = createUploadthing({
-  token: process.env.UPLOADTHING_TOKEN || '',
+  errorFormatter: (err) => {
+    return {
+      message: err.message,
+      name: err.name,
+    }
+  },
 })
 
 export const ourFileRouter = {

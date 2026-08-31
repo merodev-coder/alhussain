@@ -86,6 +86,8 @@ const STATUS_META: Record<
   },
 }
 
+const STATUS_FLOW: OrderStatus[] = ['pending', 'confirmed', 'shipped', 'completed', 'declined']
+
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
   { id: 'payments', label: 'مراجعة الدفع', icon: CreditCard },
@@ -157,6 +159,9 @@ function OrderDetailModal({
 }) {
   const [paymentAction, setPaymentAction] = useState<'confirming' | 'rejecting' | null>(null)
   const [receiptImage, setReceiptImage] = useState<string | null>(null)
+
+  // Log order ID for debugging
+  clientLogger.log('OrderDetailModal opened with order ID:', order.id)
 
   const PAYMENT_METHOD_LABELS: Record<string, string> = {
     vodafone_cash: 'فودافون كاش',
@@ -329,7 +334,7 @@ function OrderDetailModal({
                       <div className="mt-1 text-xs text-ink-muted">
                         <span>الإضافات: </span>
                         {item.selectedAddons.map((addon, aIdx) => (
-                          <span key={aIdx}>{addon.name} ({addon.price} ج.م × {addon.qty}){aIdx < item.selectedAddons.length - 1 ? ', ' : ''}</span>
+                          <span key={aIdx}>{addon.name} ({addon.price} ج.م × {addon.qty}){aIdx < (item.selectedAddons?.length || 0) - 1 ? ', ' : ''}</span>
                         ))}
                       </div>
                     )}

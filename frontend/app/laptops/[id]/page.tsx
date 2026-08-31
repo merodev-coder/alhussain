@@ -17,12 +17,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     const fetchData = async () => {
       try {
         const { id: paramId } = await params
-        if (!paramId) {
+        if (!paramId || paramId === 'undefined') {
           clientLogger.error('No product ID provided')
           setProduct(null)
           setLoading(false)
           return
         }
+        clientLogger.info('Fetching product with ID:', paramId)
         const [prod, all] = await Promise.all([api.get_product(paramId), api.get_products()])
         setProduct(prod)
         setAllProducts([prod, ...all.filter(p => p.id !== paramId).slice(0, 3)])

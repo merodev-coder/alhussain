@@ -2,8 +2,6 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   /* Al-Hussein Brand Tokens */
   --color-brand-primary: #0FC7C1;
