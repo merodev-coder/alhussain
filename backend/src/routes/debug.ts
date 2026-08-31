@@ -42,13 +42,13 @@ router.get('/uploadthing-status', async (_req: Request, res: Response): Promise<
       },
       configuration: {
         envVariable: 'UPLOADTHING_TOKEN (primary), UPLOADTHING_TOKEN_2, UPLOADTHING_TOKEN_3, etc.',
-        location: 'Next.js environment variables (frontend/.env.local)',
+        location: 'Backend environment variables (backend/.env)',
         currentUsage: 'Only UPLOADTHING_TOKEN is actively used. Additional tokens are informational only.',
         security: 'Server-side only (not exposed to browser)',
       },
       adminSettings: {
         activeUploadThingTokenIndex: 'Informational field for admin tracking only. Does NOT affect which token is used for uploads.',
-        requiredAction: 'To change the active UploadThing token, update UPLOADTHING_TOKEN in frontend/.env.local and redeploy/restart the Next.js frontend.',
+        requiredAction: 'To change the active UploadThing token, update UPLOADTHING_TOKEN in backend/.env and restart the Express server.',
       },
       recommendation: 'Monitor UploadThing quota usage. When approaching limits, manually update UPLOADTHING_TOKEN environment variable and redeploy. The activeUploadThingTokenIndex field in admin settings can be used to track which token is currently active for your own documentation.',
     })

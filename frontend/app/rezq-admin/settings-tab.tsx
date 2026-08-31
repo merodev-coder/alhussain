@@ -123,7 +123,7 @@ export default function SettingsTab() {
               dir="ltr"
             />
             <p className="font-body text-[11px] text-ink-muted mt-1">
-              هذا الحقل للمتابعة والتوثيق فقط. تغيير هذا الرقم لا يغير التوكن المستخدم فعلياً. لتغيير التوكن النشط، يجب تحديث متغير البيئة UPLOADTHING_TOKEN في frontend/.env.local وإعادة نشر التطبيق.
+              هذا الحقل للمتابعة والتوثيق فقط. تغيير هذا الرقم لا يغير التوكن المستخدم فعلياً. لتغيير التوكن النشط، يجب تحديث متغير البيئة UPLOADTHING_TOKEN في backend/.env وإعادة تشغيل الخادم.
             </p>
           </div>
 

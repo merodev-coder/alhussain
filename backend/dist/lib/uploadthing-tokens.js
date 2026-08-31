@@ -1,8 +1,9 @@
 /**
- * UploadThing token detection for backend debug endpoints.
+ * UploadThing tokens from the backend environment
+ * (UPLOADTHING_TOKEN, UPLOADTHING_TOKEN_2, etc.).
  *
- * UploadThing tokens are server-side environment variables (UPLOADTHING_TOKEN, UPLOADTHING_TOKEN_2, etc.)
- * The actual round-robin selection happens in the frontend API route handler (server-side Next.js code).
+ * The SDK binds a single token at module load time; extra numbered tokens
+ * are listed for debug/admin documentation only.
  */
 export function getUploadThingTokens() {
     const numbered = [];

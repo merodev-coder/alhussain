@@ -12,6 +12,7 @@ import type { ShippingRate, PaymentMethod } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 import { clientLogger } from '@/lib/client-logger'
+import { useUploadThing } from '@/lib/uploadthing'
 
 type FormData = {
   name: string
@@ -42,6 +43,7 @@ function validate(form: FormData): Errors {
 
 export default function CheckoutClient() {
   const { items, total: subtotal, clearCart } = useCart()
+  const { startUpload } = useUploadThing('depositPhotos')
 
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([])
   const [settings, setSettings] = useState<{ vodafoneCashNumber: string; instapayNumber: string } | null>(null)
@@ -104,17 +106,15 @@ export default function CheckoutClient() {
     setSubmitError('')
 
     try {
-      // Upload deposit photo if provided
+      // Upload deposit photo if provided (UploadThing presigned-URL flow)
       let depositPhotoUrl: string | undefined
       if (form.depositFile) {
-        const formData = new FormData()
-        formData.append('files', form.depositFile)
-        const uploadRes = await fetch('/api/uploadthing', {
-          method: 'POST',
-          body: formData,
-        })
-        const uploadData = await uploadRes.json()
-        depositPhotoUrl = uploadData.files?.[0]?.url
+        const uploaded = await startUpload([form.depositFile])
+        const first = uploaded?.[0] as { ufsUrl?: string; url?: string } | undefined
+        depositPhotoUrl = first?.ufsUrl ?? first?.url
+        if (!depositPhotoUrl) {
+          throw new Error('تعذّر رفع صورة إيصال التحويل')
+        }
       }
 
       // Format items array matching orderInputSchema

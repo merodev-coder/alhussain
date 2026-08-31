@@ -23,10 +23,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           setLoading(false)
           return
         }
-        clientLogger.info('Fetching product with ID:', paramId)
-        const [prod, all] = await Promise.all([api.get_product(paramId), api.get_products()])
+        clientLogger.log('Fetching product with ID:', paramId)
+        const [prod, allRes] = await Promise.all([api.get_product(paramId), api.get_products()])
         setProduct(prod)
-        setAllProducts([prod, ...all.filter(p => p.id !== paramId).slice(0, 3)])
+        const items = allRes?.items || (Array.isArray(allRes) ? allRes : [])
+        setAllProducts([prod, ...items.filter(p => p.id !== paramId).slice(0, 3)])
       } catch (err) {
         clientLogger.error('Failed to fetch product:', err)
         setProduct(null)

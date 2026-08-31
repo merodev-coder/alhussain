@@ -1,9 +1,9 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { logError, logInfo, logWarn } from './lib/logger.js';
-import 'dotenv/config';
 import { connectDB } from './lib/db.js';
 import { seedShippingRatesIfEmpty } from './lib/seed-shipping.js';
 import adminRoutes from './routes/admin.js';
@@ -18,15 +18,18 @@ import shippingRatesRoutes from './routes/shipping-rates.js';
 import inventoryRoutes from './routes/inventory.js';
 import debugRoutes from './routes/debug.js';
 import settingsRoutes from './routes/settings.js';
+import uploadthingRoutes from './routes/uploadthing.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 // Middleware
 app.use(cors({
     origin: FRONTEND_URL,
     credentials: true,
 }));
 app.use(cookieParser());
+// UploadThing needs the raw body for callback verification; mount before JSON parsers.
+app.use('/api/uploadthing', uploadthingRoutes);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 // Global rate limiter: 100 requests per 15 minutes per IP

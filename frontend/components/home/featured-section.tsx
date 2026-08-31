@@ -15,8 +15,9 @@ export default function FeaturedSection() {
   useEffect(() => {
     const getFeatured = async () => {
       try {
-        const products = await api.get_products()
-        setFeatured(products.filter(p => p.visible).slice(0, 6))
+        const res = await api.get_products()
+        const items = res?.items || (Array.isArray(res) ? res : [])
+        setFeatured(items.filter((p: Product) => p.visible).slice(0, 6))
       } catch (err) {
         clientLogger.error('Failed to fetch featured products:', err)
         setFeatured([])
