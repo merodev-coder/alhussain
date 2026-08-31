@@ -5,6 +5,7 @@ import { Truck, Check, Loader2 } from 'lucide-react'
 import type { ShippingRate } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function ShippingTab() {
   const [rates, setRates] = useState<ShippingRate[]>([])
@@ -43,7 +44,15 @@ export default function ShippingTab() {
     }
   }
 
-  if (loading) return <div className="py-8 text-center text-ink-muted">جاري تحميل أسعار الشحن للمحافظات...</div>
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3, 4, 5].map(i => (
+          <Skeleton key={i} className="h-20 w-full" />
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div>

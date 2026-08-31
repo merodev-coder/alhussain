@@ -75,7 +75,9 @@ export default function AddonsTab() {
         api.get_addons(),
         api.get_products(),
       ])
-      setAddons(addonsRes || [])
+      // Handle paginated response shape for addons
+      setAddons(Array.isArray(addonsRes) ? addonsRes : addonsRes?.items || [])
+      // Handle paginated response shape for products
       setProducts(Array.isArray(prodsRes) ? prodsRes : prodsRes?.items || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'فشل تحميل البيانات')

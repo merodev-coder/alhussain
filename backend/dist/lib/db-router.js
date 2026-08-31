@@ -1,7 +1,5 @@
 import { getConnection, getAllConnections, getConnectionCount } from './db.js';
 import { logError, logInfo, logWarn } from './logger.js';
-// Round-robin counter for write distribution
-let currentDbIndex = 0;
 export function isStorageFullError(error) {
     // Primary check: MongoDB Atlas error code 8000 (space quota exceeded)
     if (typeof error === 'object' && error !== null) {
@@ -27,17 +25,14 @@ function logFullError(error, context) {
 }
 export class DatabaseRouter {
     /**
-     * Create: round-robin distribution with storage-quota failover.
+     * Create: sequential fill with storage-quota failover.
+     * Always starts at dbIndex 0, only moves to dbIndex 1, 2, etc. on storage-quota errors.
      * `modelCreator` receives the connection AND the index so the caller can stamp dbIndex.
      */
     static async createWithFailover(modelCreator, recordType) {
         const connectionCount = getConnectionCount();
-        // Pick starting database using round-robin (synchronous increment before async operations)
-        const startDbIndex = currentDbIndex;
-        currentDbIndex = (currentDbIndex + 1) % connectionCount;
-        // Try the chosen database first, then failover on storage-full errors
-        for (let attempt = 0; attempt < connectionCount; attempt++) {
-            const dbIndex = (startDbIndex + attempt) % connectionCount;
+        // Sequential fill: always start at dbIndex 0, then 1, 2, etc. on storage-quota errors
+        for (let dbIndex = 0; dbIndex < connectionCount; dbIndex++) {
             try {
                 const connection = getConnection(dbIndex);
                 logInfo('DatabaseRouter', `Attempting ${recordType} creation on database index ${dbIndex}`);
@@ -47,7 +42,7 @@ export class DatabaseRouter {
             }
             catch (error) {
                 logFullError(error, `DatabaseRouter write attempt ${dbIndex} for ${recordType}`);
-                if (isStorageFullError(error) && attempt < connectionCount - 1) {
+                if (isStorageFullError(error) && dbIndex < connectionCount - 1) {
                     logWarn('DatabaseRouter', `Database index ${dbIndex} storage full (code 8000/AtlasError detected), trying next database for ${recordType}`);
                     continue;
                 }
@@ -150,11 +145,5 @@ export class DatabaseRouter {
             }
         }
         return status;
-    }
-    /**
-     * Get current round-robin index for debugging
-     */
-    static getCurrentRoundRobinIndex() {
-        return currentDbIndex;
     }
 }

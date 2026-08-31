@@ -3,20 +3,22 @@
  *
  * HOW FAILOVER TRIGGERS (creates)
  * --------------------------------
- * 1. createWithFailover() uses round-robin to pick a database, then tries it.
+ * 1. createWithFailover() uses sequential fill: always starts at dbIndex 0.
  * 2. If the write throws an Atlas/storage-quota error (MongoDB error code 8000,
  *    codeName 'AtlasError', or message contains "over your space quota"), it logs
- *    a warning and retries on the next database in round-robin order.
+ *    a warning and retries on the next database (dbIndex 1, then 2, etc.).
  * 3. Non-quota errors (validation, duplicate key, network) are NOT retried —
  *    they bubble up immediately so we don't silently write to the wrong cluster.
  * 4. The saved document's `dbIndex` is the connection index that succeeded.
  *
- * HOW ROUND-ROBIN WORKS
- * ---------------------
- * - Simple counter increments synchronously before any async operations
- * - This prevents race conditions where concurrent requests could pick same db
- * - When a storage-quota error occurs, the write continues to the next database
- * - The counter only advances on successful writes, not on retries
+ * HOW SEQUENTIAL FILL WORKS
+ * -------------------------
+ * - Always start with dbIndex 0 (primary database)
+ * - Only move to dbIndex 1, 2, 3, etc. when the previous database returns a
+ *   storage-quota error
+ * - This fills databases in order: dbIndex 0 takes all writes until full,
+ *   then dbIndex 1, then dbIndex 2, etc.
+ * - No round-robin counter needed — no distribution across all databases from start
  *
  * HOW READS WORK
  * --------------
@@ -35,7 +37,7 @@
  * - Failover: point MONGODB_URI at a full/tiny Atlas free cluster (or a user
  *   without write storage) and MONGODB_URI_2 at a working cluster, then create
  *   a product. Logs should say "storage full, trying next" then "created on
- *   database 2". The new record's dbIndex should be 1.
+ *   database 1". The new record's dbIndex should be 1.
  * - Reads: create one product on each cluster; GET /api/products should list both.
  *
  * MongoDB transactions across TWO Atlas clusters are not possible. Inventory
@@ -44,9 +46,6 @@
 import mongoose from 'mongoose'
 import { getConnection, getAllConnections, getConnectionCount } from './db.js'
 import { logError, logInfo, logWarn } from './logger.js'
-
-// Round-robin counter for write distribution
-let currentDbIndex = 0
 
 export function isStorageFullError(error: unknown): boolean {
   // Primary check: MongoDB Atlas error code 8000 (space quota exceeded)
@@ -79,7 +78,8 @@ function logFullError(error: unknown, context: string): void {
 
 export class DatabaseRouter {
   /**
-   * Create: round-robin distribution with storage-quota failover.
+   * Create: sequential fill with storage-quota failover.
+   * Always starts at dbIndex 0, only moves to dbIndex 1, 2, etc. on storage-quota errors.
    * `modelCreator` receives the connection AND the index so the caller can stamp dbIndex.
    */
   static async createWithFailover<T>(
@@ -88,14 +88,8 @@ export class DatabaseRouter {
   ): Promise<{ result: T; dbIndex: number }> {
     const connectionCount = getConnectionCount()
 
-    // Pick starting database using round-robin (synchronous increment before async operations)
-    const startDbIndex = currentDbIndex
-    currentDbIndex = (currentDbIndex + 1) % connectionCount
-
-    // Try the chosen database first, then failover on storage-full errors
-    for (let attempt = 0; attempt < connectionCount; attempt++) {
-      const dbIndex = (startDbIndex + attempt) % connectionCount
-
+    // Sequential fill: always start at dbIndex 0, then 1, 2, etc. on storage-quota errors
+    for (let dbIndex = 0; dbIndex < connectionCount; dbIndex++) {
       try {
         const connection = getConnection(dbIndex)
         logInfo('DatabaseRouter', `Attempting ${recordType} creation on database index ${dbIndex}`)
@@ -104,7 +98,7 @@ export class DatabaseRouter {
         return { result, dbIndex }
       } catch (error) {
         logFullError(error, `DatabaseRouter write attempt ${dbIndex} for ${recordType}`)
-        if (isStorageFullError(error) && attempt < connectionCount - 1) {
+        if (isStorageFullError(error) && dbIndex < connectionCount - 1) {
           logWarn(
             'DatabaseRouter',
             `Database index ${dbIndex} storage full (code 8000/AtlasError detected), trying next database for ${recordType}`
@@ -241,12 +235,5 @@ export class DatabaseRouter {
     }
 
     return status
-  }
-
-  /**
-   * Get current round-robin index for debugging
-   */
-  static getCurrentRoundRobinIndex(): number {
-    return currentDbIndex
   }
 }

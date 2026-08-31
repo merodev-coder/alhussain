@@ -12,10 +12,12 @@ import {
   Clock,
   X,
   ExternalLink,
+  Loader2,
 } from 'lucide-react'
 import type { Order } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   vodafone_cash: 'فودافون كاش',
@@ -62,7 +64,13 @@ export default function PaymentsTab() {
   }
 
   if (loading && orders.length === 0)
-    return <div className="py-8 text-center text-ink-muted">جاري تحميل طلبات مراجعة الدفع...</div>
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3, 4, 5].map(i => (
+          <Skeleton key={i} className="h-32 w-full" />
+        ))}
+      </div>
+    )
 
   return (
     <div>

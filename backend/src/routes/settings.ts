@@ -12,6 +12,7 @@ const router = Router()
 const settingsSchema = z.object({
   vodafoneCashNumber: z.string().min(1),
   instapayNumber: z.string().min(1),
+  activeUploadThingTokenIndex: z.number().int().min(0).optional(),
 })
 
 router.get('/api/settings', async (_req: Request, res: Response): Promise<void> => {
@@ -33,6 +34,7 @@ router.get('/api/settings', async (_req: Request, res: Response): Promise<void> 
       res.json({
         vodafoneCashNumber: '',
         instapayNumber: '',
+        activeUploadThingTokenIndex: 0,
       })
       return
     }
@@ -40,6 +42,7 @@ router.get('/api/settings', async (_req: Request, res: Response): Promise<void> 
     res.json({
       vodafoneCashNumber: settings.vodafoneCashNumber,
       instapayNumber: settings.instapayNumber,
+      activeUploadThingTokenIndex: settings.activeUploadThingTokenIndex ?? 0,
     })
   } catch (error) {
     logError('Get settings', error)
@@ -71,9 +74,16 @@ router.post('/api/settings', requireAdmin, async (req: Request, res: Response): 
     if (existing && targetConnection) {
       // Update existing settings
       const SettingsModel = getSiteSettingsModel(targetConnection)
+      const updateData: Record<string, unknown> = {
+        vodafoneCashNumber: data.vodafoneCashNumber,
+        instapayNumber: data.instapayNumber,
+      }
+      if (data.activeUploadThingTokenIndex !== undefined) {
+        updateData.activeUploadThingTokenIndex = data.activeUploadThingTokenIndex
+      }
       const updated = await SettingsModel.findOneAndUpdate(
         { _id: existing._id },
-        { vodafoneCashNumber: data.vodafoneCashNumber, instapayNumber: data.instapayNumber },
+        updateData,
         { new: true }
       ).lean()
       res.json(withId(updated!))
@@ -85,6 +95,7 @@ router.post('/api/settings', requireAdmin, async (req: Request, res: Response): 
         const settings = new SettingsModel({
           vodafoneCashNumber: data.vodafoneCashNumber,
           instapayNumber: data.instapayNumber,
+          activeUploadThingTokenIndex: data.activeUploadThingTokenIndex ?? 0,
           dbIndex,
         })
         await settings.save()

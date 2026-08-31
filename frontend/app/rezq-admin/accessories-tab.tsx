@@ -10,11 +10,13 @@ import {
   Upload,
   Eye,
   EyeOff,
+  Loader2,
 } from 'lucide-react'
 import { useUploadThing } from '@/lib/uploadthing'
 import type { Accessory, StockStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type AccessoryForm = {
   name: string
@@ -170,7 +172,15 @@ export default function AccessoriesTab() {
     }
   }
 
-  if (loading) return <div className="py-8 text-center text-ink-muted">جاري تحميل الإكسسوارات...</div>
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3, 4, 5].map(i => (
+          <Skeleton key={i} className="h-20 w-full" />
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div>

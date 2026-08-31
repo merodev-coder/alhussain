@@ -26,21 +26,15 @@ router.post('/admin/login', loginRateLimit, async (req: Request, res: Response):
     const body = loginSchema.parse(req.body)
 
     const adminUsername = process.env.ADMIN_USERNAME
-    const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH
+    const adminPassword = process.env.ADMIN_PASSWORD
 
     // For testing: use fallback credentials if env vars not set
-    if (!adminUsername || !adminPasswordHash) {
-      logWarn('Admin login', 'ADMIN_USERNAME or ADMIN_PASSWORD_HASH missing - using fallback for testing')
+    if (!adminUsername || !adminPassword) {
+      logWarn('Admin login', 'ADMIN_USERNAME or ADMIN_PASSWORD missing - using fallback for testing')
       const fallbackUsername = 'admin'
-      const fallbackHash = '$2b$10$wT8vM9C8lXQn11Gf29rYneXmC/hJ02R197vJ39S0W5f26mHqGjXKO' // 'admin123'
+      const fallbackPassword = 'admin123'
 
-      if (body.username !== fallbackUsername) {
-        res.status(401).json({ error: 'بيانات الدخول غير صحيحة' })
-        return
-      }
-
-      const passwordMatch = await bcrypt.compare(body.password, fallbackHash)
-      if (!passwordMatch) {
+      if (body.username !== fallbackUsername || body.password !== fallbackPassword) {
         res.status(401).json({ error: 'بيانات الدخول غير صحيحة' })
         return
       }
@@ -52,13 +46,7 @@ router.post('/admin/login', loginRateLimit, async (req: Request, res: Response):
       return
     }
 
-    if (body.username !== adminUsername) {
-      res.status(401).json({ error: 'بيانات الدخول غير صحيحة' })
-      return
-    }
-
-    const passwordMatch = await bcrypt.compare(body.password, adminPasswordHash)
-    if (!passwordMatch) {
+    if (body.username !== adminUsername || body.password !== adminPassword) {
       res.status(401).json({ error: 'بيانات الدخول غير صحيحة' })
       return
     }

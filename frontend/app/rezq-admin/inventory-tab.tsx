@@ -9,10 +9,12 @@ import {
   History,
   X,
   CheckCircle,
+  Loader2,
 } from 'lucide-react'
 import type { InventoryItem, InventoryLog, StockStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const STOCK_LABELS: Record<StockStatus, string> = {
   in_stock: 'متوفر',
@@ -112,7 +114,13 @@ export default function InventoryTab() {
   }
 
   if (loading && items.length === 0)
-    return <div className="py-8 text-center text-ink-muted">جاري تحميل بيانات الجرد...</div>
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3, 4, 5].map(i => (
+          <Skeleton key={i} className="h-20 w-full" />
+        ))}
+      </div>
+    )
 
   return (
     <div>

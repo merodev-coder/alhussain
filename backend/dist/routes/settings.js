@@ -10,6 +10,7 @@ const router = Router();
 const settingsSchema = z.object({
     vodafoneCashNumber: z.string().min(1),
     instapayNumber: z.string().min(1),
+    activeUploadThingTokenIndex: z.number().int().min(0).optional(),
 });
 router.get('/api/settings', async (_req, res) => {
     try {
@@ -28,12 +29,14 @@ router.get('/api/settings', async (_req, res) => {
             res.json({
                 vodafoneCashNumber: '',
                 instapayNumber: '',
+                activeUploadThingTokenIndex: 0,
             });
             return;
         }
         res.json({
             vodafoneCashNumber: settings.vodafoneCashNumber,
             instapayNumber: settings.instapayNumber,
+            activeUploadThingTokenIndex: settings.activeUploadThingTokenIndex ?? 0,
         });
     }
     catch (error) {
@@ -62,7 +65,14 @@ router.post('/api/settings', requireAdmin, async (req, res) => {
         if (existing && targetConnection) {
             // Update existing settings
             const SettingsModel = getSiteSettingsModel(targetConnection);
-            const updated = await SettingsModel.findOneAndUpdate({ _id: existing._id }, { vodafoneCashNumber: data.vodafoneCashNumber, instapayNumber: data.instapayNumber }, { new: true }).lean();
+            const updateData = {
+                vodafoneCashNumber: data.vodafoneCashNumber,
+                instapayNumber: data.instapayNumber,
+            };
+            if (data.activeUploadThingTokenIndex !== undefined) {
+                updateData.activeUploadThingTokenIndex = data.activeUploadThingTokenIndex;
+            }
+            const updated = await SettingsModel.findOneAndUpdate({ _id: existing._id }, updateData, { new: true }).lean();
             res.json(withId(updated));
         }
         else {
@@ -73,6 +83,7 @@ router.post('/api/settings', requireAdmin, async (req, res) => {
                 const settings = new SettingsModel({
                     vodafoneCashNumber: data.vodafoneCashNumber,
                     instapayNumber: data.instapayNumber,
+                    activeUploadThingTokenIndex: data.activeUploadThingTokenIndex ?? 0,
                     dbIndex,
                 });
                 await settings.save();

@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 export default function SettingsTab() {
   const [vodafoneCashNumber, setVodafoneCashNumber] = useState('')
   const [instapayNumber, setInstapayNumber] = useState('')
+  const [activeUploadThingTokenIndex, setActiveUploadThingTokenIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -19,6 +20,7 @@ export default function SettingsTab() {
       const res = await api.get_settings()
       setVodafoneCashNumber(res.vodafoneCashNumber || '')
       setInstapayNumber(res.instapayNumber || '')
+      setActiveUploadThingTokenIndex(res.activeUploadThingTokenIndex ?? 0)
     } catch (err) {
       console.error('Failed to load settings:', err)
     } finally {
@@ -42,6 +44,7 @@ export default function SettingsTab() {
       await api.update_settings({
         vodafoneCashNumber: vodafoneCashNumber.trim(),
         instapayNumber: instapayNumber.trim(),
+        activeUploadThingTokenIndex,
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -104,6 +107,23 @@ export default function SettingsTab() {
             />
             <p className="font-body text-[11px] text-ink-muted mt-1">
               هذا الرقم سيظهر للعملاء عند اختيار طريقة الدفع إنستا باي
+            </p>
+          </div>
+
+          <div>
+            <label className="block font-body text-xs text-ink-muted mb-2 font-semibold">
+              فهرس توكن UploadThing النشط (معلوماتي فقط)
+            </label>
+            <input
+              type="number"
+              value={activeUploadThingTokenIndex}
+              onChange={e => setActiveUploadThingTokenIndex(parseInt(e.target.value) || 0)}
+              min="0"
+              className="w-full px-4 py-3 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+              dir="ltr"
+            />
+            <p className="font-body text-[11px] text-ink-muted mt-1">
+              هذا الحقل للمتابعة والتوثيق فقط. تغيير هذا الرقم لا يغير التوكن المستخدم فعلياً. لتغيير التوكن النشط، يجب تحديث متغير البيئة UPLOADTHING_TOKEN في frontend/.env.local وإعادة نشر التطبيق.
             </p>
           </div>
 

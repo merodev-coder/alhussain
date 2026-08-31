@@ -2,6 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 const SiteSettingsSchema = new Schema({
     vodafoneCashNumber: { type: String, required: true, trim: true },
     instapayNumber: { type: String, required: true, trim: true },
+    activeUploadThingTokenIndex: { type: Number, required: true, default: 0 },
     dbIndex: { type: Number, required: true, default: 0 },
 }, {
     timestamps: true,

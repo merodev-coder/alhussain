@@ -27,7 +27,11 @@ async function checkAdminSessionServerSide(): Promise<{ authenticated: boolean; 
   }
 }
 
-// Create UploadThing instance with server-side token (not exposed to browser)
+// Create UploadThing instance with primary token
+// LIMITATION: The file router is bound to this specific uploader instance at module definition time.
+// Middleware functions run per-request but cannot swap out the underlying uploader instance.
+// Therefore, per-request database reads to select different uploaders do not actually change which token is used.
+// Manual token rotation requires changing the environment variable and redeploying/restarting the frontend.
 const f = createUploadthing({
   token: process.env.UPLOADTHING_TOKEN || '',
 })

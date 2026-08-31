@@ -153,8 +153,8 @@ export const api = {
   get_dashboard_stats: () => apiRequest<any>('/api/dashboard-stats'),
 
   // Settings
-  get_settings: () => apiRequest<{ vodafoneCashNumber: string; instapayNumber: string }>('/api/settings'),
-  update_settings: (data: { vodafoneCashNumber: string; instapayNumber: string }) =>
+  get_settings: () => apiRequest<{ vodafoneCashNumber: string; instapayNumber: string; activeUploadThingTokenIndex: number }>('/api/settings'),
+  update_settings: (data: { vodafoneCashNumber: string; instapayNumber: string; activeUploadThingTokenIndex?: number }) =>
     apiRequest<any>('/api/settings', { method: 'POST', body: JSON.stringify(data) }),
 
   // Admin Auth

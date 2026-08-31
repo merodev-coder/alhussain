@@ -454,8 +454,8 @@ function OrdersTab() {
         setError('')
         const statusParam = statusFilter === 'all' ? undefined : statusFilter
         const data = await api.get_orders(statusParam, page)
-        // Handle new paginated response shape
-        const orders = Array.isArray(data) ? data : (data?.items || [])
+        // Backend always returns paginated response shape now
+        const orders = data?.items || []
         setAllOrders(orders)
         setTotalPages(data?.pages || 1)
       } catch (err) {
@@ -476,8 +476,8 @@ function OrdersTab() {
       setError('')
       const statusParam = statusFilter === 'all' ? undefined : statusFilter
       const data = await api.get_orders(statusParam, page)
-      // Handle new paginated response shape
-      const orders = Array.isArray(data) ? data : (data?.items || [])
+      // Backend always returns paginated response shape now
+      const orders = data?.items || []
       setAllOrders(orders)
       setTotalPages(data?.pages || 1)
     } catch (err) {
@@ -704,8 +704,8 @@ function DashboardTab() {
       try {
         setProductsLoading(true)
         const data = await api.get_products()
-        // Handle new paginated response shape
-        const products = Array.isArray(data) ? data : (data?.items || [])
+        // Backend always returns paginated response shape now
+        const products = data?.items || []
         setProducts(products)
       } catch (err) {
         clientLogger.error('Failed to fetch products:', err)
