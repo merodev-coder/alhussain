@@ -46,6 +46,7 @@ export const orderItemSchema = z.object({
 export const orderInputSchema = z.object({
     customerName: z.string().min(1, 'الاسم مطلوب'),
     phone: z.string().regex(/^01[0-9]{9}$/, 'رقم الهاتف غير صحيح'),
+    email: z.string().email('البريد الإلكتروني غير صحيح'),
     address: z.string().default(''),
     governorate: z.string().default(''),
     deliveryMethod: z.enum(['shipping', 'pickup']),

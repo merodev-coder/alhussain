@@ -10,6 +10,8 @@ import { DatabaseRouter } from '../lib/db-router.js'
 import { withId, withIds } from '../lib/json.js'
 import { findAccessoryById, findAddonById, findProductById, findShippingRate } from '../lib/catalog.js'
 import { decrementStockForOrder } from '../lib/inventory.js'
+import { sendMail } from '../lib/mailer.js'
+import { orderConfirmationEmail, orderReceiptEmail } from '../lib/email-templates.js'
 
 const router = Router()
 
@@ -119,6 +121,7 @@ router.post('/api/orders', orderRateLimit, async (req: Request, res: Response): 
       const order = new OrderModel({
         customerName: data.customerName,
         phone: data.phone,
+        email: data.email,
         address: data.address,
         governorate: data.governorate,
         deliveryMethod: data.deliveryMethod,
@@ -140,6 +143,13 @@ router.post('/api/orders', orderRateLimit, async (req: Request, res: Response): 
     }, 'order')
 
     logInfo('Create order', `Order created: ${result.orderNumber} dbIndex=${result.dbIndex}`)
+
+    // Send order confirmation email
+    await sendMail({
+      to: data.email,
+      ...orderConfirmationEmail(result),
+    })
+
     res.status(201).json(result.toJSON())
   } catch (error) {
     logError('Create order', error)
@@ -221,6 +231,8 @@ router.patch('/api/orders/:id', requireAdmin, async (req: Request, res: Response
     const current: any = found.result
     const shouldDecrement =
       statusValidation.data === 'shipped' && !current.stockDecremented && current.status !== 'shipped'
+    const shouldSendReceipt =
+      statusValidation.data === 'completed' && current.status !== 'completed'
 
     if (shouldDecrement) {
       await decrementStockForOrder(current.toObject())
@@ -239,6 +251,15 @@ router.patch('/api/orders/:id', requireAdmin, async (req: Request, res: Response
         ),
       'order'
     )
+
+    // Send receipt email when order is completed
+    if (shouldSendReceipt && order) {
+      await sendMail({
+        to: order.email,
+        ...orderReceiptEmail(order),
+      })
+    }
+
     res.json(order?.toJSON())
   } catch (error) {
     logError('Update order', error)

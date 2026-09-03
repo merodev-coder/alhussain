@@ -3,6 +3,8 @@ const SiteSettingsSchema = new Schema({
     vodafoneCashNumber: { type: String, required: true, trim: true },
     instapayNumber: { type: String, required: true, trim: true },
     activeUploadThingTokenIndex: { type: Number, required: true, default: 0 },
+    senderEmail: { type: String, required: true, default: '' },
+    senderEmailAppPassword: { type: String, required: true, default: '' },
     dbIndex: { type: Number, required: true, default: 0 },
 }, {
     timestamps: true,

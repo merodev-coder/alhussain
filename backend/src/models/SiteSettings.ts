@@ -6,6 +6,8 @@ export interface SiteSettingsDoc {
   vodafoneCashNumber: string
   instapayNumber: string
   activeUploadThingTokenIndex: number
+  senderEmail: string
+  senderEmailAppPassword: string
   dbIndex: number
   createdAt: Date
   updatedAt: Date
@@ -16,6 +18,8 @@ const SiteSettingsSchema = new Schema<SiteSettingsDoc>(
     vodafoneCashNumber: { type: String, required: true, trim: true },
     instapayNumber: { type: String, required: true, trim: true },
     activeUploadThingTokenIndex: { type: Number, required: true, default: 0 },
+    senderEmail: { type: String, required: true, default: '' },
+    senderEmailAppPassword: { type: String, required: true, default: '' },
     dbIndex: { type: Number, required: true, default: 0 },
   },
   {

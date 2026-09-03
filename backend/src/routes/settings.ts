@@ -13,6 +13,8 @@ const settingsSchema = z.object({
   vodafoneCashNumber: z.string().min(1),
   instapayNumber: z.string().min(1),
   activeUploadThingTokenIndex: z.number().int().min(0).optional(),
+  senderEmail: z.string().email().optional().or(z.literal('')),
+  senderEmailAppPassword: z.string().optional().or(z.literal('')),
 })
 
 router.get('/api/settings', async (_req: Request, res: Response): Promise<void> => {
@@ -35,6 +37,8 @@ router.get('/api/settings', async (_req: Request, res: Response): Promise<void> 
         vodafoneCashNumber: '',
         instapayNumber: '',
         activeUploadThingTokenIndex: 0,
+        senderEmail: '',
+        senderEmailAppPassword: '',
       })
       return
     }
@@ -43,6 +47,8 @@ router.get('/api/settings', async (_req: Request, res: Response): Promise<void> 
       vodafoneCashNumber: settings.vodafoneCashNumber,
       instapayNumber: settings.instapayNumber,
       activeUploadThingTokenIndex: settings.activeUploadThingTokenIndex ?? 0,
+      senderEmail: settings.senderEmail ?? '',
+      senderEmailAppPassword: settings.senderEmailAppPassword ?? '',
     })
   } catch (error) {
     logError('Get settings', error)
@@ -81,6 +87,12 @@ router.post('/api/settings', requireAdmin, async (req: Request, res: Response): 
       if (data.activeUploadThingTokenIndex !== undefined) {
         updateData.activeUploadThingTokenIndex = data.activeUploadThingTokenIndex
       }
+      if (data.senderEmail !== undefined) {
+        updateData.senderEmail = data.senderEmail
+      }
+      if (data.senderEmailAppPassword !== undefined) {
+        updateData.senderEmailAppPassword = data.senderEmailAppPassword
+      }
       const updated = await SettingsModel.findOneAndUpdate(
         { _id: existing._id },
         updateData,
@@ -96,6 +108,8 @@ router.post('/api/settings', requireAdmin, async (req: Request, res: Response): 
           vodafoneCashNumber: data.vodafoneCashNumber,
           instapayNumber: data.instapayNumber,
           activeUploadThingTokenIndex: data.activeUploadThingTokenIndex ?? 0,
+          senderEmail: data.senderEmail ?? '',
+          senderEmailAppPassword: data.senderEmailAppPassword ?? '',
           dbIndex,
         })
         await settings.save()

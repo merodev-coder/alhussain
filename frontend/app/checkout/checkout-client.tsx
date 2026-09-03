@@ -17,6 +17,7 @@ import { useUploadThing } from '@/lib/uploadthing'
 type FormData = {
   name: string
   phone: string
+  email: string
   address: string
   governorate: string
   deliveryMethod: 'shipping' | 'pickup'
@@ -32,6 +33,8 @@ function validate(form: FormData): Errors {
   if (!form.name.trim()) errors.name = 'الاسم مطلوب'
   if (!form.phone.trim()) errors.phone = 'رقم الهاتف مطلوب'
   else if (!/^01[0-9]{9}$/.test(form.phone.trim())) errors.phone = 'رقم الهاتف غير صحيح (مثال: 01012345678)'
+  if (!form.email.trim()) errors.email = 'البريد الإلكتروني مطلوب'
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = 'البريد الإلكتروني غير صحيح'
   if (form.deliveryMethod === 'shipping') {
     if (!form.address.trim()) errors.address = 'العنوان مطلوب'
     if (!form.governorate) errors.governorate = 'المحافظة مطلوبة'
@@ -51,6 +54,7 @@ export default function CheckoutClient() {
   const [form, setForm] = useState<FormData>({
     name: '',
     phone: '',
+    email: '',
     address: '',
     governorate: '',
     deliveryMethod: 'shipping',
@@ -131,6 +135,7 @@ export default function CheckoutClient() {
       const orderData = {
         customerName: form.name,
         phone: form.phone,
+        email: form.email,
         address: form.deliveryMethod === 'shipping' ? form.address : 'استلام من المتجر',
         governorate: form.deliveryMethod === 'shipping' ? form.governorate : 'القاهرة',
         deliveryMethod: form.deliveryMethod,
@@ -259,6 +264,19 @@ export default function CheckoutClient() {
                     inputMode="tel"
                   />
                   {errors.phone && <p className="font-body text-xs text-red-500">{errors.phone}</p>}
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="email" className="font-body text-sm text-ink">البريد الإلكتروني *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="example@email.com"
+                    value={form.email}
+                    onChange={e => set('email', e.target.value)}
+                    className={cn('rounded-xl border-hairline focus-visible:ring-[#0FC7C1]/30 font-body', errors.email && 'border-red-400')}
+                    dir="ltr"
+                  />
+                  {errors.email && <p className="font-body text-xs text-red-500">{errors.email}</p>}
                 </div>
               </div>
             </div>

@@ -26,6 +26,7 @@ export interface OrderDoc {
   orderNumber: string
   customerName: string
   phone: string
+  email: string
   address: string
   governorate: string
   deliveryMethod: 'shipping' | 'pickup'
@@ -72,6 +73,7 @@ const OrderSchema = new Schema<OrderDoc>(
     orderNumber: { type: String, required: true, unique: true },
     customerName: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
+    email: { type: String, required: true, trim: true, lowercase: true },
     address: { type: String, default: '' },
     governorate: { type: String, default: '' },
     deliveryMethod: {
