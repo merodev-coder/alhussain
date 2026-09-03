@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { getProductModel } from '../models/Product.js';
+import { getSpecOptionModel } from '../models/SpecOption.js';
 import { productInputSchema } from '../lib/validators.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { logError, logInfo } from '../lib/logger.js';
@@ -82,6 +83,81 @@ router.post('/api/products', requireAdmin, async (req, res) => {
     }
     catch (error) {
         logError('Create product', error);
+        if (error instanceof z.ZodError) {
+            res.status(400).json({ error: 'بيانات غير صحيحة', details: error.issues });
+            return;
+        }
+        res.status(500).json({ error: 'حدث خطأ في الخادم' });
+    }
+});
+router.post('/api/products/bulk', requireAdmin, async (req, res) => {
+    try {
+        const bulkSchema = z.object({
+            items: z.array(productInputSchema.extend({
+                photos: z.array(z.string()).optional().default([]),
+            })),
+        });
+        const { items } = bulkSchema.parse(req.body);
+        const failed = [];
+        let created = 0;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            try {
+                // Create spec options if they don't exist
+                const specTypes = ['cpu', 'gpu', 'ram', 'storage'];
+                for (const specType of specTypes) {
+                    const value = item[specType];
+                    if (value && value.trim()) {
+                        try {
+                            await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
+                                const SpecOptionModel = getSpecOptionModel(connection);
+                                const option = new SpecOptionModel({
+                                    type: specType,
+                                    value: value.trim(),
+                                    dbIndex,
+                                });
+                                await option.save();
+                                return option;
+                            }, 'specOption');
+                        }
+                        catch (specError) {
+                            // Ignore duplicate key errors - the spec option already exists
+                            if (!specError.code || specError.code !== 11000) {
+                                throw specError;
+                            }
+                        }
+                    }
+                }
+                // Create the product
+                const quantity = item.quantity ?? 1;
+                await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
+                    const ProductModel = getProductModel(connection);
+                    const product = new ProductModel({
+                        ...item,
+                        photos: item.photos ?? [],
+                        quantity,
+                        stockStatus: item.stockStatus ?? suggestStockStatus(quantity),
+                        dbIndex,
+                    });
+                    await product.save();
+                    return product;
+                }, 'product');
+                created++;
+            }
+            catch (error) {
+                logError('Bulk create product', `Failed to create product at index ${i}: ${error}`);
+                failed.push({
+                    index: i,
+                    name: item.name,
+                    error: error instanceof Error ? error.message : 'حدث خطأ في الخادم',
+                });
+            }
+        }
+        logInfo('Bulk create products', `Created ${created} products, failed ${failed.length}`);
+        res.status(201).json({ created, failed });
+    }
+    catch (error) {
+        logError('Bulk create products', error);
         if (error instanceof z.ZodError) {
             res.status(400).json({ error: 'بيانات غير صحيحة', details: error.issues });
             return;

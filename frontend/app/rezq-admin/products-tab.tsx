@@ -501,6 +501,703 @@ function DeleteConfirm({
   )
 }
 
+// ── Bulk import modal ──────────────────────────────────────────────────────────
+function BulkImportModal({
+  onClose,
+  onImported,
+}: {
+  onClose: () => void
+  onImported: (created: number, failed: Array<{ index: number; name?: string; error: string }>) => void
+}) {
+  const [jsonText, setJsonText] = useState('')
+  const [parsedItems, setParsedItems] = useState<any[] | null>(null)
+  const [parseError, setParseError] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<Array<{ index: number; error: string }>>([])
+
+  const DEFAULT_DATA = [
+    {
+      "name": "HP 645 G1",
+      "price": 4500,
+      "description": "لابتوب HP 645 G1 مستعمل بحالة ممتازة من الفئة الاقتصادية، شاشة 14.1\"، معالج AMD A10-5300 (5th Gen)، رام 8GB، تخزين 500GB HDD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "AMD A10-5300 (5th Gen)",
+      "gpu": "AMD 7620 - Up to 8GB",
+      "ram": "8GB",
+      "storage": "500GB HDD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP 255 G3",
+      "price": 4500,
+      "description": "لابتوب HP 255 G3 مستعمل بحالة ممتازة من الفئة الاقتصادية، شاشة 14.1\"، معالج AMD A4-53007 (5th Gen)، رام 8GB، تخزين 500GB HDD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "AMD A4-53007 (5th Gen)",
+      "gpu": "AMD 7620 - Up to 8GB",
+      "ram": "8GB",
+      "storage": "500GB HDD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP 840 G1",
+      "price": 5500,
+      "description": "لابتوب HP 840 G1 مستعمل بحالة ممتازة من الفئة الاقتصادية، شاشة 15.6\"، معالج Core i5 (4th Gen)، رام 8GB، تخزين 500GB HDD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 (4th Gen)",
+      "gpu": "AMD HD 8470M - 1GB إلى 8GB",
+      "ram": "8GB",
+      "storage": "500GB HDD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 3470",
+      "price": 6500,
+      "description": "لابتوب DELL 3470 مستعمل بحالة ممتازة من الفئة الاقتصادية، شاشة 14.1\"، معالج Core i5 (6th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 (6th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL M4800",
+      "price": 7000,
+      "description": "لابتوب DELL M4800 مستعمل بحالة ممتازة من الفئة الاقتصادية، شاشة 15.6\"، معالج Core i7 (4th Gen)، رام 8GB، تخزين 500GB HDD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (4th Gen)",
+      "gpu": "N.VIDIA K1000 - 2GB إلى 20GB",
+      "ram": "8GB",
+      "storage": "500GB HDD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "Dell 6540",
+      "price": 7300,
+      "description": "لابتوب Dell 6540 مستعمل بحالة ممتازة من الفئة الاقتصادية، شاشة 15.6\"، معالج Core i7 (4th Gen)، رام 8GB، تخزين 500GB HDD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (4th Gen)",
+      "gpu": "AMD HD 8470M - 2GB إلى 8GB",
+      "ram": "8GB",
+      "storage": "500GB HDD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "Hp 455 G5",
+      "price": 7500,
+      "description": "لابتوب Hp 455 G5 مستعمل بحالة ممتازة من الفئة الاقتصادية، شاشة 15.6\"، معالج AMD A9-9410 (9th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "AMD A9-9410 (9th Gen)",
+      "gpu": "AMD HD R6 - 1GB إلى 8GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 7480",
+      "price": 7500,
+      "description": "لابتوب DELL 7480 مستعمل بحالة ممتازة من الفئة الاقتصادية، شاشة 14.1\"، معالج Core i5 (7th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 (7th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP ZBOOK G2",
+      "price": 7500,
+      "description": "لابتوب HP ZBOOK G2 مستعمل بحالة ممتازة من الفئة الاقتصادية، شاشة 15.6\"، معالج Core i7 MQ (4th Gen)، رام 8GB، تخزين 500GB HDD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 MQ (4th Gen)",
+      "gpu": "N.VIDIA K1000 - 2GB إلى 20GB",
+      "ram": "8GB",
+      "storage": "500GB HDD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 5580",
+      "price": 8000,
+      "description": "لابتوب DELL 5580 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 15.6\"، معالج Core i5 (6th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 (6th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 7480",
+      "price": 8500,
+      "description": "لابتوب DELL 7480 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 14.1\"، معالج Core i7 (7th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (7th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 5470",
+      "price": 8700,
+      "description": "لابتوب DELL 5470 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 14.1\"، معالج Core i7 (6th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (6th Gen)",
+      "gpu": "AMD HD R7 - 2GB إلى 12GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 5400",
+      "price": 9000,
+      "description": "لابتوب DELL 5400 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 14.1\"، معالج Core i5 (8th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 (8th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 5580",
+      "price": 9000,
+      "description": "لابتوب DELL 5580 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 15.6\"، معالج Core i5 (7th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 (7th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 3390 X360",
+      "price": 9000,
+      "description": "لابتوب DELL 3390 X360 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 14.1\"، معالج Core i5 (8th Gen) Touch، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 (8th Gen) Touch",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 7300",
+      "price": 9000,
+      "description": "لابتوب DELL 7300 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 13.3\"، معالج Core i7 (8th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (8th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP 650 G3",
+      "price": 9000,
+      "description": "لابتوب HP 650 G3 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 15.6\"، معالج Core i5 (7th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 (7th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP 650 G2",
+      "price": 9000,
+      "description": "لابتوب HP 650 G2 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 15.6\"، معالج Core i7 (6th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (6th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP ZBOOK G3",
+      "price": 9000,
+      "description": "لابتوب HP ZBOOK G3 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 15.6\"، معالج Core i5 HQ (6th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 HQ (6th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP 650 G2",
+      "price": 9800,
+      "description": "لابتوب HP 650 G2 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 15.6\"، معالج Core i7 (6th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (6th Gen)",
+      "gpu": "AMD HD R7 - 2GB إلى 12GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 5590",
+      "price": 10000,
+      "description": "لابتوب DELL 5590 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 15.6\"، معالج Core i5 (8th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 (8th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 7400",
+      "price": 10000,
+      "description": "لابتوب DELL 7400 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 14.1\"، معالج Core i7 (8th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (8th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 5580",
+      "price": 10000,
+      "description": "لابتوب DELL 5580 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 15.6\"، معالج Core i7 (7th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (7th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP 650 G3",
+      "price": 10000,
+      "description": "لابتوب HP 650 G3 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 15.6\"، معالج Core i7 (7th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (7th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 5767",
+      "price": 10000,
+      "description": "لابتوب DELL 5767 مستعمل بحالة ممتازة من الفئة المتوسطة، شاشة 17.3\"، معالج Core i5 (7th Gen)، رام 8GB، تخزين 512GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 (7th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "512GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 3510",
+      "price": 11000,
+      "description": "لابتوب DELL 3510 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Core i7 HQ (6th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 HQ (6th Gen)",
+      "gpu": "AMD W5130 - 2GB إلى 12GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP 650 G5",
+      "price": 11000,
+      "description": "لابتوب HP 650 G5 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Core i7 (8th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (8th Gen)",
+      "gpu": "Intel UHD - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 5590",
+      "price": 11000,
+      "description": "لابتوب DELL 5590 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Core i7 (8th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (8th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP 840 G5",
+      "price": 11000,
+      "description": "لابتوب HP 840 G5 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 14.1\"، معالج Core i7 (8th Gen)، رام 8GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (8th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "8GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 7530",
+      "price": 13000,
+      "description": "لابتوب DELL 7530 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Core i5 H (8th Gen)، رام 16GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 H (8th Gen)",
+      "gpu": "Intel HD 620 - 1GB إلى 2GB",
+      "ram": "16GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP ZBOOK G3",
+      "price": 13500,
+      "description": "لابتوب HP ZBOOK G3 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Xeon E3-1505M (7th Gen)، رام 16GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Xeon E3-1505M (7th Gen)",
+      "gpu": "N.VIDIA M1000 - 2GB إلى 20GB",
+      "ram": "16GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 7510",
+      "price": 13500,
+      "description": "لابتوب DELL 7510 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Xeon E3-1505M (7th Gen)، رام 16GB، تخزين 512GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Xeon E3-1505M (7th Gen)",
+      "gpu": "N.VIDIA M1000 - 2GB إلى 20GB",
+      "ram": "16GB",
+      "storage": "512GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP ZBOOK G4",
+      "price": 14500,
+      "description": "لابتوب HP ZBOOK G4 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Core i5 HQ (7th Gen)، رام 16GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 HQ (7th Gen)",
+      "gpu": "N.VIDIA M1200 - 4GB إلى 20GB",
+      "ram": "16GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP 855 G7",
+      "price": 15000,
+      "description": "لابتوب HP 855 G7 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Ryzen 5 (10th Gen)، رام 16GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Ryzen 5 (10th Gen)",
+      "gpu": "AMD Vega 8 - 2GB إلى 8GB",
+      "ram": "16GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 7510",
+      "price": 15500,
+      "description": "لابتوب DELL 7510 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Xeon E3-1505M (7th Gen)، رام 16GB، تخزين 512GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Xeon E3-1505M (7th Gen)",
+      "gpu": "N.VIDIA M2000 - 4GB إلى 20GB",
+      "ram": "16GB",
+      "storage": "512GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "DELL 5584",
+      "price": 16000,
+      "description": "لابتوب DELL 5584 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Core i7 (8th Gen)، رام 16GB، تخزين 256GB SSD + 500GB HDD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (8th Gen)",
+      "gpu": "N.VIDIA MX130 - 4GB إلى 20GB",
+      "ram": "16GB",
+      "storage": "256GB SSD + 500GB HDD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP ZBOOK 15u G5",
+      "price": 16000,
+      "description": "لابتوب HP ZBOOK 15u G5 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Core i7 (8th Gen)، رام 16GB، تخزين 256GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 (8th Gen)",
+      "gpu": "AMD WX 3100 - 4GB إلى 12GB",
+      "ram": "16GB",
+      "storage": "256GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP ZBOOK G5 17",
+      "price": 19000,
+      "description": "لابتوب HP ZBOOK G5 17 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 17.3\"، معالج Core i5 H (8th Gen)، رام 16GB، تخزين 512GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i5 H (8th Gen)",
+      "gpu": "N.VIDIA P2000 - 4GB إلى 20GB",
+      "ram": "16GB",
+      "storage": "512GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    },
+    {
+      "name": "HP ZBOOK G5",
+      "price": 22000,
+      "description": "لابتوب HP ZBOOK G5 مستعمل بحالة ممتازة من الفئة المتميزة، شاشة 15.6\"، معالج Core i7 H (8th Gen)، رام 16GB، تخزين 512GB SSD. مناسب للاستخدام المكتبي والدراسة والتصفح.",
+      "cpu": "Core i7 H (8th Gen)",
+      "gpu": "N.VIDIA P2000 - 4GB إلى 20GB",
+      "ram": "16GB",
+      "storage": "512GB SSD",
+      "stockStatus": "in_stock",
+      "quantity": 1,
+      "visible": true,
+      "photos": []
+    }
+  ]
+
+  const handlePreview = () => {
+    setParseError(null)
+    setValidationErrors([])
+    try {
+      const parsed = JSON.parse(jsonText)
+      if (!Array.isArray(parsed)) {
+        setParseError('يجب أن يكون JSON مصفوفة')
+        return
+      }
+      
+      const errors: Array<{ index: number; error: string }> = []
+      parsed.forEach((item: any, index: number) => {
+        if (!item.name || typeof item.name !== 'string' || !item.name.trim()) {
+          errors.push({ index, error: 'اسم المنتج مطلوب' })
+        }
+        if (!item.price || typeof item.price !== 'number' || item.price <= 0) {
+          errors.push({ index, error: 'السعر غير صحيح' })
+        }
+      })
+      
+      setParsedItems(parsed)
+      setValidationErrors(errors)
+    } catch {
+      setParseError('JSON غير صحيح')
+      setParsedItems(null)
+    }
+  }
+
+  const handleImport = async () => {
+    if (!parsedItems) return
+    setImporting(true)
+    try {
+      const result = await api.bulk_create_products(parsedItems)
+      onImported(result.created, result.failed)
+      onClose()
+    } catch (err) {
+      setParseError(err instanceof Error ? err.message : 'حدث خطأ في الاتصال')
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const loadDefaultData = () => {
+    setJsonText(JSON.stringify(DEFAULT_DATA, null, 2))
+    setParseError(null)
+    setParsedItems(null)
+    setValidationErrors([])
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-canvas rounded-[24px] border border-hairline w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-hairline sticky top-0 bg-canvas z-10">
+          <h2 className="font-sans font-bold text-ink text-lg">استيراد جماعي للمنتجات</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full hover:bg-surface-1 flex items-center justify-center transition-colors"
+            aria-label="إغلاق"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="font-body text-sm text-ink">بيانات المنتجات (JSON)</label>
+              <button
+                type="button"
+                onClick={loadDefaultData}
+                className="font-body text-xs text-brand-primary hover:underline"
+              >
+                تحميل بيانات الحسين
+              </button>
+            </div>
+            <textarea
+              value={jsonText}
+              onChange={e => setJsonText(e.target.value)}
+              rows={12}
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 font-mono text-xs bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30 resize-none"
+              placeholder="[
+  {
+    &quot;name&quot;: &quot;اسم المنتج&quot;,
+    &quot;price&quot;: 10000,
+    &quot;description&quot;: &quot;وصف المنتج&quot;,
+    &quot;cpu&quot;: &quot;Core i5&quot;,
+    &quot;gpu&quot;: &quot;Intel HD&quot;,
+    &quot;ram&quot;: &quot;8GB&quot;,
+    &quot;storage&quot;: &quot;256GB SSD&quot;,
+    &quot;stockStatus&quot;: &quot;in_stock&quot;,
+    &quot;quantity&quot;: 1,
+    &quot;visible&quot;: true
+  }
+]"
+            />
+          </div>
+
+          {parseError && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+              <p className="font-body text-xs text-red-600">{parseError}</p>
+            </div>
+          )}
+
+          {parsedItems && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2.5">
+                <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                <p className="font-body text-xs text-green-600">
+                  سيتم استيراد {parsedItems.length} منتج
+                </p>
+              </div>
+
+              {validationErrors.length > 0 && (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
+                  <p className="font-body text-xs text-amber-700 mb-2">تحذير: {validationErrors.length} منتج بها أخطاء</p>
+                  <ul className="space-y-1">
+                    {validationErrors.map((err, i) => (
+                      <li key={i} className="font-body text-xs text-amber-600">
+                        السطر {err.index + 1}: {err.error}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="bg-surface-1 rounded-xl p-3 max-h-48 overflow-y-auto">
+                <p className="font-body text-xs text-ink-muted mb-2">معاينة:</p>
+                <div className="space-y-1">
+                  {parsedItems.slice(0, 10).map((item, i) => (
+                    <div key={i} className="font-body text-xs text-ink flex justify-between">
+                      <span>{item.name}</span>
+                      <span>{item.price?.toLocaleString('ar-EG')} ج.م</span>
+                    </div>
+                  ))}
+                  {parsedItems.length > 10 && (
+                    <p className="font-body text-xs text-ink-muted">... و {parsedItems.length - 10} منتج آخر</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={handlePreview}
+              disabled={!jsonText.trim()}
+              className="flex-1 h-11 rounded-full border border-hairline font-sans font-bold text-ink hover:bg-surface-1 transition-colors disabled:opacity-60"
+            >
+              معاينة
+            </button>
+            <button
+              onClick={handleImport}
+              disabled={!parsedItems || importing}
+              className="flex-1 h-11 rounded-full bg-brand-primary text-white font-sans font-bold flex items-center justify-center gap-2 hover:bg-brand-primary/90 disabled:opacity-60 transition-colors"
+            >
+              {importing && <Loader2 className="w-4 h-4 animate-spin" />}
+              استيراد
+            </button>
+            <button
+              onClick={onClose}
+              className="px-6 h-11 rounded-full border border-hairline font-sans font-bold text-ink hover:bg-surface-1 transition-colors"
+            >
+              إلغاء
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Products Tab ────────────────────────────────────────────────────────────────
 export default function ProductsTab() {
   const { data, isLoading, error, mutate } = useSWR<{ items: Product[]; total: number; page: number; pages: number }>(
@@ -515,6 +1212,7 @@ export default function ProductsTab() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState<Product | null>(null)
+  const [bulkImportOpen, setBulkImportOpen] = useState(false)
   const [banner, setBanner] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
   const products = data?.items ?? []
@@ -565,6 +1263,17 @@ export default function ProductsTab() {
     }
   }
 
+  const handleBulkImport = async (created: number, failed: Array<{ index: number; name?: string; error: string }>) => {
+    mutate()
+    mutateSpecs()
+    if (failed.length === 0) {
+      flash('success', `تم استيراد ${created} منتج بنجاح`)
+    } else {
+      const failedList = failed.map(f => `${f.name || `المنتج ${f.index + 1}`}: ${f.error}`).join(' | ')
+      flash('error', `تم استيراد ${created} منتج، فشل ${failed.length}: ${failedList}`)
+    }
+  }
+
   const toggleVisibility = async (product: Product) => {
     try {
       await api.update_product(product.id, { visible: !product.visible })
@@ -582,30 +1291,39 @@ export default function ProductsTab() {
           <h2 className="font-sans font-bold text-ink text-2xl">المنتجات</h2>
           <p className="font-body text-sm text-ink-muted">{products.length} منتج</p>
         </div>
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-brand-primary text-white font-sans font-bold text-sm hover:bg-brand-primary/90 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          إضافة منتج
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setBulkImportOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-hairline font-sans font-bold text-sm text-ink hover:bg-surface-1 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            استيراد جماعي
+          </button>
+          <button
+            onClick={openAdd}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-brand-primary text-white font-sans font-bold text-sm hover:bg-brand-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            إضافة منتج
+          </button>
+        </div>
       </div>
 
       {banner && (
         <div
           className={cn(
-            'flex items-center gap-2 rounded-xl px-4 py-3 mb-4',
+            'flex items-start gap-2 rounded-xl px-4 py-3 mb-4',
             banner.type === 'success'
               ? 'bg-green-50 border border-green-100 text-green-700'
               : 'bg-red-50 border border-red-100 text-red-600'
           )}
         >
           {banner.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4" />
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
           ) : (
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           )}
-          <p className="font-body text-sm">{banner.msg}</p>
+          <p className="font-body text-sm whitespace-pre-line">{banner.msg}</p>
         </div>
       )}
 
@@ -720,6 +1438,13 @@ export default function ProductsTab() {
           product={deleting}
           onCancel={() => setDeleting(null)}
           onConfirm={handleDelete}
+        />
+      )}
+
+      {bulkImportOpen && (
+        <BulkImportModal
+          onClose={() => setBulkImportOpen(false)}
+          onImported={handleBulkImport}
         />
       )}
     </div>
