@@ -9,6 +9,7 @@ import { DatabaseRouter } from '../lib/db-router.js';
 import { withId } from '../lib/json.js';
 import { normalizePricelistWithGemini, generatePricelistHtml } from '../lib/gemini.js';
 import { getUploadThingTokens } from '../lib/uploadthing-tokens.js';
+import { buildPricelistExcelWorkbook } from '../lib/pricelist-excel.js';
 const router = Router();
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -24,11 +25,11 @@ const upload = multer({
         }
     },
 });
-// Priority order for categories: Budget first, Mid second, Premium last
+// Priority order for categories: Budget -> Business -> Mid -> Gaming -> Premium
 const CATEGORY_PRIORITIES = [
     { pattern: /budget|اقتصاد/i, priority: 1 },
-    { pattern: /mid|متوسط/i, priority: 2 },
-    { pattern: /business|أعمال|اعمال/i, priority: 3 },
+    { pattern: /business|أعمال|اعمال/i, priority: 2 },
+    { pattern: /mid|متوسط/i, priority: 3 },
     { pattern: /gam|ألعاب|العاب|جيمن/i, priority: 4 },
     { pattern: /premium|high|متميز|عليا/i, priority: 5 },
 ];
@@ -354,6 +355,136 @@ router.patch('/api/pricelist/:id/items/:itemId', requireAdmin, async (req, res) 
         logError('Update pricelist item', error);
         const message = error instanceof Error ? error.message : 'حدث خطأ في تحديث العنصر';
         res.status(500).json({ error: message });
+    }
+});
+/**
+ * GET /api/pricelist/export
+ * Exports the currently published pricelist as a professionally styled Excel file.
+ */
+router.get('/api/pricelist/export', requireAdmin, async (_req, res) => {
+    try {
+        const pricelists = await DatabaseRouter.readAcrossAllDatabases(async (connection) => {
+            const doc = await getPricelistModel(connection).findOne({ published: true }).sort({ uploadedAt: -1 }).lean();
+            return doc ? [doc] : [];
+        }, 'find-published-pricelist');
+        let pricelist = pricelists[0];
+        if (!pricelist) {
+            const fallbackList = await DatabaseRouter.readAcrossAllDatabases(async (connection) => {
+                const doc = await getPricelistModel(connection).findOne().sort({ uploadedAt: -1 }).lean();
+                return doc ? [doc] : [];
+            }, 'find-latest-pricelist');
+            pricelist = fallbackList[0];
+        }
+        if (!pricelist) {
+            res.status(404).json({ error: 'لا توجد أي قائمة أسعار منشورة للتصدير' });
+            return;
+        }
+        const items = (pricelist.structuredItems || []);
+        const wb = await buildPricelistExcelWorkbook(items, pricelist.uploadedAt);
+        const buffer = await wb.xlsx.writeBuffer();
+        res.setHeader('Content-Disposition', `attachment; filename="AlHussein_Laptops_${Date.now()}.xlsx"`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(Buffer.from(buffer));
+    }
+    catch (error) {
+        logError('Export published pricelist', error);
+        res.status(500).json({ error: 'حدث خطأ في تصدير قائمة الأسعار' });
+    }
+});
+/**
+ * GET /api/pricelist/:id/export
+ * Exports the current state of structuredItems for a specific pricelist as an Excel file.
+ */
+router.get('/api/pricelist/:id/export', requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const pricelists = await DatabaseRouter.readAcrossAllDatabases(async (connection) => {
+            const doc = await getPricelistModel(connection).findById(id).lean();
+            return doc ? [doc] : [];
+        }, 'find-pricelist-by-id');
+        const pricelist = pricelists[0];
+        if (!pricelist) {
+            res.status(404).json({ error: 'قائمة الأسعار غير موجودة' });
+            return;
+        }
+        const items = (pricelist.structuredItems || []);
+        const wb = await buildPricelistExcelWorkbook(items, pricelist.uploadedAt);
+        const buffer = await wb.xlsx.writeBuffer();
+        res.setHeader('Content-Disposition', `attachment; filename="AlHussein_Laptops_${Date.now()}.xlsx"`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(Buffer.from(buffer));
+    }
+    catch (error) {
+        logError('Export pricelist', error);
+        res.status(500).json({ error: 'حدث خطأ في تصدير قائمة الأسعار' });
+    }
+});
+/**
+ * DELETE /api/pricelist/:id/items/:itemId
+ * Deletes a single laptop entry.
+ */
+router.delete('/api/pricelist/:id/items/:itemId', requireAdmin, async (req, res) => {
+    try {
+        const { id, itemId } = req.params;
+        // Find pricelist across databases
+        const pricelists = await DatabaseRouter.readAcrossAllDatabases(async (connection) => {
+            const doc = await getPricelistModel(connection).findById(id);
+            return doc ? [doc] : [];
+        }, 'find-pricelist-by-id');
+        const pricelist = pricelists[0];
+        if (!pricelist) {
+            res.status(404).json({ error: 'قائمة الأسعار غير موجودة' });
+            return;
+        }
+        const items = (pricelist.structuredItems || []);
+        const itemIndex = items.findIndex(it => it.id === itemId || String(it.index) === String(itemId));
+        if (itemIndex === -1) {
+            res.status(404).json({ error: 'العنصر المطلوب غير موجود' });
+            return;
+        }
+        items.splice(itemIndex, 1);
+        const sortedItems = sortStructuredItems(items);
+        pricelist.structuredItems = sortedItems;
+        pricelist.generatedHtml = generatePricelistHtml(sortedItems);
+        pricelist.parsedHtml = pricelist.generatedHtml;
+        pricelist.markModified('structuredItems');
+        await pricelist.save();
+        logInfo('Delete pricelist item', `Deleted item ${itemId} from pricelist ${id}`);
+        res.json(pricelist.toJSON());
+    }
+    catch (error) {
+        logError('Delete pricelist item', error);
+        res.status(500).json({ error: 'حدث خطأ في حذف العنصر' });
+    }
+});
+/**
+ * DELETE /api/pricelist/:id/items
+ * Deletes all items from the pricelist.
+ */
+router.delete('/api/pricelist/:id/items', requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Find pricelist across databases
+        const pricelists = await DatabaseRouter.readAcrossAllDatabases(async (connection) => {
+            const doc = await getPricelistModel(connection).findById(id);
+            return doc ? [doc] : [];
+        }, 'find-pricelist-by-id');
+        const pricelist = pricelists[0];
+        if (!pricelist) {
+            res.status(404).json({ error: 'قائمة الأسعار غير موجودة' });
+            return;
+        }
+        pricelist.structuredItems = [];
+        pricelist.generatedHtml = generatePricelistHtml([]);
+        pricelist.parsedHtml = pricelist.generatedHtml;
+        pricelist.markModified('structuredItems');
+        await pricelist.save();
+        logInfo('Delete all pricelist items', `Deleted all items from pricelist ${id}`);
+        res.json(pricelist.toJSON());
+    }
+    catch (error) {
+        logError('Delete all pricelist items', error);
+        res.status(500).json({ error: 'حدث خطأ في حذف العناصر' });
     }
 });
 export default router;

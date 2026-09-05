@@ -9,6 +9,7 @@ import { DatabaseRouter } from '../lib/db-router.js'
 import { withId } from '../lib/json.js'
 import { normalizePricelistWithGemini, generatePricelistHtml } from '../lib/gemini.js'
 import { getUploadThingTokens } from '../lib/uploadthing-tokens.js'
+import { buildPricelistExcelWorkbook } from '../lib/pricelist-excel.js'
 
 const router = Router()
 
@@ -28,11 +29,11 @@ const upload = multer({
   },
 })
 
-// Priority order for categories: Budget first, Mid second, Premium last
+// Priority order for categories: Budget -> Business -> Mid -> Gaming -> Premium
 const CATEGORY_PRIORITIES: Array<{ pattern: RegExp; priority: number }> = [
   { pattern: /budget|اقتصاد/i, priority: 1 },
-  { pattern: /mid|متوسط/i, priority: 2 },
-  { pattern: /business|أعمال|اعمال/i, priority: 3 },
+  { pattern: /business|أعمال|اعمال/i, priority: 2 },
+  { pattern: /mid|متوسط/i, priority: 3 },
   { pattern: /gam|ألعاب|العاب|جيمن/i, priority: 4 },
   { pattern: /premium|high|متميز|عليا/i, priority: 5 },
 ]
@@ -442,12 +443,56 @@ router.patch(
 )
 
 /**
+ * GET /api/pricelist/export
+ * Exports the currently published pricelist as a professionally styled Excel file.
+ */
+router.get('/api/pricelist/export', requireAdmin, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const pricelists = await DatabaseRouter.readAcrossAllDatabases(
+      async connection => {
+        const doc = await getPricelistModel(connection).findOne({ published: true }).sort({ uploadedAt: -1 }).lean()
+        return doc ? [doc] : []
+      },
+      'find-published-pricelist'
+    )
+    let pricelist = pricelists[0]
+
+    if (!pricelist) {
+      const fallbackList = await DatabaseRouter.readAcrossAllDatabases(
+        async connection => {
+          const doc = await getPricelistModel(connection).findOne().sort({ uploadedAt: -1 }).lean()
+          return doc ? [doc] : []
+        },
+        'find-latest-pricelist'
+      )
+      pricelist = fallbackList[0]
+    }
+
+    if (!pricelist) {
+      res.status(404).json({ error: 'لا توجد أي قائمة أسعار منشورة للتصدير' })
+      return
+    }
+
+    const items = (pricelist.structuredItems || []) as StructuredLaptopItem[]
+    const wb = await buildPricelistExcelWorkbook(items, pricelist.uploadedAt)
+    const buffer = await wb.xlsx.writeBuffer()
+
+    res.setHeader('Content-Disposition', `attachment; filename="AlHussein_Laptops_${Date.now()}.xlsx"`)
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    res.send(Buffer.from(buffer))
+  } catch (error) {
+    logError('Export published pricelist', error)
+    res.status(500).json({ error: 'حدث خطأ في تصدير قائمة الأسعار' })
+  }
+})
+
+/**
  * GET /api/pricelist/:id/export
- * Exports the current state of structuredItems as an Excel file.
+ * Exports the current state of structuredItems for a specific pricelist as an Excel file.
  */
 router.get('/api/pricelist/:id/export', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params
     const pricelists = await DatabaseRouter.readAcrossAllDatabases(
       async connection => {
         const doc = await getPricelistModel(connection).findById(id).lean()
@@ -463,41 +508,17 @@ router.get('/api/pricelist/:id/export', requireAdmin, async (req: Request, res: 
     }
 
     const items = (pricelist.structuredItems || []) as StructuredLaptopItem[]
-    const sortedItems = sortStructuredItems(items)
+    const wb = await buildPricelistExcelWorkbook(items, pricelist.uploadedAt)
+    const buffer = await wb.xlsx.writeBuffer()
 
-    // Build worksheet data
-    const wsData: (string | number)[][] = [
-      ['#', 'الموديل', 'المعالج', 'الرام', 'التخزين', 'الشاشة', 'كارت الشاشة', 'السعر', 'الفئة']
-    ];
-
-    sortedItems.forEach((item, index) => {
-      wsData.push([
-        index + 1,
-        item.name || `${item.brand} ${item.model}`.trim(),
-        item.cpu || '',
-        item.ram || '',
-        item.storage || '',
-        item.screen || '',
-        item.gpu || '',
-        item.price || 0,
-        item.category || ''
-      ]);
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Pricelist');
-
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-
-    res.setHeader('Content-Disposition', `attachment; filename="pricelist_exported_${Date.now()}.xlsx"`);
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.send(buffer);
+    res.setHeader('Content-Disposition', `attachment; filename="AlHussein_Laptops_${Date.now()}.xlsx"`)
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    res.send(Buffer.from(buffer))
   } catch (error) {
     logError('Export pricelist', error)
     res.status(500).json({ error: 'حدث خطأ في تصدير قائمة الأسعار' })
   }
-});
+})
 
 /**
  * DELETE /api/pricelist/:id/items/:itemId

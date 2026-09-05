@@ -131,10 +131,10 @@ export default function PricelistPage() {
 
   const formattedDate = priceList?.uploadedAt
     ? new Date(priceList.uploadedAt).toLocaleDateString('ar-EG', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
     : ''
 
   return (
@@ -161,7 +161,7 @@ export default function PricelistPage() {
             <div className="flex flex-col gap-2 bg-surface-1 border border-hairline p-4 rounded-2xl text-xs font-body shrink-0 w-full md:w-auto">
               <div className="flex items-center gap-2 text-ink font-semibold">
                 <MapPin className="w-4 h-4 text-brand-primary shrink-0" />
-                <span>سوق العصر - روكسي - مصر الجديدة</span>
+                <span>مصر</span>
               </div>
               <div className="flex items-center gap-2 text-ink-muted">
                 <Phone className="w-4 h-4 text-brand-primary shrink-0" />
