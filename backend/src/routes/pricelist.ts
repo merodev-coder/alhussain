@@ -441,4 +441,151 @@ router.patch(
   }
 )
 
+/**
+ * GET /api/pricelist/:id/export
+ * Exports the current state of structuredItems as an Excel file.
+ */
+router.get('/api/pricelist/:id/export', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const pricelists = await DatabaseRouter.readAcrossAllDatabases(
+      async connection => {
+        const doc = await getPricelistModel(connection).findById(id).lean()
+        return doc ? [doc] : []
+      },
+      'find-pricelist-by-id'
+    )
+    const pricelist = pricelists[0]
+
+    if (!pricelist) {
+      res.status(404).json({ error: 'قائمة الأسعار غير موجودة' })
+      return
+    }
+
+    const items = (pricelist.structuredItems || []) as StructuredLaptopItem[]
+    const sortedItems = sortStructuredItems(items)
+
+    // Build worksheet data
+    const wsData = [
+      ['#', 'الموديل', 'المعالج', 'الرام', 'التخزين', 'الشاشة', 'كارت الشاشة', 'السعر', 'الفئة']
+    ];
+
+    sortedItems.forEach((item, index) => {
+      wsData.push([
+        index + 1,
+        item.name || `${item.brand} ${item.model}`.trim(),
+        item.cpu || '',
+        item.ram || '',
+        item.storage || '',
+        item.screen || '',
+        item.gpu || '',
+        item.price || 0,
+        item.category || ''
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Pricelist');
+
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', `attachment; filename="pricelist_exported_${Date.now()}.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    logError('Export pricelist', error)
+    res.status(500).json({ error: 'حدث خطأ في تصدير قائمة الأسعار' })
+  }
+});
+
+/**
+ * DELETE /api/pricelist/:id/items/:itemId
+ * Deletes a single laptop entry.
+ */
+router.delete('/api/pricelist/:id/items/:itemId', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id, itemId } = req.params;
+    
+    // Find pricelist across databases
+    const pricelists = await DatabaseRouter.readAcrossAllDatabases(
+      async connection => {
+        const doc = await getPricelistModel(connection).findById(id)
+        return doc ? [doc] : []
+      },
+      'find-pricelist-by-id'
+    )
+    const pricelist = pricelists[0]
+
+    if (!pricelist) {
+      res.status(404).json({ error: 'قائمة الأسعار غير موجودة' })
+      return
+    }
+
+    const items = (pricelist.structuredItems || []) as StructuredLaptopItem[]
+    const itemIndex = items.findIndex(
+      it => it.id === itemId || String(it.index) === String(itemId)
+    )
+
+    if (itemIndex === -1) {
+      res.status(404).json({ error: 'العنصر المطلوب غير موجود' })
+      return
+    }
+
+    items.splice(itemIndex, 1)
+
+    const sortedItems = sortStructuredItems(items)
+    pricelist.structuredItems = sortedItems
+    pricelist.generatedHtml = generatePricelistHtml(sortedItems)
+    pricelist.parsedHtml = pricelist.generatedHtml
+    pricelist.markModified('structuredItems')
+
+    await pricelist.save()
+
+    logInfo('Delete pricelist item', `Deleted item ${itemId} from pricelist ${id}`)
+    res.json(pricelist.toJSON())
+  } catch (error) {
+    logError('Delete pricelist item', error)
+    res.status(500).json({ error: 'حدث خطأ في حذف العنصر' })
+  }
+});
+
+/**
+ * DELETE /api/pricelist/:id/items
+ * Deletes all items from the pricelist.
+ */
+router.delete('/api/pricelist/:id/items', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    
+    // Find pricelist across databases
+    const pricelists = await DatabaseRouter.readAcrossAllDatabases(
+      async connection => {
+        const doc = await getPricelistModel(connection).findById(id)
+        return doc ? [doc] : []
+      },
+      'find-pricelist-by-id'
+    )
+    const pricelist = pricelists[0]
+
+    if (!pricelist) {
+      res.status(404).json({ error: 'قائمة الأسعار غير موجودة' })
+      return
+    }
+
+    pricelist.structuredItems = []
+    pricelist.generatedHtml = generatePricelistHtml([])
+    pricelist.parsedHtml = pricelist.generatedHtml
+    pricelist.markModified('structuredItems')
+
+    await pricelist.save()
+
+    logInfo('Delete all pricelist items', `Deleted all items from pricelist ${id}`)
+    res.json(pricelist.toJSON())
+  } catch (error) {
+    logError('Delete all pricelist items', error)
+    res.status(500).json({ error: 'حدث خطأ في حذف العناصر' })
+  }
+});
+
 export default router

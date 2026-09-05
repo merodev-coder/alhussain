@@ -14,6 +14,8 @@ import {
   Check,
   X,
   Save,
+  Trash2,
+  Trash,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -62,6 +64,11 @@ export default function PricelistTab() {
   const [editForm, setEditForm] = useState<Partial<StructuredLaptopItem>>({})
   const [savingEdit, setSavingEdit] = useState(false)
   const [editMessage, setEditMessage] = useState<string>('')
+
+  // Deletion and Export State
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Fetch current pricelist on mount (using admin endpoint to retain rawExcelFileUrl)
   useEffect(() => {
@@ -170,6 +177,52 @@ export default function PricelistTab() {
       setError(err instanceof Error ? err.message : 'فشل تحديث بيانات الجهاز')
     } finally {
       setSavingEdit(false)
+    }
+  }
+
+  const handleDeleteItem = async (item: StructuredLaptopItem) => {
+    if (!pricelist?.id) return
+    if (!window.confirm(`هل أنت متأكد من حذف ${item.name || item.model}؟`)) return
+
+    try {
+      const identifier = item.id || String(item.index)
+      const updatedPricelist = await api.delete_pricelist_item(pricelist.id, identifier)
+      setPricelist(updatedPricelist)
+      setEditMessage('تم حذف الجهاز بنجاح')
+      setTimeout(() => setEditMessage(''), 3500)
+    } catch (err) {
+      clientLogger.error('Failed to delete item:', err)
+      setError(err instanceof Error ? err.message : 'فشل حذف الجهاز')
+    }
+  }
+
+  const handleDeleteAll = async () => {
+    if (!pricelist?.id) return
+    setIsDeleting(true)
+    try {
+      const updatedPricelist = await api.delete_all_pricelist_items(pricelist.id)
+      setPricelist(updatedPricelist)
+      setShowDeleteAllModal(false)
+      setEditMessage('تم حذف جميع الأجهزة بنجاح')
+      setTimeout(() => setEditMessage(''), 3500)
+    } catch (err) {
+      clientLogger.error('Failed to delete all items:', err)
+      setError(err instanceof Error ? err.message : 'فشل حذف الأجهزة')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleExport = async () => {
+    if (!pricelist?.id) return
+    setIsExporting(true)
+    try {
+      await api.export_pricelist(pricelist.id)
+    } catch (err) {
+      clientLogger.error('Failed to export pricelist:', err)
+      setError(err instanceof Error ? err.message : 'فشل تصدير قائمة الأسعار')
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -355,18 +408,23 @@ export default function PricelistTab() {
               </div>
 
               {/* Admin-only Download Link */}
-              {pricelist.rawExcelFileUrl && (
-                <a
-                  href={pricelist.rawExcelFileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-1 hover:bg-surface-2 border border-hairline rounded-lg text-xs font-medium text-ink transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5 text-brand-primary" />
-                  تحميل ملف Excel الأصلي
-                </a>
-              )}
+              <button
+                onClick={handleExport}
+                disabled={isExporting || items.length === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary text-white hover:bg-brand-primary/90 border border-brand-primary rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                <Download className="w-3.5 h-3.5" />
+                {isExporting ? 'جاري التصدير...' : 'تحميل الليستة بعد التعديل'}
+              </button>
+              
+              <button
+                onClick={() => setShowDeleteAllModal(true)}
+                disabled={items.length === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                حذف الكل
+              </button>
             </div>
           </div>
 
@@ -535,13 +593,22 @@ export default function PricelistTab() {
                         )}
                       </td>
                       <td className="p-3 text-center whitespace-nowrap">
-                        <button
-                          onClick={() => startEdit(item)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-ink bg-surface-1 hover:bg-surface-2 border border-hairline rounded-lg transition-colors"
-                        >
-                          <Edit3 className="w-3 h-3 text-brand-primary" />
-                          <span>تعديل</span>
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => startEdit(item)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-ink bg-surface-1 hover:bg-surface-2 border border-hairline rounded-lg transition-colors"
+                          >
+                            <Edit3 className="w-3 h-3 text-brand-primary" />
+                            <span>تعديل</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteItem(item)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors"
+                            title="حذف الجهاز"
+                          >
+                            <Trash className="w-3 h-3" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -554,6 +621,37 @@ export default function PricelistTab() {
         <div className="bg-canvas border border-hairline rounded-[20px] p-8 text-center text-ink-muted">
           <FileSpreadsheet className="w-12 h-12 mx-auto text-ink-muted mb-2 opacity-50" />
           <p className="font-body text-sm">لا توجد قائمة أسعار منشورة حالياً. قم برفع ملف Excel أعلاه.</p>
+        </div>
+      )}
+
+      {showDeleteAllModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/50 backdrop-blur-sm">
+          <div className="bg-canvas border border-hairline rounded-[20px] p-6 shadow-lg max-w-md w-full">
+            <h3 className="font-sans font-bold text-ink text-lg mb-2 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              تأكيد حذف جميع الأجهزة
+            </h3>
+            <p className="font-body text-sm text-ink-muted mb-6">
+              هل أنت متأكد من رغبتك في حذف جميع الأجهزة من القائمة المنشورة؟ لا يمكن التراجع عن هذا الإجراء.
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteAllModal(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-surface-1 hover:bg-surface-2 text-ink rounded-lg text-sm font-medium transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              >
+                {isDeleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {isDeleting ? 'جاري الحذف...' : 'نعم، احذف الكل'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
