@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import {
-  Printer,
   Search,
   ChevronDown,
   ChevronUp,
@@ -153,13 +152,6 @@ export default function PriceListView() {
             </div>
           </div>
 
-          <button
-            onClick={() => window.print()}
-            className="print-hide inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-inverse-canvas hover:brightness-125 text-white font-sans font-bold text-sm shadow hover:shadow-md transition-all self-start sm:self-center cursor-pointer"
-          >
-            <Printer className="w-4 h-4" />
-            <span>طباعة القائمة (PDF)</span>
-          </button>
         </div>
 
         {/* Search & Filter Bar */}

@@ -230,10 +230,16 @@ export default function HeroSection({ slides = [] }: HeroSectionProps) {
 
                     {/* Angled, floating product photo — anchored to the side like Sigma's hero */}
                     <div className="relative w-1/2 h-full flex items-center justify-center px-4 lg:px-8">
-                      <div
-                        className="relative w-[82%] lg:w-[85%] aspect-[4/3] rounded-[24px] lg:rounded-[28px] overflow-hidden shadow-2xl ring-4 ring-white/10 animate-hero-image animate-float-slow"
-                        style={{ ['--hero-tilt' as any]: tilt }}
-                      >
+                      <div className="relative w-[82%] lg:w-[85%] aspect-[4/3]">
+                        <div
+                          aria-hidden="true"
+                          className="absolute -inset-3 lg:-inset-4 rounded-[28px] lg:rounded-[32px] bg-brand-primary/20"
+                          style={{ transform: 'rotate(5deg)' }}
+                        />
+                        <div
+                          className="relative h-full w-full rounded-[24px] lg:rounded-[28px] overflow-hidden shadow-2xl ring-4 ring-white/10 animate-hero-image animate-float-slow"
+                          style={{ ['--hero-tilt' as any]: tilt }}
+                        >
                         {currentSlide.images?.[0] && (
                           <Image
                             src={currentSlide.images[0]}
@@ -248,6 +254,7 @@ export default function HeroSection({ slides = [] }: HeroSectionProps) {
                         <div className="absolute inset-y-0 -left-1/2 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shine-sweep pointer-events-none" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
                       </div>
+                    </div>
 
                       {/* Sticker-style badge overlapping the tilted photo corner */}
                       <div className="flex absolute bottom-6 left-4 lg:left-8 items-center gap-1.5 bg-canvas/95 backdrop-blur-sm text-ink px-3 py-1.5 rounded-full shadow-lg text-[11px] font-bold animate-chip-in">

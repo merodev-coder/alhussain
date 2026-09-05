@@ -29,10 +29,7 @@ export default function ProductCarousel({ products, sectionKey }: ProductCarouse
     const track = trackRef.current
     const item = itemRefs.current[idx]
     if (!track || !item) return
-    const trackRect = track.getBoundingClientRect()
-    const itemRect = item.getBoundingClientRect()
-    const delta = itemRect.left - trackRect.left
-    track.scrollBy({ left: delta, behavior: 'smooth' })
+    item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
   }, [])
 
   const goNext = useCallback(() => {
@@ -114,7 +111,7 @@ export default function ProductCarousel({ products, sectionKey }: ProductCarouse
           <button
             onClick={goPrev}
             aria-label="المنتج السابق"
-            className="hidden sm:flex absolute -left-3 sm:-left-4 top-[38%] -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-canvas border border-hairline shadow-lg items-center justify-center text-ink hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-all duration-200 opacity-0 group-hover/carousel:opacity-100 focus:outline-none"
+            className="hidden sm:flex absolute -right-3 sm:-right-4 top-[38%] -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-canvas border border-hairline shadow-lg items-center justify-center text-ink hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-all duration-200 opacity-0 group-hover/carousel:opacity-100 focus:outline-none"
           >
             <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
@@ -122,7 +119,7 @@ export default function ProductCarousel({ products, sectionKey }: ProductCarouse
           <button
             onClick={goNext}
             aria-label="المنتج التالي"
-            className="hidden sm:flex absolute -right-3 sm:-right-4 top-[38%] -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-canvas border border-hairline shadow-lg items-center justify-center text-ink hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-all duration-200 opacity-0 group-hover/carousel:opacity-100 focus:outline-none"
+            className="hidden sm:flex absolute -left-3 sm:-left-4 top-[38%] -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-canvas border border-hairline shadow-lg items-center justify-center text-ink hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-all duration-200 opacity-0 group-hover/carousel:opacity-100 focus:outline-none"
           >
             <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
