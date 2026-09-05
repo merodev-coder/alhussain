@@ -47,9 +47,9 @@ export default function ProductSection({
     : `/laptops?section=${sectionKey}`
 
   return (
-    <section id={id} className="w-full my-6 sm:my-8 scroll-mt-20">
+    <section id={id} className="w-full my-10 sm:my-14 scroll-mt-20">
       {/* Refined Dark Navy Banner (#1e293b) */}
-      <div className="w-full bg-[#1e293b] text-white shadow-md border-y border-slate-700/50">
+      <div className="w-full bg-[#071426] text-white shadow-lg border-y border-cyan-900/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           {/* Left Side: "الكل >" link */}
           <Link

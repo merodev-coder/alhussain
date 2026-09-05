@@ -79,7 +79,7 @@ export default function CategoryRow({
   }
 
   return (
-    <section className="w-full bg-white dark:bg-[#0f0f0f] py-8 border-b border-gray-100 dark:border-gray-800/80 transition-colors duration-200">
+    <section className="w-full bg-canvas py-10 border-b border-hairline transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Row Container with subtle scroll arrows on desktop */}
         <div className="relative group">
@@ -105,7 +105,7 @@ export default function CategoryRow({
               <button
                 key={cat.id}
                 onClick={() => handleCategoryClick(cat.sectionKey)}
-                className="shrink-0 w-[110px] h-[110px] sm:w-[140px] sm:h-[140px] rounded-2xl bg-white dark:bg-[#1e1e2e] border-[1.5px] border-[#93c5fd] dark:border-blue-900/60 shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all duration-200 flex flex-col items-center justify-between p-2.5 sm:p-3.5 cursor-pointer text-center group/card focus:outline-none"
+                className="shrink-0 w-[132px] h-[132px] sm:w-[164px] sm:h-[164px] rounded-2xl bg-card border border-hairline shadow-sm hover:-translate-y-1 hover:border-brand-primary/60 hover:shadow-xl hover:shadow-brand-primary/10 active:scale-95 transition-all duration-200 flex flex-col items-center justify-between p-2.5 sm:p-3.5 cursor-pointer text-center group/card focus:outline-none"
               >
                 {/* Upper 70%: Category Image */}
                 <div className="w-full h-[68%] relative rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center">
