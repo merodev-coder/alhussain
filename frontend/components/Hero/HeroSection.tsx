@@ -131,7 +131,7 @@ export default function HeroSection({ slides = [] }: HeroSectionProps) {
 
   return (
     <section
-      className="relative w-full overflow-hidden select-none bg-inverse-canvas"
+      className="relative w-full overflow-hidden select-none bg-transparent"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onTouchStart={handleTouchStart}
@@ -233,7 +233,7 @@ export default function HeroSection({ slides = [] }: HeroSectionProps) {
                       <div className="relative w-[82%] lg:w-[85%] aspect-[4/3]">
                         <div
                           aria-hidden="true"
-                          className="absolute -inset-3 lg:-inset-4 rounded-[28px] lg:rounded-[32px] bg-inverse-canvas/95 shadow-xl"
+                          className="absolute -inset-3 lg:-inset-4 rounded-[28px] lg:rounded-[32px] bg-white/15 shadow-xl"
                           style={{ transform: 'rotate(5deg)' }}
                         />
                         <div
