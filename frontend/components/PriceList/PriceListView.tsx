@@ -135,27 +135,27 @@ export default function PriceListView() {
   }).format(new Date())
 
   return (
-    <div className="w-full bg-slate-50/50 dark:bg-[#0f0f0f] min-h-screen py-8 sm:py-12 transition-colors duration-200">
+    <div className="w-full bg-surface-1 min-h-screen py-8 sm:py-12 transition-colors duration-200">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header (Shop Name + Date + Print Button) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-hairline">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-[#1d4ed8] dark:text-blue-400 text-xs font-bold mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold mb-2">
               <Layers className="w-3.5 h-3.5" />
               <span>قائمة الأسعار المحدثة</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-sans font-extrabold text-gray-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-sans font-extrabold text-ink tracking-tight">
               الحسين للاب توب
             </h1>
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              <Calendar className="w-4 h-4 text-gray-400" />
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-ink-muted mt-1">
+              <Calendar className="w-4 h-4 text-ink-muted" />
               <span>تاريخ التحديث: {formattedDate}</span>
             </div>
           </div>
 
           <button
             onClick={() => window.print()}
-            className="print-hide inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#2c3e50] hover:bg-[#1a252f] text-white font-sans font-bold text-sm shadow hover:shadow-md transition-all self-start sm:self-center cursor-pointer"
+            className="print-hide inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-inverse-canvas hover:brightness-125 text-white font-sans font-bold text-sm shadow hover:shadow-md transition-all self-start sm:self-center cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             <span>طباعة القائمة (PDF)</span>
@@ -163,16 +163,16 @@ export default function PriceListView() {
         </div>
 
         {/* Search & Filter Bar */}
-        <div className="print-hide bg-white dark:bg-[#1f2937] p-4 sm:p-5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm mb-8 space-y-4">
+        <div className="print-hide bg-canvas p-4 sm:p-5 rounded-2xl border border-hairline shadow-sm mb-8 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
+            <span className="text-xs font-bold text-ink-muted flex items-center gap-1.5 uppercase tracking-wider">
               <Filter className="w-3.5 h-3.5" />
               <span>فلاتر البحث السريع</span>
             </span>
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold"
+                className="text-xs text-brand-primary hover:underline flex items-center gap-1 font-semibold"
               >
                 <X className="w-3 h-3" />
                 <span>مسح الفلاتر</span>
@@ -188,9 +188,9 @@ export default function PriceListView() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="ابحث بالموديل، المعالج (i7, Ryzen)، كارت الشاشة..."
-                className="w-full h-10 pr-9 pl-4 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 outline-none transition-all"
+                className="w-full h-10 pr-9 pl-4 rounded-xl bg-surface-1 border border-hairline text-xs sm:text-sm text-ink placeholder-ink-muted focus:border-brand-primary focus:bg-canvas outline-none transition-all"
               />
-              <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-ink-muted absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* Category Dropdown */}
@@ -198,7 +198,7 @@ export default function PriceListView() {
               <select
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-xs sm:text-sm text-gray-900 dark:text-white focus:border-blue-500 outline-none transition-all"
+                className="w-full h-10 px-3 rounded-xl bg-surface-1 border border-hairline text-xs sm:text-sm text-ink focus:border-brand-primary outline-none transition-all"
               >
                 <option value="all">جميع الأقسام</option>
                 <option value="graphics">لابتوبات جرافيك</option>
@@ -216,7 +216,7 @@ export default function PriceListView() {
                 value={minPrice}
                 onChange={e => setMinPrice(e.target.value)}
                 placeholder="السعر من (ج.م)"
-                className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 outline-none transition-all"
+                className="w-full h-10 px-3 rounded-xl bg-surface-1 border border-hairline text-xs sm:text-sm text-ink placeholder-ink-muted focus:border-brand-primary outline-none transition-all"
               />
             </div>
 
@@ -227,7 +227,7 @@ export default function PriceListView() {
                 value={maxPrice}
                 onChange={e => setMaxPrice(e.target.value)}
                 placeholder="السعر إلى (ج.م)"
-                className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-500 outline-none transition-all"
+                className="w-full h-10 px-3 rounded-xl bg-surface-1 border border-hairline text-xs sm:text-sm text-ink placeholder-ink-muted focus:border-brand-primary outline-none transition-all"
               />
             </div>
           </div>
@@ -235,20 +235,20 @@ export default function PriceListView() {
 
         {/* Content: Grouped Tables */}
         {loading ? (
-          <div className="p-16 text-center text-gray-500 dark:text-gray-400 font-body">
+          <div className="p-16 text-center text-ink-muted font-body">
             جاري تحميل قائمة الأسعار والمنتجات...
           </div>
         ) : Object.keys(groupedProducts).length === 0 ? (
-          <div className="p-12 text-center bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3">
-            <h3 className="font-bold text-gray-900 dark:text-white text-base">
+          <div className="p-12 text-center bg-canvas rounded-2xl border border-hairline shadow-sm space-y-3">
+            <h3 className="font-bold text-ink text-base">
               لا توجد منتجات مطابقة لخيارات البحث
             </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-ink-muted">
               جرّب تقليل الفلاتر أو البحث بكلمات أخرى.
             </p>
             <button
               onClick={clearFilters}
-              className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 rounded-xl bg-brand-primary text-white text-xs font-bold hover:brightness-110 transition-colors"
             >
               إعادة ضبط الفلاتر
             </button>
@@ -262,24 +262,24 @@ export default function PriceListView() {
               return (
                 <div
                   key={key}
-                  className="bg-white dark:bg-[#1f2937] rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
+                  className="bg-canvas rounded-2xl border border-hairline shadow-sm overflow-hidden"
                 >
                   {/* Collapsible Header */}
                   <button
                     onClick={() => toggleGroup(key)}
-                    className="w-full p-4 sm:p-5 flex items-center justify-between bg-gray-50 dark:bg-gray-800/90 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer border-b border-gray-200 dark:border-gray-700"
+                    className="w-full p-4 sm:p-5 flex items-center justify-between bg-surface-1 hover:bg-surface-2 transition-colors cursor-pointer border-b border-hairline"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-                      <h3 className="font-sans font-bold text-sm sm:text-base text-gray-900 dark:text-white">
+                      <span className="w-2.5 h-2.5 rounded-full bg-brand-primary" />
+                      <h3 className="font-sans font-bold text-sm sm:text-base text-ink">
                         {title}
                       </h3>
-                      <span className="px-2.5 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                      <span className="px-2.5 py-0.5 rounded-full bg-surface-2 text-[11px] font-bold text-ink-muted">
                         {items.length} جهاز
                       </span>
                     </div>
 
-                    <div className="print-hide text-gray-500">
+                    <div className="print-hide text-ink-muted">
                       {isCollapsed ? (
                         <ChevronDown className="w-5 h-5" />
                       ) : (
@@ -294,17 +294,17 @@ export default function PriceListView() {
                       <table className="w-full text-right border-collapse text-xs sm:text-sm">
                         <thead>
                           <tr
-                            className="bg-[#2c3e50] text-white font-sans font-bold select-none"
+                            className="bg-inverse-canvas text-white font-sans font-bold select-none"
                             style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
                           >
-                            <th className="py-3 px-3 w-10 text-center border-b border-slate-700">#</th>
-                            <th className="py-3 px-3 border-b border-slate-700 min-w-[150px]">الموديل</th>
-                            <th className="py-3 px-3 border-b border-slate-700 min-w-[120px]">المعالج</th>
-                            <th className="py-3 px-3 border-b border-slate-700 min-w-[90px]">الرام</th>
-                            <th className="py-3 px-3 border-b border-slate-700 min-w-[90px]">التخزين</th>
-                            <th className="py-3 px-3 border-b border-slate-700 min-w-[90px]">الشاشة</th>
-                            <th className="py-3 px-3 border-b border-slate-700 min-w-[130px]">كارت الشاشة (GPU)</th>
-                            <th className="py-3 px-3 border-b border-slate-700 min-w-[110px] text-center">السعر (ج.م)</th>
+                            <th className="py-3 px-3 w-10 text-center border-b border-white/15">#</th>
+                            <th className="py-3 px-3 border-b border-white/15 min-w-[150px]">الموديل</th>
+                            <th className="py-3 px-3 border-b border-white/15 min-w-[120px]">المعالج</th>
+                            <th className="py-3 px-3 border-b border-white/15 min-w-[90px]">الرام</th>
+                            <th className="py-3 px-3 border-b border-white/15 min-w-[90px]">التخزين</th>
+                            <th className="py-3 px-3 border-b border-white/15 min-w-[90px]">الشاشة</th>
+                            <th className="py-3 px-3 border-b border-white/15 min-w-[130px]">كارت الشاشة (GPU)</th>
+                            <th className="py-3 px-3 border-b border-white/15 min-w-[110px] text-center">السعر (ج.م)</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -313,59 +313,57 @@ export default function PriceListView() {
                             return (
                               <tr
                                 key={prod.id}
-                                className={`print-table-row border-b border-gray-100 dark:border-gray-800/80 transition-colors hover:bg-blue-50/40 dark:hover:bg-blue-950/20 min-h-[36px] ${
+                                className={`print-table-row border-b border-hairline transition-colors hover:bg-brand-primary/5 min-h-[36px] ${
                                   isEven
-                                    ? 'bg-white dark:bg-[#1f2937]'
-                                    : 'bg-[#f5f8fa] dark:bg-[#111827]'
+                                    ? 'bg-canvas'
+                                    : 'bg-surface-1'
                                 }`}
                                 style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
                               >
                                 {/* # */}
-                                <td className="py-2.5 px-3 text-center text-gray-400 font-mono text-xs">
+                                <td className="py-2.5 px-3 text-center text-ink-muted font-mono text-xs">
                                   {idx + 1}
                                 </td>
 
                                 {/* Model / Name */}
-                                <td className="py-2.5 px-3 font-sans font-bold text-gray-900 dark:text-gray-100">
+                                <td className="py-2.5 px-3 font-sans font-bold text-ink">
                                   {prod.name}
                                   {prod.badge && (
-                                    <span className="mr-2 px-1.5 py-0.5 rounded bg-slate-800 text-white text-[10px] font-medium">
+                                    <span className="mr-2 px-1.5 py-0.5 rounded bg-brand-accent text-white text-[10px] font-medium">
                                       {prod.badge}
                                     </span>
                                   )}
                                 </td>
 
                                 {/* Processor */}
-                                <td className="py-2.5 px-3 text-gray-600 dark:text-gray-300">
+                                <td className="py-2.5 px-3 text-ink-muted">
                                   <span dir="ltr">{prod.specs?.cpu || prod.cpu || '—'}</span>
                                 </td>
 
                                 {/* RAM */}
-                                <td className="py-2.5 px-3 text-gray-600 dark:text-gray-300">
+                                <td className="py-2.5 px-3 text-ink-muted">
                                   <span dir="ltr">{prod.specs?.ram || prod.ram || '—'}</span>
                                 </td>
 
                                 {/* Storage */}
-                                <td className="py-2.5 px-3 text-gray-600 dark:text-gray-300">
+                                <td className="py-2.5 px-3 text-ink-muted">
                                   <span dir="ltr">{prod.specs?.storage || prod.storage || '—'}</span>
                                 </td>
 
                                 {/* Screen */}
-                                <td className="py-2.5 px-3 text-gray-600 dark:text-gray-300">
+                                <td className="py-2.5 px-3 text-ink-muted">
                                   <span dir="ltr">{prod.specs?.screen || prod.screen || '—'}</span>
                                 </td>
 
                                 {/* GPU */}
-                                <td className="py-2.5 px-3 text-gray-600 dark:text-gray-300">
+                                <td className="py-2.5 px-3 text-ink-muted">
                                   <span dir="ltr">{prod.specs?.gpu || prod.gpu || '—'}</span>
                                 </td>
 
-                                {/* Price Column: Light blue bg, dark blue bold text */}
+                                {/* Price Column: Brand-teal tint bg, brand-teal bold text */}
                                 <td
-                                  className="py-2.5 px-3 text-center bg-blue-50/80 dark:bg-blue-950/40 text-[#1d4ed8] dark:text-blue-400 font-sans font-extrabold"
+                                  className="py-2.5 px-3 text-center bg-brand-primary/10 text-brand-primary font-sans font-extrabold"
                                   style={{
-                                    backgroundColor: '#eff6ff',
-                                    color: '#1d4ed8',
                                     WebkitPrintColorAdjust: 'exact',
                                     printColorAdjust: 'exact',
                                   }}

@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Cpu, MemoryStick, HardDrive } from 'lucide-react'
 import type { Product } from '@/lib/types'
 
 interface ProductCardProps {
@@ -13,60 +14,84 @@ export default function ProductCard({ product }: ProductCardProps) {
   const imageSrc =
     product.photos && product.photos.length > 0 ? product.photos[0] : '/logo.jpeg'
 
-  // Build formatted specs line
-  const specsList = [
-    product.specs?.cpu || product.cpu,
-    product.specs?.ram || product.ram,
-    product.specs?.storage || product.storage,
-    product.specs?.gpu || product.gpu,
-  ].filter(Boolean)
+  const cpu = product.specs?.cpu || product.cpu
+  const ram = product.specs?.ram || product.ram
+  const storage = product.specs?.storage || product.storage
 
-  const specsText = specsList.join(' • ') || 'مواصفات مميزة'
+  const specChips = [
+    cpu ? { icon: Cpu, label: cpu } : null,
+    ram ? { icon: MemoryStick, label: ram } : null,
+    storage ? { icon: HardDrive, label: storage } : null,
+  ].filter(Boolean) as { icon: typeof Cpu; label: string }[]
+
+  const isOutOfStock = product.stockStatus === 'out_of_stock'
+  const isLimited = product.stockStatus === 'limited'
 
   return (
     <Link
       href={`/laptops/${product.id}`}
-      className="group shrink-0 w-[160px] sm:w-[220px] rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/80 shadow-sm hover:shadow-md hover:scale-[1.03] transition-all duration-200 flex flex-col overflow-hidden relative select-none"
+      className="group relative flex flex-col overflow-hidden rounded-[22px] bg-canvas border border-hairline shadow-sm hover:shadow-xl hover:-translate-y-1.5 hover:border-brand-primary/40 transition-all duration-300 select-none"
     >
-      {/* Optional Badge Top-Right */}
-      {(product.badge || product.discountBadge) && (
-        <div className="absolute top-2.5 right-2.5 z-10">
-          <span className="bg-slate-800 dark:bg-slate-900 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full shadow-sm">
-            {product.badge || product.discountBadge}
-          </span>
-        </div>
-      )}
-
-      {/* Product Image (160px height, object-fit: contain) */}
-      <div className="w-full h-[140px] sm:h-[160px] relative p-3 bg-gray-50/50 dark:bg-gray-900/40 flex items-center justify-center overflow-hidden">
+      {/* Image area with soft brand-tinted backdrop */}
+      <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-surface-1 to-surface-2 overflow-hidden">
         <Image
           src={imageSrc}
           alt={product.name}
           fill
-          sizes="(max-width: 640px) 160px, 220px"
+          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 280px"
           loading="lazy"
-          className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+          className="object-contain p-5 group-hover:scale-[1.06] transition-transform duration-500"
         />
+
+        {/* Badge */}
+        {(product.badge || product.discountBadge) && (
+          <span className="absolute top-3 right-3 bg-brand-accent text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+            {product.badge || product.discountBadge}
+          </span>
+        )}
+
+        {/* Stock indicator */}
+        {isOutOfStock ? (
+          <span className="absolute top-3 left-3 bg-inverse-canvas/85 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+            غير متوفر حالياً
+          </span>
+        ) : isLimited ? (
+          <span className="absolute top-3 left-3 bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+            كمية محدودة
+          </span>
+        ) : null}
       </div>
 
-      {/* Details Area */}
-      <div className="p-3 sm:p-3.5 flex flex-col flex-1 justify-between gap-1 text-right">
-        <div>
-          {/* Product Name (Bold, 14px, max 2 lines) */}
-          <h3 className="font-sans font-bold text-xs sm:text-sm text-gray-900 dark:text-gray-100 line-clamp-2 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-            {product.name}
-          </h3>
+      {/* Details area with breathing room */}
+      <div className="flex flex-col gap-3 p-4 sm:p-5 text-right">
+        <h3 className="font-sans font-bold text-sm sm:text-base text-ink line-clamp-2 leading-snug group-hover:text-brand-primary transition-colors min-h-[2.6em]">
+          {product.name}
+        </h3>
 
-          {/* Short Specs Line (Gray, 12px, LTR) */}
-          <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 truncate mt-1">
-            <span dir="ltr">{specsText}</span>
-          </p>
-        </div>
+        {/* Spec chips instead of a cramped single line */}
+        {specChips.length > 0 && (
+          <div className="flex flex-wrap gap-1.5" dir="ltr">
+            {specChips.map((chip, idx) => (
+              <span
+                key={idx}
+                className="inline-flex items-center gap-1 bg-surface-1 text-ink-muted text-[10px] sm:text-[11px] font-medium px-2 py-1 rounded-lg"
+              >
+                <chip.icon className="w-3 h-3 shrink-0" />
+                <span className="truncate max-w-[110px]">{chip.label}</span>
+              </span>
+            ))}
+          </div>
+        )}
 
-        {/* Price in EGP (Bold Deep Blue #1d4ed8, 16px) */}
-        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50 flex items-baseline justify-between">
-          <span className="font-sans font-extrabold text-sm sm:text-base text-[#1d4ed8] dark:text-blue-400">
-            {product.price.toLocaleString('ar-EG')} ج.م
+        {/* Price + CTA */}
+        <div className="mt-1 pt-3 border-t border-hairline flex items-center justify-between gap-2">
+          <span className="font-sans font-extrabold text-base sm:text-lg text-brand-primary">
+            {product.price.toLocaleString('ar-EG')}
+            <span className="text-xs font-semibold text-ink-muted mr-1">ج.م</span>
+          </span>
+
+          <span className="inline-flex items-center justify-center text-xs font-bold text-white bg-inverse-canvas group-hover:bg-brand-primary rounded-xl px-3 py-2 transition-colors">
+            التفاصيل
           </span>
         </div>
       </div>

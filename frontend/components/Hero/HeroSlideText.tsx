@@ -12,10 +12,10 @@ interface HeroSlideTextProps {
 }
 
 export default function HeroSlideText({ slide, slideKey }: HeroSlideTextProps) {
-  // Brand blue is default; disciplined styling
+  // Brand teal is default; disciplined styling
   const buttonBg = slide.buttonColor && /^#([0-9A-F]{3}){1,2}$/i.test(slide.buttonColor)
     ? slide.buttonColor
-    : '#2563eb'
+    : '#0FC7C1'
 
   return (
     <div
@@ -44,7 +44,7 @@ export default function HeroSlideText({ slide, slideKey }: HeroSlideTextProps) {
       </h1>
 
       {/* Subtitle */}
-      <p className="text-sm sm:text-base text-gray-300 line-clamp-3 leading-relaxed mb-6 font-body">
+      <p className="text-sm sm:text-base text-white/70 line-clamp-3 leading-relaxed mb-6 font-body">
         {slide.subtitle}
       </p>
 

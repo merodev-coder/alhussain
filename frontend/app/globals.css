@@ -208,3 +208,75 @@
 .animate-count {
   animation: count-up 0.6s ease forwards;
 }
+
+/* ===== Hero section animations ===== */
+@keyframes hero-text-in {
+  0% { opacity: 0; transform: translateY(18px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-hero-text {
+  animation: hero-text-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes hero-image-in {
+  0% { opacity: 0; transform: translateY(24px) rotate(0deg) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) rotate(var(--hero-tilt, -5deg)) scale(1); }
+}
+.animate-hero-image {
+  animation: hero-image-in 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes hero-badge-in {
+  0% { opacity: 0; transform: translateY(-10px) scale(0.85); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-hero-badge {
+  animation: hero-badge-in 0.5s ease 0.2s both;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(var(--hero-tilt, -5deg)); }
+  50% { transform: translateY(-12px) rotate(calc(var(--hero-tilt, -5deg) + 2deg)); }
+}
+.animate-float-slow {
+  animation: float-slow 5.5s ease-in-out infinite;
+}
+
+@keyframes blob-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(24px, -18px) scale(1.12); }
+  66% { transform: translate(-18px, 14px) scale(0.94); }
+}
+.animate-blob-drift {
+  animation: blob-drift 10s ease-in-out infinite;
+}
+.animate-blob-drift-slow {
+  animation: blob-drift 14s ease-in-out infinite reverse;
+}
+
+@keyframes shine-sweep {
+  0% { transform: translateX(-160%) skewX(-18deg); opacity: 0; }
+  15% { opacity: 0.55; }
+  50% { opacity: 0.35; }
+  100% { transform: translateX(260%) skewX(-18deg); opacity: 0; }
+}
+.animate-shine-sweep {
+  animation: shine-sweep 3.2s ease-in-out infinite;
+}
+
+@keyframes chip-pop-in {
+  0% { opacity: 0; transform: translateY(6px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-chip-in {
+  animation: chip-pop-in 0.5s ease 0.35s both;
+}
+
+/* Hide scrollbars for auto-scrolling product carousels while keeping scroll functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

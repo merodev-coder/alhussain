@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useRef } from 'react'
+import React from 'react'
 import Link from 'next/link'
-import { ChevronRight, ChevronLeft, ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import type { Product } from '@/lib/types'
-import AutoScrollCarousel from './AutoScrollCarousel'
+import { getCategoryHref } from '@/lib/category-routes'
+import ProductCarousel from './ProductCarousel'
 
 interface ProductSectionProps {
   id: string
@@ -14,6 +15,9 @@ interface ProductSectionProps {
   products: Product[]
 }
 
+// Show at most this many products in the home page carousel; the rest are reachable via "View All"
+const MAX_VISIBLE = 12
+
 export default function ProductSection({
   id,
   title,
@@ -21,82 +25,38 @@ export default function ProductSection({
   categorySlug,
   products,
 }: ProductSectionProps) {
-  const carouselContainerRef = useRef<HTMLDivElement>(null)
-
   // If section has 0 products, hide the section entirely
   if (!products || products.length === 0) {
     return null
   }
 
-  const handleScrollPrev = () => {
-    const scrollContainer = carouselContainerRef.current?.querySelector('.overflow-x-auto')
-    if (scrollContainer) {
-      scrollContainer.scrollBy({ left: 240, behavior: 'smooth' })
-    }
-  }
+  const viewAllLink = getCategoryHref(categorySlug || sectionKey)
 
-  const handleScrollNext = () => {
-    const scrollContainer = carouselContainerRef.current?.querySelector('.overflow-x-auto')
-    if (scrollContainer) {
-      scrollContainer.scrollBy({ left: -240, behavior: 'smooth' })
-    }
-  }
-
-  const viewAllLink = categorySlug
-    ? `/category/${categorySlug}`
-    : `/laptops?section=${sectionKey}`
+  const visibleProducts = products.slice(0, MAX_VISIBLE)
 
   return (
-    <section id={id} className="w-full my-6 sm:my-8 scroll-mt-20">
-      {/* Refined Dark Navy Banner (#1e293b) */}
-      <div className="w-full bg-[#1e293b] text-white shadow-md border-y border-slate-700/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
-          {/* Left Side: "الكل >" link */}
+    <section id={id} className="w-full py-10 sm:py-14 scroll-mt-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section header */}
+        <div className="flex items-end justify-between gap-4 mb-6 sm:mb-8">
+          <div>
+            <h2 className="font-sans font-extrabold text-xl sm:text-2xl lg:text-3xl text-ink tracking-tight">
+              {title}
+            </h2>
+            <div className="h-1 w-14 rounded-full bg-brand-primary mt-2" />
+          </div>
+
           <Link
             href={viewAllLink}
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-sans font-bold text-slate-200 hover:text-white transition-colors bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-lg border border-white/10"
+            className="shrink-0 inline-flex items-center gap-1.5 text-xs sm:text-sm font-sans font-bold text-brand-primary hover:text-brand-primary/80 transition-colors border border-brand-primary/30 hover:border-brand-primary/60 px-3 sm:px-4 py-2 rounded-xl"
           >
-            <span>الكل</span>
-            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>عرض الكل</span>
+            <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Link>
-
-          {/* Centered Section Title */}
-          <h2 className="font-sans font-bold text-base sm:text-xl text-white tracking-wide text-center">
-            {title}
-          </h2>
-
-          {/* Right Side: Manual Left & Right Scroll Arrow Buttons */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={handleScrollPrev}
-              aria-label="السابق"
-              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white flex items-center justify-center transition-all border border-white/10"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleScrollNext}
-              aria-label="التالي"
-              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 active:scale-95 text-white flex items-center justify-center transition-all border border-white/10"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </div>
         </div>
-      </div>
 
-      {/* Product Row Container */}
-      <div
-        ref={carouselContainerRef}
-        className="w-full bg-slate-50/50 dark:bg-[#111827]/40 border-b border-gray-100 dark:border-gray-800/80 transition-colors"
-      >
-        <div className="max-w-7xl mx-auto">
-          <AutoScrollCarousel
-            products={products}
-            sectionKey={sectionKey}
-            intervalMs={2000}
-          />
-        </div>
+        {/* Auto-advancing product carousel */}
+        <ProductCarousel products={visibleProducts} sectionKey={sectionKey} />
       </div>
     </section>
   )
