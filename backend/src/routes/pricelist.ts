@@ -466,7 +466,7 @@ router.get('/api/pricelist/:id/export', requireAdmin, async (req: Request, res: 
     const sortedItems = sortStructuredItems(items)
 
     // Build worksheet data
-    const wsData = [
+    const wsData: (string | number)[][] = [
       ['#', 'الموديل', 'المعالج', 'الرام', 'التخزين', 'الشاشة', 'كارت الشاشة', 'السعر', 'الفئة']
     ];
 
