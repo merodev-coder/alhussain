@@ -143,8 +143,8 @@ export default function HeroSection({ slides = [] }: HeroSectionProps) {
           {/* Backing panel behind the banner, offset like a shelf, sharing the same angled cut */}
           <div className="relative">
             <div
-              className="absolute inset-0 translate-y-3 sm:translate-y-4 bg-brand-primary/15"
-              style={{ clipPath: HERO_CLIP }}
+              className="absolute -inset-[10px] bg-brand-primary/15"
+              style={{ clipPath: HERO_CLIP, transform: 'rotate(10deg)' }}
             />
 
             {/* Angled "shaped" banner card */}
