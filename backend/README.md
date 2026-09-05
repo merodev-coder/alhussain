@@ -25,7 +25,9 @@ Required variables:
 - `ADMIN_USERNAME` - Admin login username
 - `ADMIN_PASSWORD` - Admin login password
 - `UPLOADTHING_TOKEN` - UploadThing API token
+- `GEMINI_API_KEY` - Google Gemini API key (for Excel pricelist AI normalization)
 - `FRONTEND_URL` - Frontend URL (for CORS) — default: http://localhost:3000
+
 
 ### 3. Run Development Server
 

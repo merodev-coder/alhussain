@@ -1,7 +1,10 @@
 import mongoose, { Schema } from 'mongoose';
 const PricelistSchema = new Schema({
     sourceFileName: { type: String, required: true },
-    parsedHtml: { type: String, required: true },
+    rawExcelFileUrl: { type: String, default: '' },
+    structuredItems: { type: [Object], default: [] },
+    generatedHtml: { type: String, default: '' },
+    parsedHtml: { type: String, default: '' },
     uploadedAt: { type: Date, default: Date.now },
     published: { type: Boolean, default: false },
     dbIndex: { type: Number, required: true, default: 0 },
