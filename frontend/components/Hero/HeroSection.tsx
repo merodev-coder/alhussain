@@ -233,7 +233,7 @@ export default function HeroSection({ slides = [] }: HeroSectionProps) {
                       <div className="relative w-[82%] lg:w-[85%] aspect-[4/3]">
                         <div
                           aria-hidden="true"
-                          className="absolute -inset-3 lg:-inset-4 rounded-[28px] lg:rounded-[32px] bg-brand-primary/20"
+                          className="absolute -inset-3 lg:-inset-4 rounded-[28px] lg:rounded-[32px] bg-inverse-canvas/95 shadow-xl"
                           style={{ transform: 'rotate(5deg)' }}
                         />
                         <div
