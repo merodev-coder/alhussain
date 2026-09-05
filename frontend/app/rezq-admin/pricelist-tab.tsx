@@ -10,13 +10,17 @@ import {
   FileSpreadsheet,
   RefreshCw,
   Eye,
-  Filter,
+  Edit3,
+  Check,
+  X,
+  Save,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { clientLogger } from '@/lib/client-logger'
 
 interface StructuredLaptopItem {
+  id?: string
   index?: number
   brand: string
   model: string
@@ -53,17 +57,22 @@ export default function PricelistTab() {
   const [filterMode, setFilterMode] = useState<'all' | 'flagged'>('all')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Fetch current published pricelist on mount
+  // Inline Editing State
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<Partial<StructuredLaptopItem>>({})
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [editMessage, setEditMessage] = useState<string>('')
+
+  // Fetch current pricelist on mount (using admin endpoint to retain rawExcelFileUrl)
   useEffect(() => {
     const fetchCurrent = async () => {
       try {
         setInitialLoading(true)
-        const data = await api.get_pricelist()
+        const data = await api.get_admin_pricelist().catch(() => api.get_pricelist())
         if (data) {
           setPricelist(data)
         }
       } catch (err) {
-        // 404 or no active pricelist is normal on first use
         clientLogger.info('No existing pricelist or failed fetch:', err)
       } finally {
         setInitialLoading(false)
@@ -95,6 +104,7 @@ export default function PricelistTab() {
     setLoading(true)
     setError('')
     setSuccess(false)
+    setEditingId(null)
 
     try {
       const result = await api.upload_pricelist(file)
@@ -112,6 +122,57 @@ export default function PricelistTab() {
     }
   }
 
+  const startEdit = (item: StructuredLaptopItem) => {
+    const identifier = item.id || String(item.index)
+    setEditingId(identifier)
+    setEditForm({
+      name: item.name,
+      cpu: item.cpu,
+      ram: item.ram,
+      storage: item.storage,
+      screen: item.screen,
+      gpu: item.gpu,
+      price: item.price,
+      category: item.category,
+      brand: item.brand,
+      model: item.model,
+    })
+    setEditMessage('')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditForm({})
+  }
+
+  const handleSaveItem = async (item: StructuredLaptopItem) => {
+    if (!pricelist?.id) {
+      setError('تعذر تحديد معرف قائمة الأسعار للحفظ')
+      return
+    }
+
+    setSavingEdit(true)
+    setEditMessage('')
+
+    try {
+      const identifier = item.id || String(item.index)
+      const updatedPricelist = await api.update_pricelist_item(
+        pricelist.id,
+        identifier,
+        editForm
+      )
+      setPricelist(updatedPricelist)
+      setEditingId(null)
+      setEditMessage('تم تحديث الجهاز وإعادة الترتيب بنجاح')
+      setTimeout(() => setEditMessage(''), 3500)
+    } catch (err) {
+      clientLogger.error('Failed to update item:', err)
+      setError(err instanceof Error ? err.message : 'فشل تحديث بيانات الجهاز')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
   const items = pricelist?.structuredItems || []
   const flaggedCount = items.filter(it => it.flagged).length
   const displayedItems =
@@ -120,10 +181,9 @@ export default function PricelistTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-sans font-bold text-ink text-2xl mb-2">قائمة الأسعار</h2>
+        <h2 className="font-sans font-bold text-ink text-2xl mb-2">إدارة قائمة الأسعار</h2>
         <p className="font-body text-sm text-ink-muted">
-          ارفع ملف Excel (.xlsx) وسيقوم الذكاء الاصطناعي (Gemini) بتوحيد صيغ الأجهزة ومواصفاتها،
-          واستنتاج حجم الشاشة وكارت الشاشة للموديلات غير المكتملة.
+          ارفع ملف Excel (.xlsx) وسيقوم النظام بتطبيع المواصفات، أو قم بتعديل أي جهاز مباشرة من الجدول أدناه دون الحاجة لإعادة الرفع.
         </p>
       </div>
 
@@ -152,7 +212,7 @@ export default function PricelistTab() {
               {file ? file.name : 'اسحب ملف Excel هنا أو انقر للاختيار'}
             </p>
             <p className="font-body text-xs text-ink-muted">
-              الصيغة المدعومة: .xlsx (Excel) بأي ترتيب للأعمدة
+              الصيغة المدعومة: .xlsx (Excel) بأي ترتيب أو لغة للأعمدة
             </p>
           </div>
         </label>
@@ -195,25 +255,31 @@ export default function PricelistTab() {
         </div>
       </div>
 
-      {/* Error Alert */}
+      {/* Notifications */}
       {error && (
-        <div className="flex gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+        <div className="flex gap-3 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-xl text-red-700 dark:text-red-300">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-red-600" />
           <div>
-            <p className="font-body font-semibold">فشل في المعالجة</p>
-            <p className="font-body text-sm mt-0.5 text-red-600">{error}</p>
+            <p className="font-body font-semibold">تنبيه</p>
+            <p className="font-body text-sm mt-0.5">{error}</p>
           </div>
         </div>
       )}
 
-      {/* Success Banner */}
+      {editMessage && (
+        <div className="flex gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-xl text-emerald-800 dark:text-emerald-300">
+          <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-emerald-600" />
+          <p className="font-body font-semibold text-sm">{editMessage}</p>
+        </div>
+      )}
+
       {success && pricelist && (
-        <div className="flex gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800">
+        <div className="flex gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-xl text-emerald-800 dark:text-emerald-300">
           <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-emerald-600" />
           <div>
             <p className="font-body font-semibold">تمت المعالجة والنشر بنجاح</p>
-            <p className="font-body text-sm mt-0.5 text-emerald-700">
-              تم تحديث قائمة الأسعار بنجاح ({items.length} جهاز). التاريخ: {new Date(pricelist.uploadedAt).toLocaleString('ar-EG')}
+            <p className="font-body text-sm mt-0.5">
+              تم تحديث قائمة الأسعار بنجاح ({items.length} جهاز). مرتبة تصاعدياً حسب السعر.
             </p>
           </div>
         </div>
@@ -221,15 +287,14 @@ export default function PricelistTab() {
 
       {/* Flagged Alert Banner */}
       {flaggedCount > 0 && (
-        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-300 rounded-xl text-amber-800">
-          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" />
+        <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-300">
+          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-amber-600 shrink-0" />
           <div className="flex-1">
             <p className="font-body font-semibold">
-              تنبيه: تم وضع علامة على {flaggedCount} صف بحاجة لمراجعة
+              تنبيه: يوجد {flaggedCount} صف بحاجة لمراجعة أو مواصفات مستنتجة
             </p>
-            <p className="font-body text-sm mt-1 text-amber-700 leading-relaxed">
-              تحتوي هذه الصفوف على مواصفات غير مكتملة في الملف الأصلي أو تم استنتاجها تلقائياً.
-              يمكنك مراجعتها في الجدول أدناه، أو تعديلها في ملف Excel وإعادة الرفع.
+            <p className="font-body text-sm mt-1 leading-relaxed">
+              يمكنك النقر على زر <strong>تعديل</strong> أمام أي جهاز لتصحيح مواصفاته وحفظه مباشرة في قاعدة البيانات دون إعادة رفع الملف.
             </p>
           </div>
           <button
@@ -241,7 +306,7 @@ export default function PricelistTab() {
         </div>
       )}
 
-      {/* Preview Section */}
+      {/* Interactive Table Section */}
       {initialLoading ? (
         <div className="p-8 text-center bg-canvas border border-hairline rounded-[20px]">
           <RefreshCw className="w-6 h-6 animate-spin mx-auto text-brand-primary mb-2" />
@@ -254,7 +319,7 @@ export default function PricelistTab() {
             <div>
               <h3 className="font-sans font-bold text-ink text-lg flex items-center gap-2">
                 <Eye className="w-5 h-5 text-brand-primary" />
-                معاينة قائمة الأسعار المنشورة ({items.length} جهاز)
+                قائمة الأسعار المنشورة ({items.length} جهاز — مرتبة حسب السعر)
               </h3>
               <p className="font-body text-xs text-ink-muted mt-1">
                 الملف الأصلي: {pricelist.sourceFileName} &bull; تاريخ التحديث: {new Date(pricelist.uploadedAt).toLocaleString('ar-EG')}
@@ -263,7 +328,7 @@ export default function PricelistTab() {
 
             <div className="flex items-center gap-2">
               {/* Filter Tabs */}
-              <div className="flex items-center bg-surface-1 border border-hairline rounded-lg p-1 text-xs">
+              <div className="flex items-center bg-surface-1 border border-hairline rounded-lg p-1 text-xs font-body">
                 <button
                   onClick={() => setFilterMode('all')}
                   className={cn(
@@ -289,7 +354,7 @@ export default function PricelistTab() {
                 </button>
               </div>
 
-              {/* Download Original Excel */}
+              {/* Admin-only Download Link */}
               {pricelist.rawExcelFileUrl && (
                 <a
                   href={pricelist.rawExcelFileUrl}
@@ -299,38 +364,144 @@ export default function PricelistTab() {
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-1 hover:bg-surface-2 border border-hairline rounded-lg text-xs font-medium text-ink transition-colors"
                 >
                   <Download className="w-3.5 h-3.5 text-brand-primary" />
-                  تحميل ملف Excel
+                  تحميل ملف Excel الأصلي
                 </a>
               )}
             </div>
           </div>
 
-          {/* Structured Table */}
+          {/* Structured Table with Inline Editing */}
           <div className="overflow-x-auto rounded-xl border border-hairline">
             <table className="w-full text-right border-collapse text-sm">
               <thead>
                 <tr className="bg-surface-2 text-ink font-semibold text-xs border-b border-hairline">
                   <th className="p-3 w-12 text-center">#</th>
-                  <th className="p-3">اسم وموديل الجهاز</th>
-                  <th className="p-3">المعالج (CPU)</th>
-                  <th className="p-3">الرام</th>
-                  <th className="p-3">التخزين</th>
-                  <th className="p-3">الشاشة</th>
-                  <th className="p-3">كارت الشاشة (GPU)</th>
-                  <th className="p-3">السعر (EGP)</th>
-                  <th className="p-3 text-center">حالة التدقيق</th>
+                  <th className="p-3 min-w-[180px]">اسم وموديل الجهاز</th>
+                  <th className="p-3 min-w-[140px]">المعالج (CPU)</th>
+                  <th className="p-3 min-w-[90px]">الرام</th>
+                  <th className="p-3 min-w-[110px]">التخزين</th>
+                  <th className="p-3 min-w-[90px]">الشاشة</th>
+                  <th className="p-3 min-w-[130px]">كارت الشاشة</th>
+                  <th className="p-3 min-w-[100px]">السعر (EGP)</th>
+                  <th className="p-3 min-w-[120px]">الفئة</th>
+                  <th className="p-3 text-center min-w-[100px]">الإجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-hairline">
+              <tbody className="divide-y divide-hairline font-body">
                 {displayedItems.map((item, idx) => {
+                  const identifier = item.id || String(item.index)
+                  const isEditing = editingId === identifier
                   const isFlagged = Boolean(item.flagged)
+
+                  if (isEditing) {
+                    return (
+                      <tr key={identifier} className="bg-brand-primary/5 dark:bg-brand-primary/10">
+                        <td className="p-2 text-center text-xs font-bold text-brand-primary">
+                          {item.index ?? idx + 1}
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={editForm.name || ''}
+                            onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                            className="w-full bg-canvas border border-hairline rounded px-2 py-1 text-xs text-ink font-bold"
+                            placeholder="اسم الجهاز"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={editForm.cpu || ''}
+                            onChange={e => setEditForm({ ...editForm, cpu: e.target.value })}
+                            className="w-full bg-canvas border border-hairline rounded px-2 py-1 text-xs text-ink"
+                            placeholder="المعالج"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={editForm.ram || ''}
+                            onChange={e => setEditForm({ ...editForm, ram: e.target.value })}
+                            className="w-full bg-canvas border border-hairline rounded px-2 py-1 text-xs text-ink"
+                            placeholder="الرام"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={editForm.storage || ''}
+                            onChange={e => setEditForm({ ...editForm, storage: e.target.value })}
+                            className="w-full bg-canvas border border-hairline rounded px-2 py-1 text-xs text-ink"
+                            placeholder="التخزين"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={editForm.screen || ''}
+                            onChange={e => setEditForm({ ...editForm, screen: e.target.value })}
+                            className="w-full bg-canvas border border-hairline rounded px-2 py-1 text-xs text-ink"
+                            placeholder="الشاشة"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={editForm.gpu || ''}
+                            onChange={e => setEditForm({ ...editForm, gpu: e.target.value })}
+                            className="w-full bg-canvas border border-hairline rounded px-2 py-1 text-xs text-ink"
+                            placeholder="كارت الشاشة"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="number"
+                            value={editForm.price ?? ''}
+                            onChange={e => setEditForm({ ...editForm, price: Number(e.target.value) })}
+                            className="w-full bg-canvas border border-hairline rounded px-2 py-1 text-xs font-bold text-brand-primary font-mono"
+                            placeholder="السعر"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={editForm.category || ''}
+                            onChange={e => setEditForm({ ...editForm, category: e.target.value })}
+                            className="w-full bg-canvas border border-hairline rounded px-2 py-1 text-xs text-ink"
+                            placeholder="الفئة"
+                          />
+                        </td>
+                        <td className="p-2 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => handleSaveItem(item)}
+                              disabled={savingEdit}
+                              className="p-1.5 bg-brand-primary text-white hover:bg-brand-primary/90 rounded-md text-xs transition-colors"
+                              title="حفظ التعديلات"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              disabled={savingEdit}
+                              className="p-1.5 bg-surface-2 text-ink-muted hover:text-ink rounded-md text-xs transition-colors"
+                              title="إلغاء"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  }
+
                   return (
                     <tr
-                      key={idx}
+                      key={identifier}
                       className={cn(
                         'transition-colors',
                         isFlagged
-                          ? 'bg-amber-50/70 hover:bg-amber-100/60'
+                          ? 'bg-amber-50/70 dark:bg-amber-950/20 hover:bg-amber-100/60'
                           : 'hover:bg-surface-1/70'
                       )}
                     >
@@ -339,35 +510,38 @@ export default function PricelistTab() {
                       </td>
                       <td className="p-3 font-semibold text-ink">
                         <div>{item.name || `${item.brand} ${item.model}`.trim()}</div>
-                        {item.category && (
-                          <span className="text-[11px] font-normal text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded mt-0.5 inline-block">
-                            {item.category}
-                          </span>
+                        {isFlagged && item.flagReason && (
+                          <div className="text-[11px] text-amber-700 dark:text-amber-400 font-normal mt-0.5 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3 shrink-0" />
+                            <span>{item.flagReason}</span>
+                          </div>
                         )}
                       </td>
-                      <td className="p-3 text-ink-muted text-xs">{item.cpu || '-'}</td>
-                      <td className="p-3 text-ink-muted text-xs whitespace-nowrap">{item.ram || '-'}</td>
-                      <td className="p-3 text-ink-muted text-xs whitespace-nowrap">{item.storage || '-'}</td>
-                      <td className="p-3 text-ink-muted text-xs whitespace-nowrap">{item.screen || '-'}</td>
+                      <td className="p-3 text-ink text-xs">{item.cpu || '-'}</td>
+                      <td className="p-3 text-ink text-xs whitespace-nowrap">{item.ram || '-'}</td>
+                      <td className="p-3 text-ink text-xs whitespace-nowrap">{item.storage || '-'}</td>
+                      <td className="p-3 text-ink text-xs whitespace-nowrap">{item.screen || '-'}</td>
                       <td className="p-3 text-ink-muted text-xs">{item.gpu || '-'}</td>
-                      <td className="p-3 font-bold text-brand-primary whitespace-nowrap">
+                      <td className="p-3 font-bold text-brand-primary whitespace-nowrap font-mono">
                         {Number(item.price || 0).toLocaleString('ar-EG')} ج.م
                       </td>
-                      <td className="p-3 text-center whitespace-nowrap">
-                        {isFlagged ? (
-                          <div
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 rounded-md text-xs"
-                            title={item.flagReason || 'يحتاج لمراجعة'}
-                          >
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                            <span>{item.flagReason || 'يحتاج مراجعة'}</span>
-                          </div>
+                      <td className="p-3 text-xs text-ink-muted whitespace-nowrap">
+                        {item.category ? (
+                          <span className="bg-surface-2 text-brand-primary px-2 py-0.5 rounded text-[11px] font-medium">
+                            {item.category}
+                          </span>
                         ) : (
-                          <div className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-800 rounded-md text-xs">
-                            <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            <span>مكتمل</span>
-                          </div>
+                          '-'
                         )}
+                      </td>
+                      <td className="p-3 text-center whitespace-nowrap">
+                        <button
+                          onClick={() => startEdit(item)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-ink bg-surface-1 hover:bg-surface-2 border border-hairline rounded-lg transition-colors"
+                        >
+                          <Edit3 className="w-3 h-3 text-brand-primary" />
+                          <span>تعديل</span>
+                        </button>
                       </td>
                     </tr>
                   )
@@ -375,21 +549,6 @@ export default function PricelistTab() {
               </tbody>
             </table>
           </div>
-
-          {displayedItems.length === 0 && (
-            <div className="text-center py-8 text-ink-muted text-sm">
-              لا توجد أجهزة مطابقة لخيارات التصفية
-            </div>
-          )}
-        </div>
-      ) : pricelist && pricelist.parsedHtml ? (
-        // Fallback for legacy HTML pricelist if structuredItems is not present
-        <div className="bg-canvas border border-hairline rounded-[20px] p-6 space-y-4 shadow-sm">
-          <h3 className="font-sans font-bold text-ink mb-2">معاينة المحتوى الحالي</h3>
-          <div
-            className="prose max-w-none overflow-auto bg-surface-1 rounded-lg p-4"
-            dangerouslySetInnerHTML={{ __html: pricelist.parsedHtml }}
-          />
         </div>
       ) : (
         <div className="bg-canvas border border-hairline rounded-[20px] p-8 text-center text-ink-muted">

@@ -132,6 +132,12 @@ export const api = {
 
   // Pricelist
   get_pricelist: () => apiRequest<any>('/api/pricelist'),
+  get_admin_pricelist: () => apiRequest<any>('/api/pricelist/admin'),
+  update_pricelist_item: (pricelistId: string, itemId: string, data: any) =>
+    apiRequest<any>(`/api/pricelist/${pricelistId}/items/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   upload_pricelist: async (file: File) => {
     const formData = new FormData()
     formData.append('file', file)
@@ -150,6 +156,7 @@ export const api = {
 
     return response.json()
   },
+
 
   // Dashboard
   get_dashboard_stats: () => apiRequest<any>('/api/dashboard-stats'),

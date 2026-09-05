@@ -1,6 +1,7 @@
 import mongoose, { Schema, model } from 'mongoose'
 
 export interface StructuredLaptopItem {
+  id?: string
   index?: number
   brand: string
   model: string
@@ -15,6 +16,7 @@ export interface StructuredLaptopItem {
   flagged?: boolean
   flagReason?: string
 }
+
 
 export interface PricelistDoc {
   sourceFileName: string

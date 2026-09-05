@@ -24,9 +24,59 @@ const upload = multer({
         }
     },
 });
+// Priority order for categories: Budget first, Mid second, Premium last
+const CATEGORY_PRIORITIES = [
+    { pattern: /budget|اقتصاد/i, priority: 1 },
+    { pattern: /mid|متوسط/i, priority: 2 },
+    { pattern: /business|أعمال|اعمال/i, priority: 3 },
+    { pattern: /gam|ألعاب|العاب|جيمن/i, priority: 4 },
+    { pattern: /premium|high|متميز|عليا/i, priority: 5 },
+];
+function getCategoryPriority(cat) {
+    if (!cat)
+        return 99;
+    for (const item of CATEGORY_PRIORITIES) {
+        if (item.pattern.test(cat)) {
+            return item.priority;
+        }
+    }
+    return 50;
+}
+/**
+ * Sorts structured laptop items:
+ * 1. By category priority (Budget -> Mid -> Premium)
+ * 2. Within each category, by price ascending (cheapest first)
+ * 3. Renumbers `index` sequentially (1, 2, 3...)
+ */
+export function sortStructuredItems(items) {
+    return [...items]
+        .sort((a, b) => {
+        const priorityA = getCategoryPriority(a.category);
+        const priorityB = getCategoryPriority(b.category);
+        if (priorityA !== priorityB) {
+            return priorityA - priorityB;
+        }
+        const catA = (a.category || '').trim();
+        const catB = (b.category || '').trim();
+        if (catA !== catB) {
+            return catA.localeCompare(catB, 'ar');
+        }
+        const priceA = Number(a.price) || 0;
+        const priceB = Number(b.price) || 0;
+        if (priceA !== priceB) {
+            return priceA - priceB;
+        }
+        return (a.name || '').localeCompare(b.name || '', 'ar');
+    })
+        .map((item, idx) => ({
+        ...item,
+        id: item.id || `item_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 7)}`,
+        index: idx + 1,
+    }));
+}
 /**
  * Parses an Excel buffer into an array of row objects keyed by whatever headers
- * exist in the sheet, without assuming fixed column order or fixed header names.
+ * exist in the sheet, scanning all sheets to find the first sheet with valid data.
  */
 function parseExcelToRawRows(buffer) {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
@@ -36,7 +86,6 @@ function parseExcelToRawRows(buffer) {
     let selectedSheetName = '';
     let selectedSheetRows = [];
     let detectedHeaderIndex = -1;
-    // Iterate over all sheets to find the first sheet with a detectable header + data rows
     for (const sheetName of workbook.SheetNames) {
         const worksheet = workbook.Sheets[sheetName];
         if (!worksheet)
@@ -49,7 +98,6 @@ function parseExcelToRawRows(buffer) {
             if (Array.isArray(row)) {
                 const nonEmptyCols = row.filter(cell => cell !== undefined && cell !== null && String(cell).trim().length > 0);
                 if (nonEmptyCols.length >= 3) {
-                    // Verify there is at least one non-empty data row following this candidate header
                     const hasDataRow = rows.slice(i + 1).some(r => Array.isArray(r) &&
                         r.some(c => c !== undefined && c !== null && String(c).trim().length > 0));
                     if (hasDataRow) {
@@ -110,7 +158,7 @@ function parseExcelToRawRows(buffer) {
     return resultRows;
 }
 /**
- * Uploads the original raw Excel file to UploadThing so it is downloadable.
+ * Uploads the original raw Excel file to UploadThing so it is downloadable by admins.
  */
 async function uploadRawExcelToUploadThing(file) {
     try {
@@ -137,6 +185,11 @@ async function uploadRawExcelToUploadThing(file) {
         return '';
     }
 }
+/**
+ * Public, unauthenticated endpoint:
+ * Returns the currently published pricelist with structuredItems and generatedHtml.
+ * SECURITY: rawExcelFileUrl is strictly stripped from this response.
+ */
 router.get('/api/pricelist', async (_req, res) => {
     try {
         const lists = await DatabaseRouter.readAcrossAllDatabases(async (connection) => getPricelistModel(connection).find({ published: true }).sort({ uploadedAt: -1 }).lean(), 'pricelists');
@@ -145,13 +198,42 @@ router.get('/api/pricelist', async (_req, res) => {
             res.status(404).json({ error: 'لا توجد قائمة أسعار منشورة حالياً' });
             return;
         }
-        res.json(withId(pricelist));
+        // Security fix: do NOT expose rawExcelFileUrl to public unauthenticated visitors
+        const sanitized = withId(pricelist);
+        delete sanitized.rawExcelFileUrl;
+        res.json(sanitized);
     }
     catch (error) {
         logError('Get pricelist', error);
         res.status(500).json({ error: 'حدث خطأ في الخادم' });
     }
 });
+/**
+ * Admin-only endpoint to fetch current pricelist with rawExcelFileUrl included.
+ */
+router.get('/api/pricelist/admin', requireAdmin, async (_req, res) => {
+    try {
+        const lists = await DatabaseRouter.readAcrossAllDatabases(async (connection) => getPricelistModel(connection).find().sort({ uploadedAt: -1 }).lean(), 'pricelists-admin');
+        const pricelist = lists[0];
+        if (!pricelist) {
+            res.status(404).json({ error: 'لا توجد أي قائمة أسعار مسجلة' });
+            return;
+        }
+        res.json(withId(pricelist));
+    }
+    catch (error) {
+        logError('Get admin pricelist', error);
+        res.status(500).json({ error: 'حدث خطأ في الخادم' });
+    }
+});
+/**
+ * Upload new pricelist:
+ * 1. Parses sheet into raw rows.
+ * 2. Uploads raw .xlsx to UploadThing for admin storage.
+ * 3. Normalizes with Gemini sequentially.
+ * 4. Sorts structuredItems by category & price ascending.
+ * 5. Saves atomically (unpublishes old, saves new).
+ */
 router.post('/api/pricelist', requireAdmin, upload.single('file'), async (req, res) => {
     try {
         const file = req.file;
@@ -163,7 +245,7 @@ router.post('/api/pricelist', requireAdmin, upload.single('file'), async (req, r
             res.status(400).json({ error: 'يجب أن يكون الملف بصيغة Excel (.xlsx) فقط' });
             return;
         }
-        // 1. Parse sheet into raw rows keyed by whatever headers exist
+        // 1. Parse sheet into raw rows
         logInfo('Pricelist Upload', `Parsing Excel file: ${file.originalname}`);
         const rawRows = parseExcelToRawRows(file.buffer);
         if (rawRows.length === 0) {
@@ -173,24 +255,26 @@ router.post('/api/pricelist', requireAdmin, upload.single('file'), async (req, r
         // 2. Upload raw Excel file to UploadThing
         logInfo('Pricelist Upload', 'Uploading raw Excel file to UploadThing');
         const rawExcelFileUrl = await uploadRawExcelToUploadThing(file);
-        // 3. Normalize + enrich using Gemini 2.5 Flash in batches
+        // 3. Normalize + enrich using Gemini (sequential with delay)
         logInfo('Pricelist Upload', `Normalizing ${rawRows.length} rows with Gemini`);
-        const structuredItems = await normalizePricelistWithGemini(rawRows);
-        // 4. Generate HTML table from structuredItems
+        const rawStructuredItems = await normalizePricelistWithGemini(rawRows);
+        // 4. Sort structured items by category and price ascending
+        const structuredItems = sortStructuredItems(rawStructuredItems);
+        // 5. Generate fallback HTML table from sorted structuredItems
         const generatedHtml = generatePricelistHtml(structuredItems);
-        // 5. Unpublish previous pricelists
+        // 6. Unpublish previous pricelists
         await DatabaseRouter.readAcrossAllDatabases(async (connection) => {
             await getPricelistModel(connection).updateMany({ published: true }, { published: false });
             return [];
         }, 'pricelists-unpublish');
-        // 6. Save new pricelist
+        // 7. Save new pricelist
         const { result: pricelist } = await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
             const doc = new (getPricelistModel(connection))({
                 sourceFileName: file.originalname,
                 rawExcelFileUrl,
                 structuredItems,
                 generatedHtml,
-                parsedHtml: generatedHtml, // Backward compatibility
+                parsedHtml: generatedHtml,
                 uploadedAt: new Date(),
                 published: true,
                 dbIndex,
@@ -198,12 +282,77 @@ router.post('/api/pricelist', requireAdmin, upload.single('file'), async (req, r
             await doc.save();
             return doc;
         }, 'pricelist');
-        logInfo('Publish pricelist', `Published Excel pricelist: ${pricelist.sourceFileName} with ${structuredItems.length} items`);
+        logInfo('Publish pricelist', `Published Excel pricelist: ${pricelist.sourceFileName} with ${structuredItems.length} sorted items`);
         res.status(201).json(pricelist.toJSON());
     }
     catch (error) {
         logError('Publish pricelist', error);
         const message = error instanceof Error ? error.message : 'حدث خطأ في معالجة قائمة الأسعار';
+        res.status(500).json({ error: message });
+    }
+});
+/**
+ * PATCH /api/pricelist/:id/items/:itemId
+ * Updates a single laptop entry inside structuredItems, re-sorts by price, and saves.
+ */
+router.patch('/api/pricelist/:id/items/:itemId', requireAdmin, async (req, res) => {
+    try {
+        const { id, itemId } = req.params;
+        const updates = req.body;
+        // Find pricelist across databases
+        const pricelists = await DatabaseRouter.readAcrossAllDatabases(async (connection) => {
+            const doc = await getPricelistModel(connection).findById(id);
+            return doc ? [doc] : [];
+        }, 'find-pricelist-by-id');
+        const pricelist = pricelists[0];
+        if (!pricelist) {
+            res.status(404).json({ error: 'قائمة الأسعار غير موجودة' });
+            return;
+        }
+        const items = (pricelist.structuredItems || []);
+        const itemIndex = items.findIndex(it => it.id === itemId || String(it.index) === String(itemId));
+        if (itemIndex === -1) {
+            res.status(404).json({ error: 'العنصر المطلوب غير موجود في قائمة الأسعار' });
+            return;
+        }
+        const current = items[itemIndex];
+        const updatedItem = {
+            ...current,
+            name: updates.name !== undefined ? String(updates.name).trim() : current.name,
+            brand: updates.brand !== undefined ? String(updates.brand).trim() : current.brand,
+            model: updates.model !== undefined ? String(updates.model).trim() : current.model,
+            cpu: updates.cpu !== undefined ? String(updates.cpu).trim() : current.cpu,
+            ram: updates.ram !== undefined ? String(updates.ram).trim() : current.ram,
+            storage: updates.storage !== undefined ? String(updates.storage).trim() : current.storage,
+            screen: updates.screen !== undefined ? String(updates.screen).trim() : current.screen,
+            gpu: updates.gpu !== undefined ? String(updates.gpu).trim() : current.gpu,
+            price: updates.price !== undefined ? Number(updates.price) : current.price,
+            category: updates.category !== undefined ? String(updates.category).trim() : current.category,
+        };
+        // If user provided flagged update or all critical fields exist, update flag
+        if (updates.flagged !== undefined) {
+            updatedItem.flagged = Boolean(updates.flagged);
+            updatedItem.flagReason = updates.flagReason || '';
+        }
+        else if (updatedItem.price > 0 && updatedItem.name && updatedItem.cpu) {
+            // Clear flag once verified/edited
+            updatedItem.flagged = false;
+            updatedItem.flagReason = '';
+        }
+        items[itemIndex] = updatedItem;
+        // Re-sort items by category and price ascending
+        const sortedItems = sortStructuredItems(items);
+        pricelist.structuredItems = sortedItems;
+        pricelist.generatedHtml = generatePricelistHtml(sortedItems);
+        pricelist.parsedHtml = pricelist.generatedHtml;
+        pricelist.markModified('structuredItems');
+        await pricelist.save();
+        logInfo('Update pricelist item', `Updated item ${itemId} in pricelist ${id}`);
+        res.json(pricelist.toJSON());
+    }
+    catch (error) {
+        logError('Update pricelist item', error);
+        const message = error instanceof Error ? error.message : 'حدث خطأ في تحديث العنصر';
         res.status(500).json({ error: message });
     }
 });

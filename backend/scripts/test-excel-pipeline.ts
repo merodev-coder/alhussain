@@ -106,6 +106,8 @@ function parseExcelToRawRows(buffer: Buffer): Record<string, any>[] {
   return resultRows
 }
 
+import { sortStructuredItems } from '../src/routes/pricelist.js'
+
 async function runTest() {
   const samplePath = path.resolve(process.cwd(), '../AlHussein_Laptops_Clean.xlsx')
   if (!fs.existsSync(samplePath)) {
@@ -121,6 +123,35 @@ async function runTest() {
   const sampleSlice = rawRows.slice(0, 3)
   console.log('\n[Sample Raw Rows for Gemini]:', JSON.stringify(sampleSlice, null, 2))
 
+  // Test sorting by price within categories
+  console.log('\n--- Testing Sort by Price & Category Priority ---')
+  const mockUnsorted = [
+    { name: 'Dell XPS 15', price: 25000, category: 'Premium Range | الفئة المتميزة', brand: 'Dell', model: 'XPS 15', cpu: 'i7', ram: '16GB', storage: '512GB', screen: '15.6', gpu: 'RTX' },
+    { name: 'HP 645 G1', price: 4500, category: 'Budget Range | الفئة الاقتصادية', brand: 'HP', model: '645 G1', cpu: 'A10', ram: '8GB', storage: '500GB', screen: '14.1', gpu: 'AMD' },
+    { name: 'HP 840 G1', price: 5500, category: 'Budget Range | الفئة الاقتصادية', brand: 'HP', model: '840 G1', cpu: 'i5', ram: '8GB', storage: '500GB', screen: '15.6', gpu: 'AMD' },
+    { name: 'HP 255 G3', price: 4200, category: 'Budget Range | الفئة الاقتصادية', brand: 'HP', model: '255 G3', cpu: 'A4', ram: '8GB', storage: '500GB', screen: '14.1', gpu: 'AMD' },
+    { name: 'Dell 5580', price: 8000, category: 'Mid Range | الفئة المتوسطة', brand: 'Dell', model: '5580', cpu: 'i5', ram: '8GB', storage: '256GB', screen: '15.6', gpu: 'Intel' },
+    { name: 'Dell 3470', price: 6500, category: 'Mid Range | الفئة المتوسطة', brand: 'Dell', model: '3470', cpu: 'i5', ram: '8GB', storage: '256GB', screen: '14.1', gpu: 'Intel' },
+  ]
+  const sorted = sortStructuredItems(mockUnsorted)
+  console.log('Sorted output (Category priority + price ascending):')
+  sorted.forEach(it => {
+    console.log(`  #${it.index} [${it.category}] ${it.name} — ${it.price} EGP (ID: ${it.id})`)
+  })
+
+  // Test security stripping
+  console.log('\n--- Testing Security Stripping of rawExcelFileUrl ---')
+  const mockPublicPricelist = {
+    id: 'test_123',
+    sourceFileName: 'AlHussein_Laptops_Clean.xlsx',
+    rawExcelFileUrl: 'https://utfs.io/f/secret_file.xlsx',
+    structuredItems: sorted,
+    published: true,
+  }
+  const publicSanitized = { ...mockPublicPricelist }
+  delete (publicSanitized as any).rawExcelFileUrl
+  console.log('Public response has rawExcelFileUrl:', 'rawExcelFileUrl' in publicSanitized ? 'YES (LEAK)' : 'NO (SECURE)')
+
   if (!process.env.GEMINI_API_KEY) {
     console.log('\n[NOTE] GEMINI_API_KEY environment variable is not set in this terminal session.')
     console.log('To run live Gemini normalization test:')
@@ -131,12 +162,10 @@ async function runTest() {
   console.log('\n[Gemini] Calling Gemini normalization on sample rows...')
   const normalized = await normalizePricelistWithGemini(sampleSlice)
   console.log('\n[Gemini Structured Output]:\n', JSON.stringify(normalized, null, 2))
-
-  const html = generatePricelistHtml(normalized)
-  console.log('\n[HTML Generated Preview]:\n', html.substring(0, 300) + '...')
 }
 
 runTest().catch(err => {
   console.error('[Test Error]:', err)
   process.exit(1)
 })
+
