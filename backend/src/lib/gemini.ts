@@ -21,7 +21,8 @@ export const StructuredLaptopItemSchema = z.object({
 
 /**
  * Normalizes an array of raw row objects parsed from an Excel sheet
- * using Gemini 2.5 Flash in batches of ~40 rows.
+ * using Gemini in sequential batches of ~40 rows.
+ * If any batch fails, an error is thrown immediately to prevent partial publishing.
  */
 export async function normalizePricelistWithGemini(
   rawRows: Record<string, any>[]
@@ -38,23 +39,46 @@ export async function normalizePricelistWithGemini(
   const BATCH_SIZE = 40
   const allStructuredItems: StructuredLaptopItem[] = []
 
-  logInfo('Gemini Normalization', `Starting normalization for ${rawRows.length} rows in batches of ${BATCH_SIZE}`)
+  logInfo(
+    'Gemini Normalization',
+    `Starting sequential normalization for ${rawRows.length} rows in batches of ${BATCH_SIZE}`
+  )
 
   for (let i = 0; i < rawRows.length; i += BATCH_SIZE) {
     const batch = rawRows.slice(i, i + BATCH_SIZE)
     const startIndex = i + 1
-    logInfo('Gemini Normalization', `Processing batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} rows)`)
-    
-    const batchResults = await processBatchWithGemini(batch, startIndex, apiKey)
-    allStructuredItems.push(...batchResults)
+    const batchNumber = Math.floor(i / BATCH_SIZE) + 1
+    const totalBatches = Math.ceil(rawRows.length / BATCH_SIZE)
+
+    logInfo(
+      'Gemini Normalization',
+      `Processing batch ${batchNumber}/${totalBatches} (${batch.length} rows) sequentially`
+    )
+
+    try {
+      const batchResults = await processBatchWithGemini(batch, startIndex, apiKey)
+      allStructuredItems.push(...batchResults)
+    } catch (batchErr) {
+      logError(`Failed in batch ${batchNumber}`, batchErr)
+      const detail = batchErr instanceof Error ? batchErr.message : 'خطأ غير معروف'
+      throw new Error(`فشلت معالجة الدفعة ${batchNumber} من قائمة الأسعار: ${detail}`)
+    }
+
+    // Delay 1000ms between batches to stay within free tier rate limits
+    if (i + BATCH_SIZE < rawRows.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+    }
   }
 
-  logInfo('Gemini Normalization', `Successfully normalized ${allStructuredItems.length} items`)
+  logInfo('Gemini Normalization', `Successfully normalized all ${allStructuredItems.length} items`)
   return allStructuredItems
 }
 
 /**
- * Process a single batch with Gemini 2.5 Flash with fallback handling.
+ * Process a single batch using Gemini with model fallback:
+ * Primary: process.env.GEMINI_MODEL || 'gemini-flash-latest'
+ * Fallback: 'gemini-3.6-flash'
+ * No external search grounding tool is used; relies purely on internal knowledge.
  */
 async function processBatchWithGemini(
   batchRows: Record<string, any>[],
@@ -62,6 +86,8 @@ async function processBatchWithGemini(
   apiKey: string
 ): Promise<StructuredLaptopItem[]> {
   const ai = new GoogleGenAI({ apiKey })
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-flash-latest'
+  const fallbackModel = 'gemini-3.6-flash'
 
   const prompt = `
 You are an expert laptop hardware specialist and data engineer for "Al-Hussain Laptops" (شركة الحسين للابتوبات) in Egypt.
@@ -89,7 +115,7 @@ Your task is to take raw rows parsed from an uploaded Excel pricelist and normal
    - Normalize brand capitalization ("Hp", "hp" -> "HP", "DELL" -> "Dell", "lenovo" -> "Lenovo").
    - Strip messy symbols or duplicated specs from model names.
 2. Inferences for Screen and GPU:
-   - If "screen" or "gpu" is missing or empty in the raw row, use your extensive laptop catalog knowledge to infer the accurate standard screen size and GPU for that laptop model.
+   - If "screen" or "gpu" is missing or empty in the raw row, rely on your internal laptop knowledge to infer the accurate standard screen size and GPU for that laptop model.
    - If you are confident in your inference, fill the inferred value and keep "flagged": false.
    - If you are genuinely uncertain or the model name is ambiguous, fill with your best estimate, set "flagged": true, and explain in "flagReason" (in Arabic).
 3. Price:
@@ -104,27 +130,32 @@ ${JSON.stringify(batchRows, null, 2)}
   let responseText = ''
 
   try {
-    // Attempt with search grounding enabled
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: primaryModel,
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
-        tools: [{ googleSearch: {} }],
       },
     })
     responseText = response.text || ''
-  } catch (searchError) {
-    logError('Gemini search grounding call failed, falling back to direct prompt', searchError)
-    // Fallback without search grounding tool in case tools + json mode conflict
-    const fallbackResponse = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    })
-    responseText = fallbackResponse.text || ''
+  } catch (primaryError: any) {
+    logError(
+      `Primary model (${primaryModel}) failed. Error: ${primaryError?.message || primaryError}. Attempting fallback to ${fallbackModel}`,
+      primaryError
+    )
+
+    if (primaryModel !== fallbackModel) {
+      const fallbackResponse = await ai.models.generateContent({
+        model: fallbackModel,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+        },
+      })
+      responseText = fallbackResponse.text || ''
+    } else {
+      throw primaryError
+    }
   }
 
   if (!responseText) {
@@ -165,13 +196,11 @@ ${JSON.stringify(batchRows, null, 2)}
     if (parseResult.success) {
       const item = parseResult.data
       item.index = item.index || rowIndex
-      // If name is empty, construct from brand + model
       if (!item.name) {
         item.name = `${item.brand} ${item.model}`.trim() || `لابتوب صف ${rowIndex}`
       }
       validatedItems.push(item)
     } else {
-      // Row failed validation: flag it instead of silently dropping
       const validationMessages = parseResult.error.issues.map(iss => iss.message).join('، ')
       logInfo('Gemini row validation flagged', `Row ${rowIndex} flagged: ${validationMessages}`)
 

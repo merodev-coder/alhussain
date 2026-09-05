@@ -30,35 +30,53 @@ const upload = multer({
  */
 function parseExcelToRawRows(buffer) {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const firstSheetName = workbook.SheetNames[0];
-    if (!firstSheetName) {
+    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
         throw new Error('ملف Excel لا يحتوي على أي صفحات');
     }
-    const worksheet = workbook.Sheets[firstSheetName];
-    const sheetRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-    if (!sheetRows || sheetRows.length === 0) {
-        throw new Error('ملف Excel فارغ ولا يحتوي على بيانات');
-    }
-    // Find header row: default to first row with >= 3 non-empty cells
-    let headerRowIndex = 0;
-    for (let i = 0; i < Math.min(sheetRows.length, 12); i++) {
-        const row = sheetRows[i];
-        if (Array.isArray(row)) {
-            const nonEmptyCols = row.filter(cell => cell !== undefined && cell !== null && String(cell).trim().length > 0);
-            if (nonEmptyCols.length >= 3) {
-                headerRowIndex = i;
-                break;
+    let selectedSheetName = '';
+    let selectedSheetRows = [];
+    let detectedHeaderIndex = -1;
+    // Iterate over all sheets to find the first sheet with a detectable header + data rows
+    for (const sheetName of workbook.SheetNames) {
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet)
+            continue;
+        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+        if (!rows || rows.length < 2)
+            continue;
+        for (let i = 0; i < Math.min(rows.length, 15); i++) {
+            const row = rows[i];
+            if (Array.isArray(row)) {
+                const nonEmptyCols = row.filter(cell => cell !== undefined && cell !== null && String(cell).trim().length > 0);
+                if (nonEmptyCols.length >= 3) {
+                    // Verify there is at least one non-empty data row following this candidate header
+                    const hasDataRow = rows.slice(i + 1).some(r => Array.isArray(r) &&
+                        r.some(c => c !== undefined && c !== null && String(c).trim().length > 0));
+                    if (hasDataRow) {
+                        selectedSheetName = sheetName;
+                        selectedSheetRows = rows;
+                        detectedHeaderIndex = i;
+                        break;
+                    }
+                }
             }
         }
+        if (selectedSheetName) {
+            break;
+        }
     }
-    const rawHeaders = (sheetRows[headerRowIndex] || []).map((h, colIdx) => {
+    if (!selectedSheetName || detectedHeaderIndex === -1) {
+        throw new Error('لم يتم العثور على أي صفحة تحتوي على جدول بيانات ومواصفات صالح في ملف Excel');
+    }
+    logInfo('Pricelist Upload', `Found valid data in sheet "${selectedSheetName}" with header at row index ${detectedHeaderIndex}`);
+    const rawHeaders = (selectedSheetRows[detectedHeaderIndex] || []).map((h, colIdx) => {
         const str = String(h ?? '').trim();
         return str || `Column_${colIdx + 1}`;
     });
     let currentCategory = '';
     const resultRows = [];
-    for (let r = headerRowIndex + 1; r < sheetRows.length; r++) {
-        const row = sheetRows[r];
+    for (let r = detectedHeaderIndex + 1; r < selectedSheetRows.length; r++) {
+        const row = selectedSheetRows[r];
         if (!Array.isArray(row))
             continue;
         const nonBlankCells = row.filter(cell => cell !== undefined && cell !== null && String(cell).trim().length > 0);
