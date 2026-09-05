@@ -242,6 +242,14 @@
   animation: float-slow 5.5s ease-in-out infinite;
 }
 
+@keyframes backdrop-float {
+  0%, 100% { transform: translateY(0) rotate(3deg); }
+  50% { transform: translateY(-6px) rotate(3deg); }
+}
+.animate-float-backdrop {
+  animation: backdrop-float 5.5s ease-in-out infinite;
+}
+
 @keyframes blob-drift {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33% { transform: translate(24px, -18px) scale(1.12); }
