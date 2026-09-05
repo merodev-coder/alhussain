@@ -41,9 +41,11 @@ import ShippingTab from './shipping-tab'
 import InventoryTab from './inventory-tab'
 import PaymentsTab from './payments-tab'
 import SettingsTab from './settings-tab'
+import HeroSlidesTab from './hero-slides-tab'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Skeleton } from '@/components/ui/skeleton'
 import api from '@/lib/api'
+import { Sparkles } from 'lucide-react'
 
 interface AdminDashboardProps {
   onLogout: () => void
@@ -90,6 +92,7 @@ const STATUS_FLOW: OrderStatus[] = ['pending', 'confirmed', 'shipped', 'complete
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
+  { id: 'hero', label: 'سلايدر الرئيسية', icon: Sparkles },
   { id: 'payments', label: 'مراجعة الدفع', icon: CreditCard },
   { id: 'orders', label: 'الطلبات', icon: ShoppingBag },
   { id: 'products', label: 'المنتجات', icon: Package },
@@ -868,6 +871,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<
     | 'dashboard'
+    | 'hero'
     | 'payments'
     | 'orders'
     | 'products'
@@ -999,6 +1003,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         {/* Content */}
         <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
           {activeTab === 'dashboard' && <DashboardTab />}
+          {activeTab === 'hero' && <HeroSlidesTab />}
           {activeTab === 'payments' && <PaymentsTab />}
           {activeTab === 'orders' && <OrdersTab />}
           {activeTab === 'products' && <ProductsTab />}

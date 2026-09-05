@@ -13,19 +13,35 @@ const router = Router()
 
 router.get('/api/products', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { search, page = '1', limit = '24' } = req.query
+    const { search, homeSection, page = '1', limit = '24' } = req.query
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1)
     const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 24))
 
     const allProducts = await DatabaseRouter.readAcrossAllDatabases(async connection => {
       const ProductModel = getProductModel(connection)
       const query: Record<string, unknown> = {}
+      if (homeSection && typeof homeSection === 'string') {
+        query.homeSection = homeSection
+      }
       if (search && typeof search === 'string') {
-        query.$or = [
+        const numericSearch = Number(search)
+        const orConditions: Record<string, unknown>[] = [
           { name: { $regex: search, $options: 'i' } },
+          { model: { $regex: search, $options: 'i' } },
           { description: { $regex: search, $options: 'i' } },
           { cpu: { $regex: search, $options: 'i' } },
+          { gpu: { $regex: search, $options: 'i' } },
+          { ram: { $regex: search, $options: 'i' } },
+          { storage: { $regex: search, $options: 'i' } },
+          { 'specs.cpu': { $regex: search, $options: 'i' } },
+          { 'specs.gpu': { $regex: search, $options: 'i' } },
+          { 'specs.ram': { $regex: search, $options: 'i' } },
+          { 'specs.storage': { $regex: search, $options: 'i' } },
         ]
+        if (!isNaN(numericSearch) && numericSearch > 0) {
+          orConditions.push({ price: numericSearch })
+        }
+        query.$or = orConditions
       }
       return ProductModel.find(query).sort({ createdAt: -1 }).lean()
     }, 'products')

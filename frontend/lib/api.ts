@@ -31,9 +31,10 @@ async function apiRequest<T>(endpoint: string, options: ApiRequestOptions = {}):
 
 export const api = {
   // Products
-  get_products: (search?: string, page?: number, limit?: number) => {
+  get_products: (search?: string, page?: number, limit?: number, homeSection?: string) => {
     const params = new URLSearchParams()
     if (search) params.append('search', search)
+    if (homeSection) params.append('homeSection', homeSection)
     if (page) params.append('page', page.toString())
     if (limit) params.append('limit', limit.toString())
     const queryString = params.toString()
@@ -48,6 +49,20 @@ export const api = {
   update_product: (id: string, data: any) =>
     apiRequest<any>(`/api/products/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete_product: (id: string) => apiRequest<any>(`/api/products/${id}`, { method: 'DELETE' }),
+
+  // Hero Slides
+  get_hero_slides: () => apiRequest<any[]>('/api/hero-slides'),
+  create_hero_slide: (data: any) =>
+    apiRequest<any>('/api/hero-slides', { method: 'POST', body: JSON.stringify(data) }),
+  update_hero_slide: (id: string, data: any) =>
+    apiRequest<any>(`/api/hero-slides/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete_hero_slide: (id: string) =>
+    apiRequest<{ success: boolean }>(`/api/hero-slides/${id}`, { method: 'DELETE' }),
+  reorder_hero_slides: (ids: string[]) =>
+    apiRequest<{ success: boolean }>('/api/hero-slides/reorder', {
+      method: 'PUT',
+      body: JSON.stringify({ ids }),
+    }),
 
   // Orders
   create_order: (data: any) => apiRequest<any>('/api/orders', { method: 'POST', body: JSON.stringify(data) }),

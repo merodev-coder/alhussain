@@ -6,7 +6,7 @@ export const metadata = {
   description: 'جدول أسعار ومواصفات أجهزة اللابتوب المستوردة ومحطات العمل المتوفرة لدى الحسين للاب توب.',
 }
 
-export default function PricelistPage() {
+export default function PriceListPage() {
   return (
     <StoreLayout>
       <PriceListView />

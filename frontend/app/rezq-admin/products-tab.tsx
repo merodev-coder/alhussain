@@ -34,9 +34,12 @@ type ProductForm = {
   gpu: string
   ram: string
   storage: string
+  screen: string
   photos: string[]
   stockStatus: Product['stockStatus']
   discountBadge: string
+  badge: string
+  homeSection: 'graphics' | 'business' | 'accessories' | 'batteries' | 'storage' | ''
   visible: boolean
 }
 
@@ -48,9 +51,12 @@ const EMPTY_FORM: ProductForm = {
   gpu: '',
   ram: '',
   storage: '',
+  screen: '',
   photos: [],
   stockStatus: 'in_stock',
   discountBadge: '',
+  badge: '',
+  homeSection: '',
   visible: true,
 }
 
@@ -185,9 +191,12 @@ function ProductFormModal({
           gpu: initial.gpu,
           ram: initial.ram,
           storage: initial.storage,
+          screen: initial.screen || initial.specs?.screen || '',
           photos: initial.photos ?? [],
           stockStatus: initial.stockStatus,
           discountBadge: initial.discountBadge ?? '',
+          badge: initial.badge ?? '',
+          homeSection: (initial.homeSection as any) || '',
           visible: initial.visible ?? true,
         }
       : EMPTY_FORM
@@ -234,9 +243,19 @@ function ProductFormModal({
         gpu: form.gpu,
         ram: form.ram,
         storage: form.storage,
+        screen: form.screen,
         photos: form.photos,
         stockStatus: form.stockStatus,
         discountBadge: form.discountBadge.trim() || undefined,
+        badge: form.badge.trim() || null,
+        homeSection: form.homeSection || null,
+        specs: {
+          cpu: form.cpu,
+          ram: form.ram,
+          storage: form.storage,
+          screen: form.screen,
+          gpu: form.gpu,
+        },
         visible: form.visible,
       }
       if (initial) {
@@ -325,6 +344,47 @@ function ProductFormModal({
             ))}
           </div>
 
+          {/* Home Section Assignment & Badge */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="font-body text-sm font-semibold text-ink">
+                قسم الصفحة الرئيسية (Home Section)
+              </label>
+              <select
+                value={form.homeSection}
+                onChange={e =>
+                  set(
+                    'homeSection',
+                    e.target.value as ProductForm['homeSection']
+                  )
+                }
+                className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+              >
+                <option value="">بدون (لا يظهر في الصفحة الرئيسية)</option>
+                <option value="graphics">لابتويات جرافيك (graphics)</option>
+                <option value="business">لابتويات بزنس (business)</option>
+                <option value="accessories">إكسسوارات (accessories)</option>
+                <option value="batteries">بطاريات وشاشات (batteries)</option>
+                <option value="storage">تخزين ورام (storage)</option>
+              </select>
+              <p className="text-[11px] text-ink-muted">
+                إذا تم اختيار &quot;بدون&quot;، لن يظهر المنتج في الصفحة الرئيسية وسيظهر في البحث وتصنيفات المتجر.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-body text-sm font-semibold text-ink">
+                شارة مميزة (Badge)
+              </label>
+              <input
+                value={form.badge}
+                onChange={e => set('badge', e.target.value)}
+                className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                placeholder="مثال: NEW أو مميز أو فرز أول"
+              />
+            </div>
+          </div>
+
           <div className="space-y-1.5">
             <label className="font-body text-sm text-ink">الحالة</label>
             <select
@@ -349,7 +409,7 @@ function ProductFormModal({
               className="w-5 h-5 rounded border-hairline accent-brand-primary"
             />
             <label htmlFor="visible" className="font-body text-sm text-ink">
-              إظهار المنتج في الصفحة الرئيسية
+              مفعل ومتاح في المتجر (Active)
             </label>
           </div>
 

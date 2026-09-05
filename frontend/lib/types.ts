@@ -1,20 +1,57 @@
 export type StockStatus = 'in_stock' | 'limited' | 'out_of_stock'
 
+export type HomeSection = 'graphics' | 'business' | 'accessories' | 'batteries' | 'storage' | null
+
 export type Product = {
   id: string
   name: string
+  model?: string
   price: number
   description: string
   cpu: string
   gpu: string
   ram: string
   storage: string
+  screen?: string
   photos: string[]
   stockStatus: StockStatus
   quantity?: number
   discountBadge?: string
+  badge?: string | null
   visible: boolean
+  isActive?: boolean
+  homeSection?: HomeSection
+  specs?: {
+    cpu?: string
+    ram?: string
+    storage?: string
+    screen?: string
+    gpu?: string
+  }
+  categoryId?: string
   dbIndex?: number
+  createdAt?: string
+}
+
+export interface HeroSlide {
+  id: string
+  headline: string
+  subtitle: string
+  buttonText: string
+  buttonColor?: string
+  buttonLink: string
+  badgeImage?: string | null
+  images: string[]
+  isActive: boolean
+  order: number
+}
+
+export interface CategoryQuickAccess {
+  id: string
+  name: string
+  slug: string
+  iconImage: string
+  sectionKey: 'graphics' | 'business' | 'accessories' | 'batteries' | 'storage'
 }
 
 export type AddonCategory = 'ram' | 'storage' | 'accessory' | 'other'

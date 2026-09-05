@@ -1,16 +1,11 @@
-import StoreLayout from '@/components/store-layout'
-import HeroSection from '@/components/home/hero-section'
-import FeaturedSection from '@/components/home/featured-section'
-import PromoSection from '@/components/home/promo-section'
-import TrustSection from '@/components/home/trust-section'
+import HomeClient from './home-client'
+
+export const metadata = {
+  title: 'الحسين للاب توب - أفضل أجهزة لابتوب استيراد في مصر',
+  description:
+    'متجر الحسين للاب توب — استيراد وبيع أجهزة اللابتوب للأعمال والجرافيك ومحطات العمل بأفضل سعر وضمان حقيقي في مصر.',
+}
 
 export default function HomePage() {
-  return (
-    <StoreLayout>
-      <HeroSection />
-      <FeaturedSection />
-      <PromoSection />
-      <TrustSection />
-    </StoreLayout>
-  )
+  return <HomeClient />
 }

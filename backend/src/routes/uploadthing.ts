@@ -21,6 +21,16 @@ const uploadRouter = {
       return { url: file.ufsUrl }
     }),
 
+  heroImages: f({ image: { maxFileSize: '2MB', maxFileCount: 6 } })
+    .middleware(async ({ req }) => {
+      const session = await getAdminSessionFromRequest(req)
+      if (!session) throw new UploadThingError('غير مصرح')
+      return { by: 'admin' }
+    })
+    .onUploadComplete(async ({ file }) => {
+      return { url: file.ufsUrl }
+    }),
+
   depositPhotos: f({ image: { maxFileSize: '8MB', maxFileCount: 1 } })
     .middleware(async () => {
       return {}

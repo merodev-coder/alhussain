@@ -16,6 +16,15 @@ export interface ProductDoc {
   stockStatus: StockStatus
   quantity: number
   discountBadge?: string
+  badge?: string | null
+  homeSection?: 'graphics' | 'business' | 'accessories' | 'batteries' | 'storage' | null
+  specs?: {
+    cpu?: string
+    ram?: string
+    storage?: string
+    screen?: string
+    gpu?: string
+  }
   visible: boolean
   dbIndex: number
   createdAt: Date
@@ -39,6 +48,19 @@ const ProductSchema = new Schema<ProductDoc>(
     },
     quantity: { type: Number, default: 0, min: 0 },
     discountBadge: { type: String },
+    badge: { type: String, default: null },
+    homeSection: {
+      type: String,
+      enum: ['graphics', 'business', 'accessories', 'batteries', 'storage', null],
+      default: null,
+    },
+    specs: {
+      cpu: { type: String, default: '' },
+      ram: { type: String, default: '' },
+      storage: { type: String, default: '' },
+      screen: { type: String, default: '' },
+      gpu: { type: String, default: '' },
+    },
     visible: { type: Boolean, default: true },
     dbIndex: { type: Number, required: true, default: 0 },
   },
@@ -70,6 +92,7 @@ const ProductSchema = new Schema<ProductDoc>(
 )
 
 ProductSchema.index({ visible: 1, createdAt: -1 })
+ProductSchema.index({ homeSection: 1 })
 ProductSchema.index({ name: 'text', description: 'text' })
 ProductSchema.index({ dbIndex: 1 })
 

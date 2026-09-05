@@ -136,11 +136,10 @@ export default function AboutPage() {
                 className="bg-surface-1 rounded-[20px] border border-hairline p-6 text-center flex flex-col items-center gap-3 hover:border-brand-primary/50 hover:bg-surface-2 transition-colors card-hover"
               >
                 <div className="w-12 h-12 rounded-full bg-canvas flex items-center justify-center">
-                  {typeof contact.icon === 'function' ? (
-                    <contact.icon />
-                  ) : (
-                    <contact.icon className="w-6 h-6 text-brand-primary" />
-                  )}
+                  {(() => {
+                    const Icon = contact.icon as React.ComponentType<{ className?: string }>
+                    return <Icon className="w-6 h-6 text-brand-primary" />
+                  })()}
                 </div>
                 <div>
                   <p className="font-body text-xs text-ink-muted">{contact.label}</p>

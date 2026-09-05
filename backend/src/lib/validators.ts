@@ -14,6 +14,20 @@ export const productInputSchema = z.object({
   stockStatus: stockStatusSchema.default('in_stock'),
   quantity: z.coerce.number().min(0).optional(),
   discountBadge: z.string().optional().or(z.literal('')),
+  badge: z.string().nullable().optional(),
+  homeSection: z
+    .enum(['graphics', 'business', 'accessories', 'batteries', 'storage'])
+    .nullable()
+    .optional(),
+  specs: z
+    .object({
+      cpu: z.string().optional(),
+      ram: z.string().optional(),
+      storage: z.string().optional(),
+      screen: z.string().optional(),
+      gpu: z.string().optional(),
+    })
+    .optional(),
   visible: z.boolean().default(true),
 })
 

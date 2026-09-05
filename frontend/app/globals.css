@@ -99,7 +99,13 @@
   --color-surface-2: var(--surface-2);
   --color-hairline: var(--hairline);
   --color-ink: var(--ink);
-  --color-ink-muted: var(--ink-muted);
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-card: #ffffff;
+  --text-primary: #111827;
+  --text-muted: #6b7280;
+  --border-color: #e2e8f0;
+  --accent-color: #1d4ed8;
 }
 
 .dark {
@@ -135,6 +141,33 @@
   --color-hairline: var(--hairline);
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
+
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #111827;
+  --bg-card: #1f2937;
+  --text-primary: #f9fafb;
+  --text-muted: #9ca3af;
+  --border-color: #374151;
+  --accent-color: #3b82f6;
+}
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .print-hide {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-table-row {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
 }
 
 @layer base {
