@@ -24,6 +24,7 @@ const SECTION_LABELS: Record<HomeSectionKey, string> = {
 export default function HomeClient() {
   const [slides, setSlides] = useState<HeroSlide[]>([])
   const [dbProducts, setDbProducts] = useState<Product[]>([])
+  const [productsLoading, setProductsLoading] = useState(true)
 
   useEffect(() => {
     api.get_hero_slides().then(setSlides).catch(() => {})
@@ -31,6 +32,7 @@ export default function HomeClient() {
       .get_products('', 1, 100)
       .then(response => setDbProducts(Array.isArray(response) ? response : response.items || []))
       .catch(() => {})
+      .finally(() => setProductsLoading(false))
   }, [])
 
   const sectionProducts = useMemo(() => {
@@ -56,6 +58,7 @@ export default function HomeClient() {
           sectionKey={section}
           categorySlug={section}
           products={sectionProducts[section]}
+          loading={productsLoading}
         />
       ))}
 

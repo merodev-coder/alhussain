@@ -139,7 +139,7 @@ export default function HeroSection({ slides = [] }: HeroSectionProps) {
       onTouchEnd={handleTouchEnd}
     >
       <div className="relative pt-6 pb-8 sm:pt-14 sm:pb-16">
-        <div className="max-w-7xl mx-auto px-3 sm:px-8 lg:px-10">
+        <div className="mx-auto w-[85%] max-w-[1500px]">
           {/* Backing panel behind the banner, offset like a shelf, sharing the same angled cut */}
           <div className="relative">
             <div
