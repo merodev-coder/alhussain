@@ -149,7 +149,7 @@ export default function HeroSection({ slides = [] }: HeroSectionProps) {
 
             {/* Angled "shaped" banner card */}
             <div
-              className="relative overflow-hidden shadow-2xl ring-1 ring-white/10 h-[280px] sm:h-[420px] lg:h-[clamp(500px,36vw,680px)] bg-gradient-to-br from-[#0E1B1B] via-[#0A2E2C] to-[#0E1B1B]"
+              className="relative overflow-hidden shadow-2xl ring-1 ring-white/10 h-[280px] sm:h-[420px] lg:h-[clamp(560px,40vw,720px)] bg-gradient-to-br from-[#0E1B1B] via-[#0A2E2C] to-[#0E1B1B]"
               style={{ clipPath: HERO_CLIP }}
             >
               {/* Decorative drifting glow blobs for depth & motion */}
