@@ -139,7 +139,7 @@ export default function HeroSection({ slides = [] }: HeroSectionProps) {
       onTouchEnd={handleTouchEnd}
     >
       <div className="relative pt-6 pb-8 sm:pt-14 sm:pb-16">
-        <div className="max-w-7xl mx-auto px-3 sm:px-8 lg:px-10">
+        <div className="w-[92vw] max-w-none mx-auto px-0">
           {/* Backing panel behind the banner, offset like a shelf, sharing the same angled cut */}
           <div className="relative">
             <div
@@ -149,7 +149,7 @@ export default function HeroSection({ slides = [] }: HeroSectionProps) {
 
             {/* Angled "shaped" banner card */}
             <div
-              className="relative overflow-hidden shadow-2xl ring-1 ring-white/10 h-[280px] sm:h-[420px] lg:h-[500px] bg-gradient-to-br from-[#0E1B1B] via-[#0A2E2C] to-[#0E1B1B]"
+              className="relative overflow-hidden shadow-2xl ring-1 ring-white/10 h-[280px] sm:h-[420px] lg:h-[clamp(500px,36vw,680px)] bg-gradient-to-br from-[#0E1B1B] via-[#0A2E2C] to-[#0E1B1B]"
               style={{ clipPath: HERO_CLIP }}
             >
               {/* Decorative drifting glow blobs for depth & motion */}
