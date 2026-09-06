@@ -1,90 +1,52 @@
 'use client'
 
-import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import {
+  BatteryCharging,
+  BriefcaseBusiness,
+  HardDrive,
+  LaptopMinimal,
+  Mouse,
+  type LucideIcon,
+} from 'lucide-react'
 import type { CategoryQuickAccess } from '@/lib/types'
 import { getCategoryHref } from '@/lib/category-routes'
 
 export const DEFAULT_CATEGORIES: CategoryQuickAccess[] = [
-  {
-    id: 'cat-graphics',
-    name: 'لابتوبات جرافيك',
-    slug: 'graphics',
-    sectionKey: 'graphics',
-    iconImage:
-      'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&w=240&q=80',
-  },
-  {
-    id: 'cat-business',
-    name: 'لابتوبات بزنس',
-    slug: 'business',
-    sectionKey: 'business',
-    iconImage:
-      'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=240&q=80',
-  },
-  {
-    id: 'cat-accessories',
-    name: 'إكسسوارات',
-    slug: 'accessories',
-    sectionKey: 'accessories',
-    iconImage:
-      'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=240&q=80',
-  },
-  {
-    id: 'cat-batteries',
-    name: 'بطاريات وشاشات',
-    slug: 'batteries',
-    sectionKey: 'batteries',
-    iconImage:
-      'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=240&q=80',
-  },
-  {
-    id: 'cat-storage',
-    name: 'تخزين ورام',
-    slug: 'storage',
-    sectionKey: 'storage',
-    iconImage:
-      'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?auto=format&fit=crop&w=240&q=80',
-  },
+  { id: 'graphics', name: 'لابتوبات جرافيك', slug: 'graphics', sectionKey: 'graphics', icon: LaptopMinimal },
+  { id: 'business', name: 'لابتوبات بزنس', slug: 'business', sectionKey: 'business', icon: BriefcaseBusiness },
+  { id: 'accessories', name: 'إكسسوارات', slug: 'accessories', sectionKey: 'accessories', icon: Mouse },
+  { id: 'batteries', name: 'بطاريات وشاشات', slug: 'batteries', sectionKey: 'batteries', icon: BatteryCharging },
+  { id: 'storage', name: 'تخزين ورام', slug: 'storage', sectionKey: 'storage', icon: HardDrive },
 ]
 
 interface CategoryRowProps {
   categories?: CategoryQuickAccess[]
 }
 
-export default function CategoryRow({
-  categories = DEFAULT_CATEGORIES,
-}: CategoryRowProps) {
+export default function CategoryRow({ categories = DEFAULT_CATEGORIES }: CategoryRowProps) {
   return (
-    <section className="w-full bg-canvas py-10 sm:py-14 border-b border-hairline transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
-          {categories.map((cat, idx) => (
-            <Link
-              key={cat.id}
-              href={getCategoryHref(cat.slug)}
-              style={{ animationDelay: `${idx * 60}ms` }}
-              className="animate-count rounded-2xl bg-canvas border border-hairline hover:border-brand-primary/50 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95 transition-all duration-200 flex flex-col items-center p-4 sm:p-5 cursor-pointer text-center group focus:outline-none"
-            >
-              {/* Category Image */}
-              <div className="w-full aspect-square relative rounded-xl overflow-hidden bg-surface-1 mb-3">
-                <Image
-                  src={cat.iconImage}
-                  alt={cat.name}
-                  fill
-                  sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 220px"
-                  className="object-cover group-hover:scale-110 transition-transform duration-300"
-                  loading="lazy"
-                />
-              </div>
-
-              {/* Category Name */}
-              <span className="font-sans font-bold text-sm sm:text-base text-ink group-hover:text-brand-primary transition-colors">
-                {cat.name}
-              </span>
-            </Link>
-          ))}
+    <section className="w-full bg-canvas py-8 sm:py-12" aria-label="تصفح الأقسام">
+      <div className="mx-auto w-[90%] max-w-7xl">
+        <div className="category-dock grid grid-cols-2 gap-2.5 p-2.5 sm:grid-cols-3 sm:gap-3 sm:p-3 lg:grid-cols-5">
+          {categories.map((category, index) => {
+            const Icon = category.icon
+            return (
+              <Link
+                key={category.id}
+                href={getCategoryHref(category.slug)}
+                style={{ animationDelay: `${index * 90}ms` }}
+                className="category-tile group flex min-h-28 flex-col items-center justify-center gap-3 px-3 py-5 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas sm:min-h-36 sm:gap-4"
+              >
+                <span className="category-icon flex size-12 items-center justify-center rounded-[1.25rem] bg-brand-primary/10 text-brand-primary transition-all duration-300 group-hover:rotate-6 group-hover:bg-brand-primary group-hover:text-primary-foreground sm:size-14">
+                  <Icon aria-hidden="true" strokeWidth={1.7} className="size-6 sm:size-7" />
+                </span>
+                <span className="font-sans text-sm font-bold text-ink transition-colors duration-300 group-hover:text-brand-primary sm:text-base">
+                  {category.name}
+                </span>
+              </Link>
+            )
+          })}
         </div>
       </div>
     </section>

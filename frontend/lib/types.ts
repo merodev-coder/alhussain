@@ -50,7 +50,7 @@ export interface CategoryQuickAccess {
   id: string
   name: string
   slug: string
-  iconImage: string
+  icon: import('lucide-react').LucideIcon
   sectionKey: 'graphics' | 'business' | 'accessories' | 'batteries' | 'storage'
 }
 

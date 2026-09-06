@@ -191,6 +191,44 @@
   animation: whatsapp-pulse 2s ease-in-out infinite;
 }
 
+/* Category dock: an organic floating navigation shelf */
+@keyframes category-dock-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes category-dock-float {
+  0%, 100% { transform: translateY(0) rotate(-0.35deg); }
+  50% { transform: translateY(-5px) rotate(0.35deg); }
+}
+.category-dock {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--hairline) 85%, transparent);
+  border-radius: 2.25rem 5rem 2.25rem 5rem;
+  background: color-mix(in srgb, var(--surface-1) 94%, var(--primary));
+  box-shadow: 0 18px 42px color-mix(in srgb, var(--primary) 12%, transparent), 0 8px 16px rgba(0, 0, 0, 0.08);
+  animation: category-dock-float 7s ease-in-out 1.2s infinite;
+}
+.category-dock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--primary) 15%, transparent), transparent 38%), radial-gradient(circle at 88% 100%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 34%);
+  pointer-events: none;
+}
+.category-tile {
+  border-radius: 1.5rem 2.75rem 1.5rem 2.75rem;
+  animation: category-dock-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: background-color 220ms ease, transform 220ms ease, box-shadow 220ms ease;
+}
+.category-tile:hover {
+  background: color-mix(in srgb, var(--canvas) 72%, var(--primary));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 12%, transparent);
+  transform: translateY(-4px);
+}
+
 /* Card hover lift */
 .card-hover {
   transition: transform 200ms ease, box-shadow 200ms ease;
