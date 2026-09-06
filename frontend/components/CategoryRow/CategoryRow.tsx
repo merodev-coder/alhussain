@@ -41,10 +41,11 @@ export default function CategoryRow({
   categories = DEFAULT_CATEGORIES,
 }: CategoryRowProps) {
   return (
-    <section className="relative w-full overflow-hidden bg-canvas py-8 sm:py-10 transition-colors duration-200 dark:bg-[#071414]">
-      <div className="pointer-events-none absolute -left-20 top-1/2 size-64 -translate-y-1/2 rounded-full bg-brand-primary/10 blur-3xl dark:bg-brand-primary/15" />
-      <div className="pointer-events-none absolute -right-20 top-0 size-56 rounded-full bg-brand-accent/5 blur-3xl dark:bg-brand-accent/10" />
-      <div className="relative w-[92vw] max-w-none mx-auto">
+    <section className="relative w-full overflow-hidden bg-canvas py-8 sm:py-10 transition-colors duration-200">
+      <div className="relative mx-auto w-[90vw] overflow-hidden bg-surface-1 px-4 py-6 shadow-[0_20px_55px_rgba(15,54,54,0.16)] transition-colors duration-200 [clip-path:polygon(2%_0,100%_0,100%_98%,98%_100%,0_100%,0_2%)] dark:bg-[#071414] dark:shadow-[0_20px_55px_rgba(0,0,0,0.3)] sm:px-8 sm:py-8">
+        <div className="pointer-events-none absolute -left-20 top-1/2 size-64 -translate-y-1/2 rounded-full bg-brand-primary/10 blur-3xl dark:bg-brand-primary/15" />
+        <div className="pointer-events-none absolute -right-20 top-0 size-56 rounded-full bg-brand-accent/5 blur-3xl dark:bg-brand-accent/10" />
+        <div className="relative w-full max-w-none">
         <div className="mb-5 flex items-center justify-between border-b border-hairline pb-4 dark:border-white/10">
           <span className="font-body text-xs font-bold tracking-[0.2em] text-brand-primary uppercase">اكتشف تشكيلتنا</span>
           <span className="h-px w-20 bg-gradient-to-l from-brand-primary to-transparent sm:w-40" aria-hidden="true" />
@@ -71,6 +72,7 @@ export default function CategoryRow({
               </Link>
             )
           })}
+        </div>
         </div>
       </div>
     </section>
