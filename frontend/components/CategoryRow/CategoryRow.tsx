@@ -2,27 +2,11 @@
 
 import React from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { Boxes, Cpu, HardDrive, MousePointer2 } from 'lucide-react'
 import type { CategoryQuickAccess } from '@/lib/types'
 import { getCategoryHref } from '@/lib/category-routes'
 
 export const DEFAULT_CATEGORIES: CategoryQuickAccess[] = [
-  {
-    id: 'cat-graphics',
-    name: 'لابتوبات جرافيك',
-    slug: 'graphics',
-    sectionKey: 'graphics',
-    iconImage:
-      'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&w=240&q=80',
-  },
-  {
-    id: 'cat-business',
-    name: 'لابتوبات بزنس',
-    slug: 'business',
-    sectionKey: 'business',
-    iconImage:
-      'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=240&q=80',
-  },
   {
     id: 'cat-accessories',
     name: 'إكسسوارات',
@@ -57,34 +41,36 @@ export default function CategoryRow({
   categories = DEFAULT_CATEGORIES,
 }: CategoryRowProps) {
   return (
-    <section className="w-full bg-canvas py-10 sm:py-14 border-b border-hairline transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
-          {categories.map((cat, idx) => (
-            <Link
-              key={cat.id}
-              href={getCategoryHref(cat.slug)}
-              style={{ animationDelay: `${idx * 60}ms` }}
-              className="animate-count rounded-2xl bg-canvas border border-hairline hover:border-brand-primary/50 shadow-sm hover:shadow-lg hover:-translate-y-1 active:scale-95 transition-all duration-200 flex flex-col items-center p-4 sm:p-5 cursor-pointer text-center group focus:outline-none"
-            >
-              {/* Category Image */}
-              <div className="w-full aspect-square relative rounded-xl overflow-hidden bg-surface-1 mb-3">
-                <Image
-                  src={cat.iconImage}
-                  alt={cat.name}
-                  fill
-                  sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 220px"
-                  className="object-cover group-hover:scale-110 transition-transform duration-300"
-                  loading="lazy"
-                />
-              </div>
-
-              {/* Category Name */}
-              <span className="font-sans font-bold text-sm sm:text-base text-ink group-hover:text-brand-primary transition-colors">
-                {cat.name}
-              </span>
-            </Link>
-          ))}
+    <section className="relative w-full overflow-hidden bg-[#071414] py-8 sm:py-10 transition-colors duration-200">
+      <div className="pointer-events-none absolute -left-20 top-1/2 size-64 -translate-y-1/2 rounded-full bg-brand-primary/15 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 top-0 size-56 rounded-full bg-brand-accent/10 blur-3xl" />
+      <div className="relative w-[92vw] max-w-none mx-auto">
+        <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4">
+          <span className="font-body text-xs font-bold tracking-[0.2em] text-brand-primary uppercase">اكتشف تشكيلتنا</span>
+          <span className="h-px w-20 bg-gradient-to-l from-brand-primary to-transparent sm:w-40" aria-hidden="true" />
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-5">
+          {categories.map((cat, idx) => {
+            const Icon = cat.slug === 'storage' ? HardDrive : cat.slug === 'accessories' ? MousePointer2 : Boxes
+            return (
+              <Link
+                key={cat.id}
+                href={getCategoryHref(cat.slug)}
+                style={{ animationDelay: `${idx * 100}ms` }}
+                className="group animate-count relative flex min-h-32 items-center gap-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-right shadow-[0_12px_40px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-brand-primary/60 hover:bg-brand-primary/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+              >
+                <div className="absolute -right-8 -top-8 size-24 rounded-full bg-brand-primary/10 blur-2xl transition-transform duration-500 group-hover:scale-150" />
+                <div className="relative flex size-16 shrink-0 items-center justify-center rounded-2xl border border-brand-primary/30 bg-gradient-to-br from-brand-primary/20 to-transparent text-brand-primary shadow-inner transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110">
+                  <Icon className="size-8" strokeWidth={1.5} aria-hidden="true" />
+                </div>
+                <div className="relative flex flex-1 flex-col gap-1">
+                  <span className="font-sans text-lg font-extrabold text-white transition-colors group-hover:text-brand-primary">{cat.name}</span>
+                  <span className="font-body text-xs text-white/45">تصفح المنتجات المتاحة</span>
+                </div>
+                <span className="relative text-xl text-brand-primary/60 transition-transform duration-300 group-hover:-translate-x-1" aria-hidden="true">←</span>
+              </Link>
+            )
+          })}
         </div>
       </div>
     </section>
