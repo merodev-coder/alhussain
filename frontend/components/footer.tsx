@@ -52,7 +52,7 @@ export default function Footer() {
                 <span>استيراد مباشر — ضمان حقيقي</span>
               </div>
               <h3 className="font-sans font-extrabold text-xl sm:text-2xl text-white">
-                محتار تختار أي جهاز؟ فريقنا هيساعدك دلوقتي
+                محتار تختار أي جهاز؟ 
               </h3>
             </div>
             <a
