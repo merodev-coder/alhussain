@@ -25,8 +25,8 @@ Required variables:
 - `ADMIN_USERNAME` - Admin login username
 - `ADMIN_PASSWORD` - Admin login password
 - `UPLOADTHING_TOKEN` - UploadThing API token
-- `GEMINI_API_KEY` - Google Gemini API key (for Excel pricelist AI normalization)
-- `GEMINI_MODEL` - Optional Gemini model alias/name (default: `gemini-flash-latest`, with automatic fallback to `gemini-3.6-flash`)
+- `GROQ_API_KEY` - Groq API key (for Excel pricelist AI normalization)
+- `GROQ_MODEL` - Optional Groq model alias/name (default: `llama-3.3-70b-versatile`)
 - `FRONTEND_URL` - Frontend URL (for CORS) — default: http://localhost:3000
 
 
