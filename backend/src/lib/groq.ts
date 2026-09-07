@@ -89,45 +89,38 @@ async function processBatchWithGroq(
   const primaryModel = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b'
 
   const prompt = `
-You are an expert laptop hardware specialist and data engineer for "Al-Hussain Laptops" (شركة الحسين للابتوبات) in Egypt.
-Your task is to take raw rows parsed from an uploaded Excel pricelist and normalize them into a strictly typed JSON array, matching EXACTLY the format used in the company's official clean pricelist template.
+Convert these Excel rows to JSON format for laptop specifications.
 
-### Target Schema per Laptop Item (return ONLY these keys):
+Return ONLY this JSON structure:
 {
-  "index": number (sequence row number, starting from ${startIndex}),
-  "model": string (Brand + model merged into ONE string, brand first, e.g. "HP 645 G1", "DELL 5590", "HP ZBOOK G5 17". Brand must be normalized: "HP" (not "Hp"/"hp"), "DELL" (not "Dell"/"dell"), "Lenovo", "Asus", "Acer", "MSI", "Apple", "Toshiba", "Fujitsu"),
-  "cpu": string (Format EXACTLY as "Family Suffix  (Nth Gen)" with TWO spaces before the parenthesis, e.g. "Core i5  (4th Gen)", "Core i7 HQ  (6th Gen)", "Xeon E3-1505M  (7th Gen)", "AMD A10-5300  (5th Gen)", "Ryzen 5  (10th Gen)". Use "Core i3/i5/i7/i9" for Intel consumer chips, "Xeon <model>" for workstation chips, "AMD A-series/Ryzen" for AMD),
-  "ram": string (Number + capital "G" ONLY, no "B", e.g. "8G", "16G", "32G" — never "8GB"),
-  "storage": string (Format "NNN GB TYPE" e.g. "500 GB HDD", "256 GB SSD", "512 GB SSD". If two drives are listed combine as "256+500 GB" with no type suffix),
-  "screen": string (Size in inches with a trailing double-quote character, e.g. "14.1\\"", "15.6\\"", "17.3\\"", "13.3\\""),
-  "gpu": string (Format "Brand Chip — MinG→MaxG" using an em dash " — " and arrow "→", e.g. "Intel HD 620 — 1G→2G", "N.VIDIA M1000 — 2G→20G", "AMD HD R7 — 2G→12G", "Intel UHD — 1G→2G". Use "N.VIDIA" (not "NVIDIA"/"Nvidia") for Nvidia chips. MinG is the base/shared VRAM, MaxG is the max shared/dedicated VRAM this chip can use — infer both from your internal knowledge of the exact chip),
-  "price": number (Pure numeric EGP price, no symbols or text),
-  "category": string (Exactly one of: "Budget Range | الفئة الاقتصادية", "Mid Range | الفئة المتوسطة", "Premium Range | الفئة المتميزة" — choose based on price tier and overall spec level, do not invent other category names),
-  "flagged": boolean (true ONLY if critical data was missing, price is 0/invalid, or specs could not be reliably inferred),
-  "flagReason": string (Arabic explanation if flagged, e.g. "السعر غير محدد" or "تم استنتاج كارت الشاشة بحاجة لمراجعة", else "")
+  "items": [
+    {
+      "index": number,
+      "model": string (brand + model, e.g. "HP 645 G1"),
+      "cpu": string,
+      "ram": string (e.g. "8G"),
+      "storage": string (e.g. "256 GB SSD"),
+      "screen": string (e.g. "15.6\""),
+      "gpu": string,
+      "price": number,
+      "category": string (one of: "Budget Range | الفئة الاقتصادية", "Mid Range | الفئة المتوسطة", "Premium Range | الفئة المتميزة"),
+      "flagged": boolean,
+      "flagReason": string
+    }
+  ]
 }
 
-### Strict Rules:
-1. Model normalization:
-   - Merge brand + model into a single "model" field exactly as shown in the schema examples above — do NOT output brand and model as separate fields.
-   - Strip duplicated specs, extra symbols, or stray whitespace from the model string.
-2. CPU / GPU inference:
-   - If CPU generation, GPU chip, or screen size is missing or ambiguous in the raw row, use your internal laptop hardware knowledge to infer the correct standard value for that exact model.
-   - If confident, fill the value and keep "flagged": false.
-   - If genuinely uncertain, fill your best estimate, set "flagged": true, and explain in Arabic in "flagReason".
-3. Price:
-   - Parse into a pure integer. If price cannot be determined or is 0, set "price": 0, "flagged": true, "flagReason": "السعر مفقود أو غير صالح".
-4. Category assignment:
-   - Assign category per item based on price/spec tier, using the exact three category strings above — do not leave category empty and do not create new tiers.
-5. Output:
-   - Return ONLY valid JSON — no markdown fences, no commentary.
-   - Return a JSON object of the shape {"items": [...]} containing exactly ${batchRows.length} elements, one per input row, in the same order.
-   - IMPORTANT: Your response must be valid JSON only. Do not include any text before or after the JSON.
+Simple rules:
+- Normalize brands: HP, DELL, Lenovo, Asus, Acer, MSI, Apple, Toshiba, Fujitsu
+- Format: CPU with generation, RAM as "8G", storage as "256 GB SSD", screen with inches
+- If data missing, use your knowledge to infer. If uncertain, set flagged=true with Arabic reason
+- Return exactly ${batchRows.length} items
+- ONLY return JSON, no other text
 
-Input Raw Rows:
+Input data:
 ${JSON.stringify(batchRows, null, 2)}
 
-Respond with JSON only:
+JSON:
 `
 
   let responseText = ''
@@ -173,6 +166,10 @@ Respond with JSON only:
     throw new Error('لم يتم استلام استجابة صالحة من نموذج Groq')
   }
 
+  // Log the raw response for debugging
+  logInfo('Raw Groq response length', `${responseText.length} characters`)
+  logInfo('Raw Groq response preview', responseText.substring(0, 200))
+
   let cleanedJson = responseText.trim()
   
   // Try to extract JSON from markdown code blocks
@@ -189,6 +186,17 @@ Respond with JSON only:
     cleanedJson = cleanedJson.substring(firstBrace, lastBrace + 1)
   }
 
+  // Try to find JSON array boundaries if object extraction didn't work
+  if (cleanedJson === responseText.trim()) {
+    const firstBracket = cleanedJson.indexOf('[')
+    const lastBracket = cleanedJson.lastIndexOf(']')
+    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+      cleanedJson = cleanedJson.substring(firstBracket, lastBracket + 1)
+    }
+  }
+
+  logInfo('Cleaned JSON for parsing', cleanedJson.substring(0, 200))
+
   let rawList: any[]
   try {
     const parsed = JSON.parse(cleanedJson)
@@ -201,8 +209,24 @@ Respond with JSON only:
     }
   } catch (err) {
     logError('Failed to parse Groq JSON output', err)
-    logError('Raw response that failed to parse', responseText.substring(0, 500))
-    throw new Error('فشل قراءة استجابة الذكاء الاصطناعي كـ JSON')
+    logError('Full raw response that failed to parse', responseText)
+    logError('Cleaned JSON that failed to parse', cleanedJson)
+    
+    // Fallback: create basic items from raw rows if JSON parsing fails
+    logInfo('Using fallback to create basic items from raw rows', `Processing ${batchRows.length} rows`)
+    rawList = batchRows.map((row, idx) => ({
+      index: startIndex + idx,
+      model: String(row.model || row.Model || row['الموديل'] || 'Unknown').trim(),
+      cpu: String(row.cpu || row.CPU || row['المعالج'] || '').trim(),
+      ram: String(row.ram || row.RAM || row['الرام'] || '').trim(),
+      storage: String(row.storage || row.Storage || row['التخزين'] || '').trim(),
+      screen: String(row.screen || row.Screen || row['الشاشة'] || '').trim(),
+      gpu: String(row.gpu || row.GPU || row['كارت الشاشة'] || '').trim(),
+      price: Number(row.price || row.Price || row['السعر'] || 0),
+      category: String(row.category || row.Category || '').trim(),
+      flagged: true,
+      flagReason: 'فشل معالجة الذكاء الاصطناعي - البيانات الأولية'
+    }))
   }
 
   // Validate each item with Zod schema and handle validation failures gracefully
