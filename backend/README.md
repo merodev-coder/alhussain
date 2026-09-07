@@ -26,7 +26,7 @@ Required variables:
 - `ADMIN_PASSWORD` - Admin login password
 - `UPLOADTHING_TOKEN` - UploadThing API token
 - `GROQ_API_KEY` - Groq API key (for Excel pricelist AI normalization)
-- `GROQ_MODEL` - Optional Groq model alias/name (default: `llama-3.3-70b-versatile`)
+- `GROQ_MODEL` - Optional Groq model alias/name (default: `llama-3.3-70b-versatile`, with automatic fallback to `llama-3.1-8b-instant`)
 - `FRONTEND_URL` - Frontend URL (for CORS) — default: http://localhost:3000
 
 

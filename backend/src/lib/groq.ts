@@ -77,8 +77,8 @@ export async function normalizePricelistWithGroq(
 
 /**
  * Process a single batch using Groq with model fallback:
- * Primary: process.env.GROQ_MODEL || 'openai/gpt-oss-120b'
- * Fallback: 'openai/gpt-oss-20b'
+ * Primary: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
+ * Fallback: 'llama-3.1-8b-instant'
  * No external search grounding tool is used; relies purely on internal knowledge.
  */
 async function processBatchWithGroq(
@@ -86,8 +86,8 @@ async function processBatchWithGroq(
   startIndex: number,
   apiKey: string
 ): Promise<StructuredLaptopItem[]> {
-  const primaryModel = process.env.GROQ_MODEL || 'openai/gpt-oss-120b'
-  const fallbackModel = 'openai/gpt-oss-20b'
+  const primaryModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
+  const fallbackModel = 'llama-3.1-8b-instant'
 
   const prompt = `
 You are an expert laptop hardware specialist and data engineer for "Al-Hussain Laptops" (شركة الحسين للابتوبات) in Egypt.
@@ -123,9 +123,12 @@ Your task is to take raw rows parsed from an uploaded Excel pricelist and normal
 5. Output:
    - Return ONLY valid JSON — no markdown fences, no commentary.
    - Return a JSON object of the shape {"items": [...]} containing exactly ${batchRows.length} elements, one per input row, in the same order.
+   - IMPORTANT: Your response must be valid JSON only. Do not include any text before or after the JSON.
 
 Input Raw Rows:
 ${JSON.stringify(batchRows, null, 2)}
+
+Respond with JSON only:
 `
 
   let responseText = ''
@@ -150,10 +153,19 @@ ${JSON.stringify(batchRows, null, 2)}
   }
 
   let cleanedJson = responseText.trim()
+  
+  // Try to extract JSON from markdown code blocks
   if (cleanedJson.startsWith('```json')) {
     cleanedJson = cleanedJson.replace(/^```json\s*/i, '').replace(/```\s*$/, '')
   } else if (cleanedJson.startsWith('```')) {
     cleanedJson = cleanedJson.replace(/^```\s*/, '').replace(/```\s*$/, '')
+  }
+  
+  // Try to find JSON object boundaries in case of extra text
+  const firstBrace = cleanedJson.indexOf('{')
+  const lastBrace = cleanedJson.lastIndexOf('}')
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleanedJson = cleanedJson.substring(firstBrace, lastBrace + 1)
   }
 
   let rawList: any[]
@@ -168,6 +180,7 @@ ${JSON.stringify(batchRows, null, 2)}
     }
   } catch (err) {
     logError('Failed to parse Groq JSON output', err)
+    logError('Raw response that failed to parse', responseText.substring(0, 500))
     throw new Error('فشل قراءة استجابة الذكاء الاصطناعي كـ JSON')
   }
 
@@ -244,7 +257,6 @@ async function callGroq(model: string, prompt: string, apiKey: string): Promise<
     body: JSON.stringify({
       model,
       messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
       temperature: 0.2,
     }),
   })
