@@ -77,8 +77,8 @@ export async function normalizePricelistWithGroq(
 
 /**
  * Process a single batch using Groq with model fallback:
- * Primary: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
- * Fallback: 'llama-3.1-8b-instant'
+ * Primary: process.env.GROQ_MODEL || 'qwen/qwen3.8-27b'
+ * Fallback chain: qwen/qwen3.6-27b, openai/gpt-oss-120b, openai/gpt-oss-20b, groq/compound, groq/compound-mini
  * No external search grounding tool is used; relies purely on internal knowledge.
  */
 async function processBatchWithGroq(
@@ -86,8 +86,7 @@ async function processBatchWithGroq(
   startIndex: number,
   apiKey: string
 ): Promise<StructuredLaptopItem[]> {
-  const primaryModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
-  const fallbackModel = 'llama-3.1-8b-instant'
+  const primaryModel = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b'
 
   const prompt = `
 You are an expert laptop hardware specialist and data engineer for "Al-Hussain Laptops" (شركة الحسين للابتوبات) in Egypt.
@@ -133,17 +132,39 @@ Respond with JSON only:
 
   let responseText = ''
 
+  // List of fallback models to try in order
+  const fallbackModels = [
+    'qwen/qwen3.6-27b',
+    'openai/gpt-oss-120b',
+    'openai/gpt-oss-20b',
+    'groq/compound',
+    'groq/compound-mini'
+  ]
+
   try {
     responseText = await callGroq(primaryModel, prompt, apiKey)
   } catch (primaryError: any) {
     logError(
-      `Primary model (${primaryModel}) failed. Error: ${primaryError?.message || primaryError}. Attempting fallback to ${fallbackModel}`,
+      `Primary model (${primaryModel}) failed. Error: ${primaryError?.message || primaryError}. Attempting fallback models.`,
       primaryError
     )
 
-    if (primaryModel !== fallbackModel) {
-      responseText = await callGroq(fallbackModel, prompt, apiKey)
-    } else {
+    // Try each fallback model
+    for (const fallbackModel of fallbackModels) {
+      if (fallbackModel === primaryModel) continue
+      
+      try {
+        logError(`Attempting fallback to ${fallbackModel}`, null)
+        responseText = await callGroq(fallbackModel, prompt, apiKey)
+        logError(`Successfully used fallback model ${fallbackModel}`, null)
+        break
+      } catch (fallbackError: any) {
+        logError(`Fallback model ${fallbackModel} also failed: ${fallbackError?.message || fallbackError}`, fallbackError)
+        continue
+      }
+    }
+
+    if (!responseText) {
       throw primaryError
     }
   }
