@@ -77,7 +77,7 @@ export async function normalizePricelistWithGemini(
 /**
  * Process a single batch using Gemini with model fallback:
  * Primary: process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp'
- * Fallback: 'gemini-1.5-flash'
+ * Fallback: 'gemini-1.5-pro'
  */
 async function processBatchWithGemini(
   batchRows: Record<string, any>[],
@@ -85,7 +85,7 @@ async function processBatchWithGemini(
   apiKey: string
 ): Promise<StructuredLaptopItem[]> {
   const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp'
-  const fallbackModel = 'gemini-1.5-flash'
+  const fallbackModel = 'gemini-1.5-pro'
 
   const prompt = `
 You are an expert laptop hardware specialist and data engineer for "Al-Hussain Laptops" (شركة الحسين للابتوبات) in Egypt.
