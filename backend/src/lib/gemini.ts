@@ -76,16 +76,19 @@ export async function normalizePricelistWithGemini(
 
 /**
  * Process a single batch using Gemini with model fallback:
- * Primary: process.env.GEMINI_MODEL || 'gemini-flash-latest'
- * Fallback: 'gemini-2.5-flash-lite'
+ * Primary: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'
+ * Fallback: 'gemini-3.1-flash-lite'
+ * 
+ * Free-tier RPD varies a lot by model — regular Flash models can be capped as low as 20/day,
+ * while Flash-Lite models get ~500/day. Check https://aistudio.google.com/usage before changing this.
  */
 async function processBatchWithGemini(
   batchRows: Record<string, any>[],
   startIndex: number,
   apiKey: string
 ): Promise<StructuredLaptopItem[]> {
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-flash-latest'
-  const fallbackModel = 'gemini-2.5-flash-lite'
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'
+  const fallbackModel = 'gemini-3.1-flash-lite'
 
   const prompt = `
 You are an expert laptop hardware specialist and data engineer for "Al-Hussain Laptops" (شركة الحسين للابتوبات) in Egypt.
