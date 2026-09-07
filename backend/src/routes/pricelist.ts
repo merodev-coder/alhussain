@@ -7,7 +7,7 @@ import { requireAdmin } from '../middleware/auth.js'
 import { logError, logInfo } from '../lib/logger.js'
 import { DatabaseRouter } from '../lib/db-router.js'
 import { withId } from '../lib/json.js'
-import { normalizePricelistWithGemini, generatePricelistHtml } from '../lib/gemini.js'
+import { normalizePricelistWithGroq, generatePricelistHtml } from '../lib/groq.js'
 import { getUploadThingTokens } from '../lib/uploadthing-tokens.js'
 import { buildPricelistExcelWorkbook } from '../lib/pricelist-excel.js'
 
@@ -277,7 +277,7 @@ router.get('/api/pricelist/admin', requireAdmin, async (_req: Request, res: Resp
  * Upload new pricelist:
  * 1. Parses sheet into raw rows.
  * 2. Uploads raw .xlsx to UploadThing for admin storage.
- * 3. Normalizes with Gemini sequentially.
+ * 3. Normalizes with Groq sequentially.
  * 4. Sorts structuredItems by category & price ascending.
  * 5. Saves atomically (unpublishes old, saves new).
  */
@@ -310,9 +310,9 @@ router.post(
       logInfo('Pricelist Upload', 'Uploading raw Excel file to UploadThing')
       const rawExcelFileUrl = await uploadRawExcelToUploadThing(file)
 
-      // 3. Normalize + enrich using Gemini (sequential with delay)
-      logInfo('Pricelist Upload', `Normalizing ${rawRows.length} rows with Gemini`)
-      const rawStructuredItems = await normalizePricelistWithGemini(rawRows)
+      // 3. Normalize + enrich using Groq (sequential with delay)
+      logInfo('Pricelist Upload', `Normalizing ${rawRows.length} rows with Groq`)
+      const rawStructuredItems = await normalizePricelistWithGroq(rawRows)
 
       // 4. Sort structured items by category and price ascending
       const structuredItems = sortStructuredItems(rawStructuredItems)
