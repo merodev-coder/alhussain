@@ -26,7 +26,7 @@ Required variables:
 - `ADMIN_PASSWORD` - Admin login password
 - `UPLOADTHING_TOKEN` - UploadThing API token
 - `GEMINI_API_KEY` - Google Gemini API key (for Excel pricelist AI normalization)
-- `GEMINI_MODEL` - Optional Gemini model alias/name (default: `gemini-2.5-flash`, with automatic fallback to `gemini-2.5-flash-lite`)
+- `GEMINI_MODEL` - Optional Gemini model alias/name (default: `gemini-2.0-flash-exp`, with automatic fallback to `gemini-1.5-flash`)
 - `FRONTEND_URL` - Frontend URL (for CORS) — default: http://localhost:3000
 
 

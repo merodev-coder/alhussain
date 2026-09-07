@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { GoogleGenerativeAI } from '@google/genai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { StructuredLaptopItem } from '../models/Pricelist.js'
 import { logError, logInfo } from './logger.js'
 
@@ -76,16 +76,16 @@ export async function normalizePricelistWithGemini(
 
 /**
  * Process a single batch using Gemini with model fallback:
- * Primary: process.env.GEMINI_MODEL || 'gemini-2.5-flash'
- * Fallback: 'gemini-2.5-flash-lite'
+ * Primary: process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp'
+ * Fallback: 'gemini-1.5-flash'
  */
 async function processBatchWithGemini(
   batchRows: Record<string, any>[],
   startIndex: number,
   apiKey: string
 ): Promise<StructuredLaptopItem[]> {
-  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
-  const fallbackModel = 'gemini-2.5-flash-lite'
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp'
+  const fallbackModel = 'gemini-1.5-flash'
 
   const prompt = `
 You are an expert laptop hardware specialist and data engineer for "Al-Hussain Laptops" (شركة الحسين للابتوبات) in Egypt.
@@ -284,7 +284,7 @@ async function callGemini(model: string, prompt: string, apiKey: string): Promis
   })
 
   const result = await geminiModel.generateContent(prompt)
-  const response = result.response
+  const response = await result.response
   return response.text()
 }
 
