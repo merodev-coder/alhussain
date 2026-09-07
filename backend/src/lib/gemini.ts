@@ -1,8 +1,7 @@
 import { z } from 'zod'
+import { GoogleGenerativeAI } from '@google/genai'
 import type { StructuredLaptopItem } from '../models/Pricelist.js'
 import { logError, logInfo } from './logger.js'
-
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 export const StructuredLaptopItemSchema = z.object({
   index: z.number().optional(),
@@ -22,26 +21,26 @@ export const StructuredLaptopItemSchema = z.object({
 
 /**
  * Normalizes an array of raw row objects parsed from an Excel sheet
- * using Groq in sequential batches of ~40 rows.
+ * using Gemini in sequential batches of ~40 rows.
  * If any batch fails, an error is thrown immediately to prevent partial publishing.
  */
-export async function normalizePricelistWithGroq(
+export async function normalizePricelistWithGemini(
   rawRows: Record<string, any>[]
 ): Promise<StructuredLaptopItem[]> {
   if (!rawRows || rawRows.length === 0) {
     return []
   }
 
-  const apiKey = process.env.GROQ_API_KEY
+  const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
-    throw new Error('مفتاح GROQ_API_KEY غير مهيأ في الخادم. يرجى إضافته في ملف الإعدادات البيئية.')
+    throw new Error('مفتاح GEMINI_API_KEY غير مهيأ في الخادم. يرجى إضافته في ملف الإعدادات البيئية.')
   }
 
   const BATCH_SIZE = 40
   const allStructuredItems: StructuredLaptopItem[] = []
 
   logInfo(
-    'Groq Normalization',
+    'Gemini Normalization',
     `Starting sequential normalization for ${rawRows.length} rows in batches of ${BATCH_SIZE}`
   )
 
@@ -52,12 +51,12 @@ export async function normalizePricelistWithGroq(
     const totalBatches = Math.ceil(rawRows.length / BATCH_SIZE)
 
     logInfo(
-      'Groq Normalization',
+      'Gemini Normalization',
       `Processing batch ${batchNumber}/${totalBatches} (${batch.length} rows) sequentially`
     )
 
     try {
-      const batchResults = await processBatchWithGroq(batch, startIndex, apiKey)
+      const batchResults = await processBatchWithGemini(batch, startIndex, apiKey)
       allStructuredItems.push(...batchResults)
     } catch (batchErr) {
       logError(`Failed in batch ${batchNumber}`, batchErr)
@@ -71,104 +70,88 @@ export async function normalizePricelistWithGroq(
     }
   }
 
-  logInfo('Groq Normalization', `Successfully normalized all ${allStructuredItems.length} items`)
+  logInfo('Gemini Normalization', `Successfully normalized all ${allStructuredItems.length} items`)
   return allStructuredItems
 }
 
 /**
- * Process a single batch using Groq with model fallback:
- * Primary: process.env.GROQ_MODEL || 'qwen/qwen3.8-27b'
- * Fallback chain: qwen/qwen3.6-27b, openai/gpt-oss-120b, openai/gpt-oss-20b, groq/compound, groq/compound-mini
- * No external search grounding tool is used; relies purely on internal knowledge.
+ * Process a single batch using Gemini with model fallback:
+ * Primary: process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+ * Fallback: 'gemini-2.5-flash-lite'
  */
-async function processBatchWithGroq(
+async function processBatchWithGemini(
   batchRows: Record<string, any>[],
   startIndex: number,
   apiKey: string
 ): Promise<StructuredLaptopItem[]> {
-  const primaryModel = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b'
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+  const fallbackModel = 'gemini-2.5-flash-lite'
 
   const prompt = `
-Convert these Excel rows to JSON format for laptop specifications.
+You are an expert laptop hardware specialist and data engineer for "Al-Hussain Laptops" (شركة الحسين للابتوبات) in Egypt.
+Your task is to take raw rows parsed from an uploaded Excel pricelist and normalize them into a strictly typed JSON array, matching EXACTLY the format used in the company's official clean pricelist template.
 
-Return ONLY this JSON structure:
+### Target Schema per Laptop Item (return ONLY these keys):
 {
-  "items": [
-    {
-      "index": number,
-      "model": string (brand + model, e.g. "HP 645 G1"),
-      "cpu": string,
-      "ram": string (e.g. "8G"),
-      "storage": string (e.g. "256 GB SSD"),
-      "screen": string (e.g. "15.6\""),
-      "gpu": string,
-      "price": number,
-      "category": string (one of: "Budget Range | الفئة الاقتصادية", "Mid Range | الفئة المتوسطة", "Premium Range | الفئة المتميزة"),
-      "flagged": boolean,
-      "flagReason": string
-    }
-  ]
+  "index": number (sequence row number, starting from ${startIndex}),
+  "model": string (Brand + model merged into ONE string, brand first, e.g. "HP 645 G1", "DELL 5590". Normalize brand: "HP", "DELL", "Lenovo", "Asus", "Acer", "MSI", "Apple", "Toshiba", "Fujitsu"),
+  "cpu": string (Format EXACTLY as "Family Suffix  (Nth Gen)" with TWO spaces before the parenthesis, e.g. "Core i5  (4th Gen)", "Xeon E3-1505M  (7th Gen)", "AMD A10-5300  (5th Gen)", "Ryzen 5  (10th Gen)"),
+  "ram": string (Number + capital "G" only, no "B", e.g. "8G", "16G" — never "8GB"),
+  "storage": string ("NNN GB TYPE" e.g. "500 GB HDD", "256 GB SSD". Two drives: "256+500 GB"),
+  "screen": string (Inches with trailing double-quote, e.g. "14.1\"", "15.6\""),
+  "gpu": string (Format "Brand Chip — MinG→MaxG" with em dash and arrow, e.g. "Intel HD 620 — 1G→2G", "N.VIDIA M1000 — 2G→20G". Use "N.VIDIA" not "NVIDIA"/"Nvidia"),
+  "price": number (Pure integer EGP, no symbols),
+  "category": string (Exactly one of: "Budget Range | الفئة الاقتصادية", "Mid Range | الفئة المتوسطة", "Premium Range | الفئة المتميزة"),
+  "flagged": boolean (true only if critical data missing/unreliable),
+  "flagReason": string (Arabic explanation if flagged, else "")
 }
 
-Simple rules:
-- Normalize brands: HP, DELL, Lenovo, Asus, Acer, MSI, Apple, Toshiba, Fujitsu
-- Format: CPU with generation, RAM as "8G", storage as "256 GB SSD", screen with inches
-- If data missing, use your knowledge to infer. If uncertain, set flagged=true with Arabic reason
-- Return exactly ${batchRows.length} items
-- ONLY return JSON, no other text
+### Handling placeholder / ambiguous GPU values:
+Raw rows may contain a placeholder instead of a real GPU name — e.g. "vg", "VGA", "vg4", "vg 6g", "vg 8g". These mean "this laptop has a dedicated (non-integrated) graphics card," not a real chip name.
+When you see one of these:
+1. Identify the exact laptop model and CPU generation from the row.
+2. Use your internal knowledge of that model's spec sheet to determine which dedicated GPU it actually ships with.
+3. If the placeholder includes a VRAM number (e.g. "vg 6g", "vg4" = 4G), use it to pick the correct variant among the model's known dedicated GPU options.
+4. Output the resolved chip in the normal "Brand Chip — MinG→MaxG" format.
+5. If it truly cannot be narrowed down even with the VRAM hint, output your single best guess, set "flagged": true, and explain in Arabic in "flagReason".
+6. Never output the literal placeholder text as the final GPU value.
+7. Plain "INTEL" or "AMD" with no VRAM hint means integrated graphics — infer the correct integrated GPU generation from the CPU as usual.
 
-Input data:
+### Strict Rules:
+1. Merge brand + model into a single "model" field — do NOT output brand and model as separate fields.
+2. If CPU generation, GPU chip, or screen size is missing or ambiguous, infer from internal knowledge; if genuinely uncertain, best-guess + flag + Arabic reason.
+3. Price: pure integer; if 0/invalid, set price 0, flagged true, flagReason "السعر مفقود أو غير صالح".
+4. Assign category using exactly the three strings above based on price/spec tier.
+5. Return ONLY valid JSON — no markdown fences, no commentary. Return {"items": [...]} with exactly ${batchRows.length} elements, one per input row, in order.
+
+Input Raw Rows:
 ${JSON.stringify(batchRows, null, 2)}
-
-JSON:
 `
 
   let responseText = ''
 
-  // List of fallback models to try in order
-  const fallbackModels = [
-    'qwen/qwen3.6-27b',
-    'openai/gpt-oss-120b',
-    'openai/gpt-oss-20b',
-    'groq/compound',
-    'groq/compound-mini'
-  ]
-
   try {
-    responseText = await callGroq(primaryModel, prompt, apiKey)
+    responseText = await callGemini(primaryModel, prompt, apiKey)
   } catch (primaryError: any) {
     logError(
-      `Primary model (${primaryModel}) failed. Error: ${primaryError?.message || primaryError}. Attempting fallback models.`,
+      `Primary model (${primaryModel}) failed. Error: ${primaryError?.message || primaryError}. Attempting fallback to ${fallbackModel}`,
       primaryError
     )
 
-    // Try each fallback model
-    for (const fallbackModel of fallbackModels) {
-      if (fallbackModel === primaryModel) continue
-      
-      try {
-        logError(`Attempting fallback to ${fallbackModel}`, null)
-        responseText = await callGroq(fallbackModel, prompt, apiKey)
-        logError(`Successfully used fallback model ${fallbackModel}`, null)
-        break
-      } catch (fallbackError: any) {
-        logError(`Fallback model ${fallbackModel} also failed: ${fallbackError?.message || fallbackError}`, fallbackError)
-        continue
-      }
-    }
-
-    if (!responseText) {
+    if (primaryModel !== fallbackModel) {
+      responseText = await callGemini(fallbackModel, prompt, apiKey)
+    } else {
       throw primaryError
     }
   }
 
   if (!responseText) {
-    throw new Error('لم يتم استلام استجابة صالحة من نموذج Groq')
+    throw new Error('لم يتم استلام استجابة صالحة من نموذج Gemini')
   }
 
   // Log the raw response for debugging
-  logInfo('Raw Groq response length', `${responseText.length} characters`)
-  logInfo('Raw Groq response preview', responseText.substring(0, 200))
+  logInfo('Raw Gemini response length', `${responseText.length} characters`)
+  logInfo('Raw Gemini response preview', responseText.substring(0, 200))
 
   let cleanedJson = responseText.trim()
   
@@ -208,7 +191,7 @@ JSON:
       throw new Error('الاستجابة الناتجة ليست مصفوفة JSON صالحة')
     }
   } catch (err) {
-    logError('Failed to parse Groq JSON output', err)
+    logError('Failed to parse Gemini JSON output', err)
     logError('Full raw response that failed to parse', responseText)
     logError('Cleaned JSON that failed to parse', cleanedJson)
     
@@ -258,7 +241,7 @@ JSON:
       validatedItems.push(item)
     } else {
       const validationMessages = parseResult.error.issues.map(iss => iss.message).join('، ')
-      logInfo('Groq row validation flagged', `Row ${rowIndex} flagged: ${validationMessages}`)
+      logInfo('Gemini row validation flagged', `Row ${rowIndex} flagged: ${validationMessages}`)
 
       const fbBrand =
         String(fallbackRow.brand || fallbackRow.Brand || fallbackRow['الماركة'] || '').trim() ||
@@ -289,30 +272,20 @@ JSON:
 }
 
 /**
- * Calls the Groq OpenAI-compatible chat completions endpoint and returns
- * the raw text content of the response.
+ * Calls the Gemini API and returns the raw text content of the response.
  */
-async function callGroq(model: string, prompt: string, apiKey: string): Promise<string> {
-  const res = await fetch(GROQ_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2,
-    }),
+async function callGemini(model: string, prompt: string, apiKey: string): Promise<string> {
+  const genAI = new GoogleGenerativeAI(apiKey)
+  const geminiModel = genAI.getGenerativeModel({ 
+    model,
+    generationConfig: {
+      responseMimeType: 'application/json',
+    }
   })
 
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '')
-    throw new Error(`Groq API error (${res.status}): ${errBody || res.statusText}`)
-  }
-
-  const data: any = await res.json()
-  return data?.choices?.[0]?.message?.content || ''
+  const result = await geminiModel.generateContent(prompt)
+  const response = result.response
+  return response.text()
 }
 
 /**

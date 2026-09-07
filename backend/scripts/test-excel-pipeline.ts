@@ -6,7 +6,7 @@ import dotenv from 'dotenv'
 // Load .env if present
 dotenv.config()
 
-import { normalizePricelistWithGroq, generatePricelistHtml } from '../src/lib/groq.js'
+import { normalizePricelistWithGemini, generatePricelistHtml } from '../src/lib/gemini.js'
 
 function parseExcelToRawRows(buffer: Buffer): Record<string, any>[] {
   const workbook = XLSX.read(buffer, { type: 'buffer' })
@@ -121,7 +121,7 @@ async function runTest() {
 
   // Test on first 3 rows for fast live verification
   const sampleSlice = rawRows.slice(0, 3)
-  console.log('\n[Sample Raw Rows for Groq]:', JSON.stringify(sampleSlice, null, 2))
+  console.log('\n[Sample Raw Rows for Gemini]:', JSON.stringify(sampleSlice, null, 2))
 
   // Test sorting by price within categories
   console.log('\n--- Testing Sort by Price & Category Priority ---')
@@ -152,16 +152,16 @@ async function runTest() {
   delete (publicSanitized as any).rawExcelFileUrl
   console.log('Public response has rawExcelFileUrl:', 'rawExcelFileUrl' in publicSanitized ? 'YES (LEAK)' : 'NO (SECURE)')
 
-  if (!process.env.GROQ_API_KEY) {
-    console.log('\n[NOTE] GROQ_API_KEY environment variable is not set in this terminal session.')
-    console.log('To run live Groq normalization test:')
-    console.log('GROQ_API_KEY=your_key npx tsx scripts/test-excel-pipeline.ts')
+  if (!process.env.GEMINI_API_KEY) {
+    console.log('\n[NOTE] GEMINI_API_KEY environment variable is not set in this terminal session.')
+    console.log('To run live Gemini normalization test:')
+    console.log('GEMINI_API_KEY=your_key npx tsx scripts/test-excel-pipeline.ts')
     return
   }
 
-  console.log('\n[Groq] Calling Groq normalization on sample rows...')
-  const normalized = await normalizePricelistWithGroq(sampleSlice)
-  console.log('\n[Groq Structured Output]:\n', JSON.stringify(normalized, null, 2))
+  console.log('\n[Gemini] Calling Gemini normalization on sample rows...')
+  const normalized = await normalizePricelistWithGemini(sampleSlice)
+  console.log('\n[Gemini Structured Output]:\n', JSON.stringify(normalized, null, 2))
 }
 
 runTest().catch(err => {
