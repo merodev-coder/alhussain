@@ -13,19 +13,37 @@ import {
   Filter,
 } from 'lucide-react'
 import { api } from '@/lib/api'
-import type { Product } from '@/lib/types'
 
-const CATEGORY_NAMES: Record<string, string> = {
-  graphics: 'لابتوبات جرافيك ورندر (Graphics & Workstation)',
-  business: 'لابتوبات بزنس وألترا بوك (Business & Ultrabook)',
-  accessories: 'إكسسوارات وقطع غيار (Accessories)',
-  batteries: 'بطاريات وشاشات أصلية (Batteries & Screens)',
-  storage: 'تخزين ورام (SSD & RAM)',
-  other: 'أجهزة ومنتجات أخرى (Other Devices)',
+interface StructuredLaptopItem {
+  id?: string
+  index?: number
+  brand: string
+  model: string
+  name: string
+  cpu: string
+  ram: string
+  storage: string
+  screen: string
+  gpu: string
+  price: number
+  category?: string
+  flagged?: boolean
+  flagReason?: string
+}
+
+interface PricelistData {
+  id?: string
+  sourceFileName: string
+  rawExcelFileUrl?: string
+  structuredItems?: StructuredLaptopItem[]
+  generatedHtml?: string
+  parsedHtml?: string
+  uploadedAt: string
+  published: boolean
 }
 
 export default function PriceListView() {
-  const [products, setProducts] = useState<Product[]>([])
+  const [pricelist, setPricelist] = useState<PricelistData | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Filter states
@@ -46,66 +64,77 @@ export default function PriceListView() {
     return () => clearTimeout(handler)
   }, [search])
 
-  // Fetch products
+  // Fetch AI-generated pricelist
   useEffect(() => {
     setLoading(true)
     api
-      .get_products('', 1, 100)
-      .then(res => {
-        const items = Array.isArray(res) ? res : res.items || []
-        setProducts(items)
+      .get_pricelist()
+      .then(data => {
+        setPricelist(data)
       })
       .catch(() => {
-        setProducts([])
+        setPricelist(null)
       })
       .finally(() => {
         setLoading(false)
       })
   }, [])
 
-  // Filtered Products
-  const filteredProducts = useMemo(() => {
-    return products.filter(p => {
-      // 1. Text Search (Model, CPU, GPU, Name)
+  // Filtered Pricelist Items
+  const filteredItems = useMemo(() => {
+    if (!pricelist?.structuredItems) return []
+    
+    return pricelist.structuredItems.filter((item: StructuredLaptopItem) => {
+      // 1. Text Search (Model, CPU, GPU, Name, Brand)
       if (debouncedSearch) {
         const term = debouncedSearch.toLowerCase()
-        const text = `${p.name} ${p.model || ''} ${p.cpu || ''} ${p.gpu || ''} ${
-          p.specs?.cpu || ''
-        } ${p.specs?.gpu || ''}`.toLowerCase()
+        const text = `${item.name} ${item.model || ''} ${item.brand || ''} ${item.cpu || ''} ${item.gpu || ''}`.toLowerCase()
         if (!text.includes(term)) return false
       }
 
       // 2. Category Filter
       if (categoryFilter !== 'all') {
-        const cat = p.homeSection || 'other'
+        const cat = item.category || 'other'
         if (cat !== categoryFilter) return false
       }
 
       // 3. Price Range
       const min = minPrice ? parseFloat(minPrice) : null
       const max = maxPrice ? parseFloat(maxPrice) : null
-      if (min !== null && !isNaN(min) && p.price < min) return false
-      if (max !== null && !isNaN(max) && p.price > max) return false
+      if (min !== null && !isNaN(min) && item.price < min) return false
+      if (max !== null && !isNaN(max) && item.price > max) return false
 
       return true
     })
-  }, [products, debouncedSearch, categoryFilter, minPrice, maxPrice])
+  }, [pricelist, debouncedSearch, categoryFilter, minPrice, maxPrice])
 
-  // Group filtered products by category / section
-  const groupedProducts = useMemo(() => {
-    const groups: Record<string, Product[]> = {}
+  // Group filtered items by category
+  const groupedItems = useMemo(() => {
+    const groups: Record<string, StructuredLaptopItem[]> = {}
 
     // Grouping
-    for (const p of filteredProducts) {
-      const section = p.homeSection || 'other'
+    for (const item of filteredItems) {
+      const section = item.category || 'other'
       if (!groups[section]) {
         groups[section] = []
       }
-      groups[section].push(p)
+      groups[section].push(item)
     }
 
     return groups
-  }, [filteredProducts])
+  }, [filteredItems])
+
+  // Get unique categories from pricelist for filter dropdown
+  const availableCategories = useMemo(() => {
+    if (!pricelist?.structuredItems) return []
+    const categories = new Set<string>()
+    pricelist.structuredItems.forEach(item => {
+      if (item.category) {
+        categories.add(item.category)
+      }
+    })
+    return Array.from(categories).sort()
+  }, [pricelist])
 
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => ({
@@ -193,11 +222,9 @@ export default function PriceListView() {
                 className="w-full h-10 px-3 rounded-xl bg-surface-1 border border-hairline text-xs sm:text-sm text-ink focus:border-brand-primary outline-none transition-all"
               >
                 <option value="all">جميع الأقسام</option>
-                <option value="graphics">لابتوبات جرافيك</option>
-                <option value="business">لابتوبات بزنس</option>
-                <option value="accessories">إكسسوارات</option>
-                <option value="batteries">بطاريات وشاشات</option>
-                <option value="storage">تخزين ورام</option>
+                {availableCategories.map((cat: string) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
               </select>
             </div>
 
@@ -228,9 +255,18 @@ export default function PriceListView() {
         {/* Content: Grouped Tables */}
         {loading ? (
           <div className="p-16 text-center text-ink-muted font-body">
-            جاري تحميل قائمة الأسعار والمنتجات...
+            جاري تحميل قائمة الأسعار...
           </div>
-        ) : Object.keys(groupedProducts).length === 0 ? (
+        ) : !pricelist || !pricelist.structuredItems || pricelist.structuredItems.length === 0 ? (
+          <div className="p-12 text-center bg-canvas rounded-2xl border border-hairline shadow-sm space-y-3">
+            <h3 className="font-bold text-ink text-base">
+              لا توجد قائمة أسعار منشورة حالياً
+            </h3>
+            <p className="text-xs text-ink-muted">
+              سيتم تحديث قائمة الأسعار قريباً من لوحة التحكم.
+            </p>
+          </div>
+        ) : Object.keys(groupedItems).length === 0 ? (
           <div className="p-12 text-center bg-canvas rounded-2xl border border-hairline shadow-sm space-y-3">
             <h3 className="font-bold text-ink text-base">
               لا توجد منتجات مطابقة لخيارات البحث
@@ -247,9 +283,9 @@ export default function PriceListView() {
           </div>
         ) : (
           <div className="space-y-8">
-            {Object.entries(groupedProducts).map(([key, items]) => {
+            {Object.entries(groupedItems).map(([key, items]) => {
               const isCollapsed = collapsedGroups[key]
-              const title = CATEGORY_NAMES[key] || 'أجهزة ومنتجات أخرى'
+              const title = key === 'other' ? 'أجهزة ومنتجات أخرى' : key
 
               return (
                 <div
@@ -300,11 +336,11 @@ export default function PriceListView() {
                           </tr>
                         </thead>
                         <tbody>
-                          {items.map((prod, idx) => {
+                          {items.map((item: StructuredLaptopItem, idx) => {
                             const isEven = idx % 2 === 0
                             return (
                               <tr
-                                key={prod.id}
+                                key={item.id || item.index}
                                 className={`print-table-row border-b border-hairline transition-colors hover:bg-brand-primary/5 min-h-[36px] ${
                                   isEven
                                     ? 'bg-canvas'
@@ -314,42 +350,42 @@ export default function PriceListView() {
                               >
                                 {/* # */}
                                 <td className="py-2.5 px-3 text-center text-ink-muted font-mono text-xs">
-                                  {idx + 1}
+                                  {item.index || idx + 1}
                                 </td>
 
                                 {/* Model / Name */}
                                 <td className="py-2.5 px-3 font-sans font-bold text-ink">
-                                  {prod.name}
-                                  {prod.badge && (
-                                    <span className="mr-2 px-1.5 py-0.5 rounded bg-brand-accent text-white text-[10px] font-medium">
-                                      {prod.badge}
+                                  {item.name}
+                                  {item.flagged && (
+                                    <span className="mr-2 px-1.5 py-0.5 rounded bg-red-100 text-red-600 text-[10px] font-medium">
+                                      {item.flagReason || 'تحتاج مراجعة'}
                                     </span>
                                   )}
                                 </td>
 
                                 {/* Processor */}
                                 <td className="py-2.5 px-3 text-ink-muted">
-                                  <span dir="ltr">{prod.specs?.cpu || prod.cpu || '—'}</span>
+                                  <span dir="ltr">{item.cpu || '—'}</span>
                                 </td>
 
                                 {/* RAM */}
                                 <td className="py-2.5 px-3 text-ink-muted">
-                                  <span dir="ltr">{prod.specs?.ram || prod.ram || '—'}</span>
+                                  <span dir="ltr">{item.ram || '—'}</span>
                                 </td>
 
                                 {/* Storage */}
                                 <td className="py-2.5 px-3 text-ink-muted">
-                                  <span dir="ltr">{prod.specs?.storage || prod.storage || '—'}</span>
+                                  <span dir="ltr">{item.storage || '—'}</span>
                                 </td>
 
                                 {/* Screen */}
                                 <td className="py-2.5 px-3 text-ink-muted">
-                                  <span dir="ltr">{prod.specs?.screen || prod.screen || '—'}</span>
+                                  <span dir="ltr">{item.screen || '—'}</span>
                                 </td>
 
                                 {/* GPU */}
                                 <td className="py-2.5 px-3 text-ink-muted">
-                                  <span dir="ltr">{prod.specs?.gpu || prod.gpu || '—'}</span>
+                                  <span dir="ltr">{item.gpu || '—'}</span>
                                 </td>
 
                                 {/* Price Column: Brand-teal tint bg, brand-teal bold text */}
@@ -360,7 +396,7 @@ export default function PriceListView() {
                                     printColorAdjust: 'exact',
                                   }}
                                 >
-                                  {prod.price.toLocaleString('ar-EG')} ج.م
+                                  {item.price.toLocaleString('ar-EG')} ج.م
                                 </td>
                               </tr>
                             )
