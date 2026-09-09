@@ -56,7 +56,7 @@ export default function Footer() {
               </h3>
             </div>
             <a
-              href="https://wa.me/201060169569000000"
+              href="https://wa.me/201060169569"
               target="_blank"
               rel="noopener noreferrer"
               className="footer-cta-btn shrink-0 inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-6 py-3.5 font-sans font-bold text-white shadow-lg transition-all duration-300 hover:brightness-110 hover:-translate-y-0.5 active:scale-95"
@@ -87,7 +87,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-3 mt-2">
               <a
-                href="https://wa.me/201060169569000000"
+                href="https://wa.me/201060169569"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="واتساب"
@@ -148,15 +148,14 @@ export default function Footer() {
             <ul className="space-y-3 mt-3">
               <li className="flex items-start gap-2">
                 <Phone className="w-4 h-4 text-brand-primary mt-0.5 shrink-0" />
-                <span className="font-body text-sm text-white/60">01060169569000000</span>
+                <span className="font-body text-sm text-white/60">01060169569</span>
               </li>
               <li className="flex items-start gap-2">
                 <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#25D366] mt-0.5 shrink-0 fill-[#25D366]" xmlns="http://www.w3.org/2000/svg">
                   <path d={WHATSAPP_ICON_PATH} />
                 </svg>
-                <a href="https://wa.me/201060169569000000" className="font-body text-sm text-white/60 hover:text-[#25D366] transition-colors">
-                  واتساب: 01060169569000000
-                </a>
+                <a href="https://wa.me/201060169569" className="font-body text-sm text-white/60 hover:text-[#25D366] transition-colors">
+                  واتساب: 01060169569                </a>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-brand-primary mt-0.5 shrink-0" />
