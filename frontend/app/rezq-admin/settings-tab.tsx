@@ -45,6 +45,14 @@ export default function SettingsTab() {
 
     setSaving(true)
     try {
+      console.log('Saving settings:', {
+        vodafoneCashNumber: vodafoneCashNumber.trim(),
+        instapayNumber: instapayNumber.trim(),
+        activeUploadThingTokenIndex,
+        senderEmail: senderEmail.trim(),
+        senderEmailAppPassword: senderEmailAppPassword.replace(/\s/g, ''),
+      })
+      
       await api.update_settings({
         vodafoneCashNumber: vodafoneCashNumber.trim(),
         instapayNumber: instapayNumber.trim(),
@@ -52,10 +60,14 @@ export default function SettingsTab() {
         senderEmail: senderEmail.trim(),
         senderEmailAppPassword: senderEmailAppPassword.replace(/\s/g, ''),
       })
+      
+      console.log('Settings saved successfully')
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'فشل الحفظ')
+      console.error('Failed to save settings:', err)
+      const errorMessage = err instanceof Error ? err.message : 'فشل الحفظ'
+      alert(`فشل الحفظ: ${errorMessage}`)
     } finally {
       setSaving(false)
     }
