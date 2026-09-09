@@ -108,8 +108,8 @@ export default function AboutPage() {
               {
                 icon: Phone,
                 label: 'الهاتف',
-                value: '01000000000',
-                href: 'tel:01000000000',
+                value: '01060169569000000',
+                href: 'tel:01060169569000000',
               },
               {
                 icon: () => (
@@ -118,8 +118,8 @@ export default function AboutPage() {
                   </svg>
                 ),
                 label: 'واتساب',
-                value: '01000000000',
-                href: 'https://wa.me/201000000000',
+                value: '01060169569000000',
+                href: 'https://wa.me/201060169569000000',
               },
               {
                 icon: MapPin,

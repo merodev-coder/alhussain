@@ -203,7 +203,7 @@ export default function CheckoutClient() {
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full">
           <a
-            href="https://wa.me/201000000000"
+            href="https://wa.me/201060169569000000"
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 py-3 rounded-full bg-[#25D366] text-white font-sans font-bold text-center flex items-center justify-center gap-2"

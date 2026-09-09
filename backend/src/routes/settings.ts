@@ -10,10 +10,10 @@ import { getAllConnections } from '../lib/db.js'
 const router = Router()
 
 const settingsSchema = z.object({
-  vodafoneCashNumber: z.string().min(1),
-  instapayNumber: z.string().min(1),
+  vodafoneCashNumber: z.string().min(1, 'Vodafone Cash number is required'),
+  instapayNumber: z.string().min(1, 'Instapay number is required'),
   activeUploadThingTokenIndex: z.number().int().min(0).optional(),
-  senderEmail: z.string().email().optional().or(z.literal('')),
+  senderEmail: z.string().email('Invalid email format').optional().or(z.literal('')),
   senderEmailAppPassword: z.string().optional().or(z.literal('')),
 })
 
@@ -23,11 +23,15 @@ router.get('/api/settings', async (_req: Request, res: Response): Promise<void> 
     let settings = null
 
     for (const connection of connections) {
-      const SettingsModel = getSiteSettingsModel(connection)
-      const found = await SettingsModel.findOne().lean()
-      if (found) {
-        settings = withId(found)
-        break
+      try {
+        const SettingsModel = getSiteSettingsModel(connection)
+        const found = await SettingsModel.findOne().lean()
+        if (found) {
+          settings = withId(found)
+          break
+        }
+      } catch (error) {
+        logError('Get settings from database', `Failed to query database: ${error}`)
       }
     }
 
@@ -63,23 +67,24 @@ router.post('/api/settings', requireAdmin, async (req: Request, res: Response): 
     // Check if settings already exist across all databases
     const connections = getAllConnections()
     let existing = null
-    let targetConnection = null
     let targetDbIndex = 0
 
     for (let i = 0; i < connections.length; i++) {
-      const SettingsModel = getSiteSettingsModel(connections[i])
-      const found = await SettingsModel.findOne().lean()
-      if (found) {
-        existing = found
-        targetConnection = connections[i]
-        targetDbIndex = i
-        break
+      try {
+        const SettingsModel = getSiteSettingsModel(connections[i])
+        const found = await SettingsModel.findOne().lean()
+        if (found) {
+          existing = found
+          targetDbIndex = i
+          break
+        }
+      } catch (error) {
+        logError('Find settings in database', `Failed to search database ${i}: ${error}`)
       }
     }
 
-    if (existing && targetConnection) {
-      // Update existing settings
-      const SettingsModel = getSiteSettingsModel(targetConnection)
+    if (existing) {
+      // Update existing settings using DatabaseRouter
       const updateData: Record<string, unknown> = {
         vodafoneCashNumber: data.vodafoneCashNumber,
         instapayNumber: data.instapayNumber,
@@ -93,15 +98,26 @@ router.post('/api/settings', requireAdmin, async (req: Request, res: Response): 
       if (data.senderEmailAppPassword !== undefined) {
         updateData.senderEmailAppPassword = data.senderEmailAppPassword
       }
-      const updated = await SettingsModel.findOneAndUpdate(
-        { _id: existing._id },
-        updateData,
-        { new: true }
-      ).lean()
-      res.json(withId(updated!))
+
+      const updated = await DatabaseRouter.updateOnDatabase(
+        targetDbIndex,
+        async (connection) => {
+          const SettingsModel = getSiteSettingsModel(connection)
+          const result = await SettingsModel.findOneAndUpdate(
+            { _id: existing._id },
+            updateData,
+            { new: true }
+          ).lean()
+          if (!result) {
+            throw new Error('Settings document not found during update')
+          }
+          return result
+        },
+        'settings'
+      )
+      res.json(withId(updated))
     } else {
-      // Create new settings on primary database
-      const primary = connections[0]
+      // Create new settings on primary database using DatabaseRouter
       const { result } = await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
         const SettingsModel = getSiteSettingsModel(connection)
         const settings = new SettingsModel({

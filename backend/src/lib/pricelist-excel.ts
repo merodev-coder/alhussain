@@ -26,14 +26,15 @@ export function getCategoryInfo(cat?: string): { priority: number; banner: strin
 }
 
 /**
- * Builds an ExcelJS Workbook matching AlHussein_Laptops_Clean.xlsx reference design:
- * - Row 2: Merged A2:H2 header "الحسين للاب توب", Arial 22pt bold #2C3E50
- * - Row 3: Merged A3:D3 contact line + Merged E3:H3 current date, Arial 10pt #7F8C8D
- * - Row 6: Frozen table header row, Arial 10pt bold white on #2C3E50, height ~40
- * - Category rows: Merged A:H banner, Arial 10pt bold #1A5276, fill #D6EAF8, height 30
- * - Data rows: Banded white / #F5F8FA, Arial 10pt #2C3E50, height 36, thin borders
- * - Price column: Arial 11pt bold #1A5276, fill #EBF5FB, format `#,##0" EGP"`
- * - Exact column widths: # = 6, Model = 20, CPU = 22, RAM = 9, Storage = 12, Screen = 10, GPU = 26, Price = 14
+ * Builds an ExcelJS Workbook matching the exact format from the reference image:
+ * - Row 1: Header with yellow cell (A1), merged store-name banner "الحسين للاب توب" (B1:E1) green bold text,
+ *          date in plain cell (F1), phone number in green-filled box (G1:H1)
+ * - Row 2: Column headers BRAND | MODEL | C.P.U | HARD | RAM | VGA | MONITOR | PRICE, bold, light gray background
+ * - Data rows: Grouped by brand and series, blank rows between groups
+ * - BRAND column: yellow fill for every cell
+ * - PRICE column: pink/salmon fill, bold text, right-aligned, plain integer (no currency symbol)
+ * - Other columns: white background, thin gray borders, left-aligned text
+ * - Compact row height, single line per item
  */
 export async function buildPricelistExcelWorkbook(
   items: StructuredLaptopItem[],
@@ -43,226 +44,278 @@ export async function buildPricelistExcelWorkbook(
   wb.creator = 'AlHussain Laptop'
   wb.created = new Date()
 
-  const ws = wb.addWorksheet('Price List', {
-    views: [{ state: 'frozen', xSplit: 0, ySplit: 6, topLeftCell: 'A7', activeCell: 'A7' }],
-  })
+  const ws = wb.addWorksheet('Price List')
 
-  // Set column widths matching reference file
+  // Set column widths matching the image format
   ws.columns = [
-    { key: 'num', width: 6 },
+    { key: 'brand', width: 12 },
     { key: 'model', width: 20 },
-    { key: 'cpu', width: 22 },
-    { key: 'ram', width: 9 },
-    { key: 'storage', width: 12 },
-    { key: 'screen', width: 10 },
-    { key: 'gpu', width: 26 },
-    { key: 'price', width: 14 },
+    { key: 'cpu', width: 25 },
+    { key: 'hard', width: 15 },
+    { key: 'ram', width: 10 },
+    { key: 'vga', width: 25 },
+    { key: 'monitor', width: 12 },
+    { key: 'price', width: 12 },
   ]
 
   const thinBorder: Partial<ExcelJS.Borders> = {
-    top: { style: 'thin', color: { argb: 'FFD5D8DC' } },
-    bottom: { style: 'thin', color: { argb: 'FFD5D8DC' } },
-    left: { style: 'thin', color: { argb: 'FFD5D8DC' } },
-    right: { style: 'thin', color: { argb: 'FFD5D8DC' } },
+    top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+    bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+    left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+    right: { style: 'thin', color: { argb: 'FFD0D0D0' } },
   }
 
-  const headerBorder: Partial<ExcelJS.Borders> = {
-    top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-    bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-    left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-    right: { style: 'thin', color: { argb: 'FFFFFFFF' } },
-  }
+  // ROW 1: Header with store name, date, and phone number
+  const row1 = ws.getRow(1)
+  row1.height = 30
 
-  // Row 1: empty spacer
-  ws.getRow(1).height = 13.5
+  // Yellow cell in top-left (A1)
+  const cellA1 = ws.getCell('A1')
+  cellA1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } }
+  cellA1.border = thinBorder
 
-  // Row 2: Title "الحسين للاب توب"
+  // Merged store name banner in center (B1:E1)
+  ws.mergeCells('B1:E1')
+  const cellB1 = ws.getCell('B1')
+  cellB1.value = 'الحسين للاب توب'
+  cellB1.font = { name: 'Arial', bold: true, size: 16, color: { argb: 'FF008000' } }
+  cellB1.alignment = { horizontal: 'center', vertical: 'middle' }
+  cellB1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+  cellB1.border = thinBorder
+
+  // Date in plain cell (F1)
+  const cellF1 = ws.getCell('F1')
+  const today = uploadedAt ? new Date(uploadedAt) : new Date()
+  cellF1.value = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`
+  cellF1.font = { name: 'Arial', size: 11, color: { argb: 'FF000000' } }
+  cellF1.alignment = { horizontal: 'center', vertical: 'middle' }
+  cellF1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+  cellF1.border = thinBorder
+
+  // Phone number in green-filled box (G1:H1 merged)
+  ws.mergeCells('G1:H1')
+  const cellG1 = ws.getCell('G1')
+  cellG1.value = '01060169569'
+  cellG1.font = { name: 'Arial', bold: true, size: 12, color: { argb: 'FFFFFFFF' } }
+  cellG1.alignment = { horizontal: 'center', vertical: 'middle' }
+  cellG1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF008000' } }
+  cellG1.border = thinBorder
+
+  // ROW 2: Column headers
   const row2 = ws.getRow(2)
-  row2.height = 43.5
-  ws.mergeCells('A2:H2')
-  const cellA2 = ws.getCell('A2')
-  cellA2.value = 'الحسين للاب توب'
-  cellA2.font = { name: 'Arial', bold: true, size: 22, color: { argb: 'FF2C3E50' } }
-  cellA2.alignment = { horizontal: 'center', vertical: 'middle' }
+  row2.height = 25
+  const headers = ['BRAND', 'MODEL', 'C.P.U', 'HARD', 'RAM', 'VGA', 'MONITOR', 'PRICE']
 
-  // Row 3: Subtitle - Contact info & Date
-  const row3 = ws.getRow(3)
-  row3.height = 24
-  ws.mergeCells('A3:D3')
-  const cellA3 = ws.getCell('A3')
-  cellA3.value = 'شركة الحسين  |  رزق صالح  |  01060169569  |  01003021210'
-  cellA3.font = { name: 'Arial', size: 10, color: { argb: 'FF7F8C8D' } }
-  cellA3.alignment = { horizontal: 'center', vertical: 'middle' }
-
-  const d = uploadedAt ? new Date(uploadedAt) : new Date()
-  const dateStr = `${d.getDate()} / ${d.getMonth() + 1} / ${d.getFullYear()}`
-
-  ws.mergeCells('E3:H3')
-  const cellE3 = ws.getCell('E3')
-  cellE3.value = dateStr
-  cellE3.font = { name: 'Arial', size: 10, color: { argb: 'FF7F8C8D' } }
-  cellE3.alignment = { horizontal: 'center', vertical: 'middle' }
-
-  // Rows 4 and 5 spacers
-  ws.getRow(4).height = 3.75
-  ws.getRow(5).height = 9.75
-
-  // Row 6: Table Headers
-  const row6 = ws.getRow(6)
-  row6.height = 39.75
-  const headers = [
-    '#',
-    'Model',
-    'Processor  /  CPU',
-    'RAM',
-    'Storage',
-    'Screen',
-    'Graphics Card  /  VGA',
-    'Price (EGP)',
-  ]
-
-  headers.forEach((hdr, idx) => {
-    const colNumber = idx + 1
-    const cell = row6.getCell(colNumber)
-    cell.value = hdr
-    cell.font = { name: 'Arial', bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF2C3E50' },
-    }
-    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-    cell.border = headerBorder
+  headers.forEach((header, idx) => {
+    const cell = row2.getCell(idx + 1)
+    cell.value = header
+    cell.font = { name: 'Arial', bold: true, size: 11, color: { argb: 'FF000000' } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F0F0' } }
+    cell.alignment = { horizontal: 'center', vertical: 'middle' }
+    cell.border = thinBorder
   })
 
-  // Group items by category in the specified order:
-  // 1. الفئة الاقتصادية, 2. فئة الأعمال, 3. الفئة المتوسطة, 4. فئة الألعاب, 5. الفئة العليا
-  const categoryMap = new Map<
-    string,
-    { banner: string; priority: number; items: StructuredLaptopItem[] }
-  >()
-
-  items.forEach(item => {
-    const info = getCategoryInfo(item.category)
-    const key = info.banner
-    if (!categoryMap.has(key)) {
-      categoryMap.set(key, { banner: info.banner, priority: info.priority, items: [] })
+  // Parse brand and series from items for grouping
+  function parseLaptopInfo(item: StructuredLaptopItem): { brand: string; model: string; series: string } {
+    const name = item.name || `${item.brand || ''} ${item.model || ''}`.trim()
+    const upperName = name.toUpperCase()
+    
+    let brand = 'OTHER'
+    if (upperName.startsWith('HP ')) brand = 'HP'
+    else if (upperName.startsWith('DELL ') || upperName.startsWith('DELL')) brand = 'DELL'
+    else if (upperName.startsWith('LENOVO ')) brand = 'LENOVO'
+    
+    // Extract model (everything after brand)
+    let model = name
+    if (brand !== 'OTHER') {
+      model = name.substring(brand.length).trim()
     }
-    categoryMap.get(key)!.items.push(item)
-  })
-
-  const sortedCategories = Array.from(categoryMap.values()).sort((a, b) => {
-    if (a.priority !== b.priority) return a.priority - b.priority
-    return a.banner.localeCompare(b.banner, 'ar')
-  })
-
-  let currentRowIdx = 7
-  let globalItemIdx = 1
-  let isBanded = false
-
-  for (const catGroup of sortedCategories) {
-    // Sort items within this category by price ascending
-    catGroup.items.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0))
-
-    // Merged Category Banner Row
-    const catRow = ws.getRow(currentRowIdx)
-    catRow.height = 30
-    ws.mergeCells(currentRowIdx, 1, currentRowIdx, 8)
-
-    for (let c = 1; c <= 8; c++) {
-      const cell = catRow.getCell(c)
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFD6EAF8' },
-      }
-      cell.border = thinBorder
+    
+    // Determine series based on model patterns
+    let series = 'OTHER'
+    const upperModel = model.toUpperCase()
+    
+    if (upperModel.includes('ZBOOK')) {
+      series = 'ZBOOK'
+    } else if (upperModel.match(/^\d{3}/)) {
+      // Models starting with 3 digits (e.g., 3470, 5400, 7480)
+      const firstDigit = upperModel.charAt(0)
+      if (firstDigit === '3') series = '3XX'
+      else if (firstDigit === '4') series = '4XX'
+      else if (firstDigit === '5') series = '5XX'
+      else if (firstDigit === '6') series = '6XX'
+      else if (firstDigit === '7') series = '7XX'
+      else if (firstDigit === '8') series = '8XX'
+      else series = 'OTHER'
+    } else if (upperModel.includes('M')) {
+      series = 'M-SERIES'
+    } else if (upperModel.includes('65')) {
+      series = '65X'
+    } else if (upperModel.includes('84')) {
+      series = '84X'
+    } else if (upperModel.includes('85')) {
+      series = '85X'
     }
-
-    const catCell = catRow.getCell(1)
-    catCell.value = catGroup.banner
-    catCell.font = { name: 'Arial', bold: true, size: 10, color: { argb: 'FF1A5276' } }
-    catCell.alignment = { horizontal: 'center', vertical: 'middle' }
-
-    currentRowIdx++
-
-    // Data rows for this category
-    for (const item of catGroup.items) {
-      const row = ws.getRow(currentRowIdx)
-      row.height = 36
-      const rowBg = isBanded ? 'FFF5F8FA' : 'FFFFFFFF'
-      isBanded = !isBanded
-
-      // Col 1: #
-      const c1 = row.getCell(1)
-      c1.value = globalItemIdx
-      c1.font = { name: 'Arial', size: 10, color: { argb: 'FF7F8C8D' } }
-      c1.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-      c1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } }
-      c1.border = thinBorder
-
-      // Col 2: Model
-      const c2 = row.getCell(2)
-      c2.value = item.name || `${item.brand || ''} ${item.model || ''}`.trim()
-      c2.font = { name: 'Arial', bold: true, size: 10, color: { argb: 'FF2C3E50' } }
-      c2.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 }
-      c2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } }
-      c2.border = thinBorder
-
-      // Col 3: Processor / CPU
-      const c3 = row.getCell(3)
-      c3.value = item.cpu || ''
-      c3.font = { name: 'Arial', size: 10, color: { argb: 'FF2C3E50' } }
-      c3.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true, indent: 1 }
-      c3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } }
-      c3.border = thinBorder
-
-      // Col 4: RAM
-      const c4 = row.getCell(4)
-      c4.value = item.ram || ''
-      c4.font = { name: 'Arial', bold: true, size: 11, color: { argb: 'FF2C3E50' } }
-      c4.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-      c4.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } }
-      c4.border = thinBorder
-
-      // Col 5: Storage
-      const c5 = row.getCell(5)
-      c5.value = item.storage || ''
-      c5.font = { name: 'Arial', size: 10, color: { argb: 'FF2C3E50' } }
-      c5.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-      c5.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } }
-      c5.border = thinBorder
-
-      // Col 6: Screen
-      const c6 = row.getCell(6)
-      c6.value = item.screen || ''
-      c6.font = { name: 'Arial', size: 10, color: { argb: 'FF2C3E50' } }
-      c6.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-      c6.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } }
-      c6.border = thinBorder
-
-      // Col 7: Graphics Card / VGA
-      const c7 = row.getCell(7)
-      c7.value = item.gpu || ''
-      c7.font = { name: 'Arial', size: 10, color: { argb: 'FF2C3E50' } }
-      c7.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true, indent: 1 }
-      c7.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowBg } }
-      c7.border = thinBorder
-
-      // Col 8: Price (EGP)
-      const c8 = row.getCell(8)
-      const numPrice = typeof item.price === 'number' ? item.price : Number(item.price) || 0
-      c8.value = numPrice
-      c8.font = { name: 'Arial', bold: true, size: 11, color: { argb: 'FF1A5276' } }
-      c8.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEBF5FB' } }
-      c8.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
-      c8.numFmt = '#,##0" EGP"'
-      c8.border = thinBorder
-
-      currentRowIdx++
-      globalItemIdx++
-    }
+    
+    return { brand, model, series }
   }
+
+  // Brand priority order
+  const BRAND_PRIORITY = ['HP', 'DELL', 'LENOVO']
+
+  // Series priority within each brand
+  const SERIES_PRIORITY: Record<string, string[]> = {
+    'HP': ['ZBOOK', '65X', '84X', '85X', '6XX', '8XX', '4XX', '2XX', 'OTHER'],
+    'DELL': ['M-SERIES', '3XX', '4XX', '5XX', '7XX', 'OTHER'],
+    'LENOVO': ['THINKPAD', 'IDEAPAD', 'OTHER']
+  }
+
+  // Parse all items with brand/series info
+  const parsedItems = items.map((item, idx) => {
+    const { brand, model, series } = parseLaptopInfo(item)
+    return {
+      ...item,
+      brand,
+      model,
+      series,
+      originalIndex: idx
+    }
+  })
+
+  // Sort items by brand priority, then series priority, then original order
+  const sortedItems = parsedItems.sort((a, b) => {
+    // Sort by brand priority
+    const aBrandIdx = BRAND_PRIORITY.indexOf(a.brand) !== -1 ? BRAND_PRIORITY.indexOf(a.brand) : 999
+    const bBrandIdx = BRAND_PRIORITY.indexOf(b.brand) !== -1 ? BRAND_PRIORITY.indexOf(b.brand) : 999
+    
+    if (aBrandIdx !== bBrandIdx) {
+      return aBrandIdx - bBrandIdx
+    }
+    
+    // Same brand, sort by series priority
+    const aSeriesPriority = SERIES_PRIORITY[a.brand] || []
+    const bSeriesPriority = SERIES_PRIORITY[b.brand] || []
+    
+    const aSeriesIdx = aSeriesPriority.indexOf(a.series) !== -1 ? aSeriesPriority.indexOf(a.series) : 999
+    const bSeriesIdx = bSeriesPriority.indexOf(b.series) !== -1 ? bSeriesPriority.indexOf(b.series) : 999
+    
+    if (aSeriesIdx !== bSeriesIdx) {
+      return aSeriesIdx - bSeriesIdx
+    }
+    
+    // Same brand and series, preserve original order
+    return a.originalIndex - b.originalIndex
+  })
+
+  // DATA ROWS
+  let currentRow = 3
+  let currentBrand = ''
+  let currentSeries = ''
+
+  for (const item of sortedItems) {
+    // Check if we need to insert blank row between series/brands
+    if (currentBrand && (item.brand !== currentBrand || item.series !== currentSeries)) {
+      // Insert blank row
+      const blankRow = ws.getRow(currentRow)
+      blankRow.height = 15
+      for (let c = 1; c <= 8; c++) {
+        const cell = blankRow.getCell(c)
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+        // No border for blank row
+      }
+      currentRow++
+    }
+    
+    currentBrand = item.brand
+    currentSeries = item.series
+    
+    const row = ws.getRow(currentRow)
+    row.height = 20
+    
+    // BRAND column - yellow fill
+    const cellBrand = row.getCell(1)
+    cellBrand.value = item.brand
+    cellBrand.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } }
+    cellBrand.alignment = { horizontal: 'left', vertical: 'middle' }
+    cellBrand.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } }
+    cellBrand.border = thinBorder
+    
+    // MODEL column - white fill
+    const cellModel = row.getCell(2)
+    cellModel.value = item.model
+    cellModel.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } }
+    cellModel.alignment = { horizontal: 'left', vertical: 'middle' }
+    cellModel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+    cellModel.border = thinBorder
+    
+    // CPU column - white fill
+    const cellCpu = row.getCell(3)
+    cellCpu.value = item.cpu
+    cellCpu.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } }
+    cellCpu.alignment = { horizontal: 'left', vertical: 'middle' }
+    cellCpu.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+    cellCpu.border = thinBorder
+    
+    // HARD (storage) column - white fill
+    const cellHard = row.getCell(4)
+    cellHard.value = item.storage
+    cellHard.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } }
+    cellHard.alignment = { horizontal: 'left', vertical: 'middle' }
+    cellHard.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+    cellHard.border = thinBorder
+    
+    // RAM column - white fill
+    const cellRam = row.getCell(5)
+    cellRam.value = item.ram
+    cellRam.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } }
+    cellRam.alignment = { horizontal: 'left', vertical: 'middle' }
+    cellRam.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+    cellRam.border = thinBorder
+    
+    // VGA column - white fill
+    const cellVga = row.getCell(6)
+    cellVga.value = item.gpu
+    cellVga.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } }
+    cellVga.alignment = { horizontal: 'left', vertical: 'middle' }
+    cellVga.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+    cellVga.border = thinBorder
+    
+    // MONITOR column - white fill
+    const cellMonitor = row.getCell(7)
+    cellMonitor.value = item.screen || ''
+    cellMonitor.font = { name: 'Arial', size: 10, color: { argb: 'FF000000' } }
+    cellMonitor.alignment = { horizontal: 'left', vertical: 'middle' }
+    cellMonitor.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+    cellMonitor.border = thinBorder
+    
+    // PRICE column - pink/salmon fill, bold, right-aligned, plain integer
+    const cellPrice = row.getCell(8)
+    const numPrice = typeof item.price === 'number' ? item.price : Number(item.price) || 0
+    cellPrice.value = numPrice
+    cellPrice.font = { name: 'Arial', bold: true, size: 11, color: { argb: 'FF000000' } }
+    cellPrice.alignment = { horizontal: 'right', vertical: 'middle' }
+    cellPrice.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC0CB' } } // Salmon/pink
+    cellPrice.border = thinBorder
+    cellPrice.numFmt = '0' // Plain integer format
+    
+    currentRow++
+  }
+
+  // Auto-fit column widths for better content display
+  ws.columns.forEach((column) => {
+    if (column.eachCell) {
+      let maxLength = 0
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        const value = cell.value ? String(cell.value) : ''
+        const length = value.length
+        if (length > maxLength) {
+          maxLength = length
+        }
+      })
+      // Set minimum width and add some padding
+      column.width = Math.max(Math.min(maxLength + 2, 30), 10)
+    }
+  })
 
   return wb
 }
