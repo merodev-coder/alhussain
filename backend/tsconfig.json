@@ -10,8 +10,9 @@
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
-  "include": ["src", "scripts"],
+  "include": ["src"],
   "exclude": ["node_modules"]
 }
