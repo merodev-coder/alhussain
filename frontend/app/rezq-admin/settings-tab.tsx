@@ -38,10 +38,7 @@ export default function SettingsTab() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!vodafoneCashNumber.trim() || !instapayNumber.trim()) {
-      alert('يرجى ملء جميع الحقول')
-      return
-    }
+    // No validation required - fields are now optional
 
     setSaving(true)
     try {

@@ -10,15 +10,15 @@ import { getAllConnections } from '../lib/db.js'
 const router = Router()
 
 const settingsSchema = z.object({
-  vodafoneCashNumber: z.string().min(1, 'Vodafone Cash number is required'),
-  instapayNumber: z.string().min(1, 'Instapay number is required'),
+  vodafoneCashNumber: z.string().optional(),
+  instapayNumber: z.string().optional(),
   activeUploadThingTokenIndex: z.number().int().min(0).optional(),
   senderEmail: z.string().email('Invalid email format').optional().or(z.literal('')),
   senderEmailAppPassword: z.string().optional().or(z.literal('')),
 }).transform(data => ({
-  ...data,
-  vodafoneCashNumber: data.vodafoneCashNumber.trim(),
-  instapayNumber: data.instapayNumber.trim(),
+  vodafoneCashNumber: data.vodafoneCashNumber?.trim() || '',
+  instapayNumber: data.instapayNumber?.trim() || '',
+  activeUploadThingTokenIndex: data.activeUploadThingTokenIndex ?? 0,
   senderEmail: data.senderEmail?.trim() || '',
   senderEmailAppPassword: data.senderEmailAppPassword?.replace(/\s/g, '') || '',
 }))
@@ -102,55 +102,59 @@ router.post('/api/settings', requireAdmin, async (req: Request, res: Response): 
       const updateData: Record<string, unknown> = {
         vodafoneCashNumber: data.vodafoneCashNumber,
         instapayNumber: data.instapayNumber,
-      }
-      if (data.activeUploadThingTokenIndex !== undefined) {
-        updateData.activeUploadThingTokenIndex = data.activeUploadThingTokenIndex
-      }
-      if (data.senderEmail !== undefined) {
-        updateData.senderEmail = data.senderEmail
-      }
-      if (data.senderEmailAppPassword !== undefined) {
-        updateData.senderEmailAppPassword = data.senderEmailAppPassword
+        activeUploadThingTokenIndex: data.activeUploadThingTokenIndex,
+        senderEmail: data.senderEmail,
+        senderEmailAppPassword: data.senderEmailAppPassword,
       }
 
       logInfo('Settings Update', `Update data: ${JSON.stringify(updateData)}`)
 
-      const updated = await DatabaseRouter.updateOnDatabase(
-        targetDbIndex,
-        async (connection) => {
-          const SettingsModel = getSiteSettingsModel(connection)
-          const result = await SettingsModel.findOneAndUpdate(
-            { _id: existing._id },
-            updateData,
-            { new: true }
-          ).lean()
-          if (!result) {
-            throw new Error('Settings document not found during update')
-          }
-          logInfo('Settings Update', `Successfully updated settings: ${JSON.stringify(result)}`)
-          return result
-        },
-        'settings'
-      )
-      res.json(withId(updated))
+      try {
+        const updated = await DatabaseRouter.updateOnDatabase(
+          targetDbIndex,
+          async (connection) => {
+            const SettingsModel = getSiteSettingsModel(connection)
+            const result = await SettingsModel.findOneAndUpdate(
+              { _id: existing._id },
+              updateData,
+              { new: true }
+            ).lean()
+            if (!result) {
+              throw new Error('Settings document not found during update')
+            }
+            logInfo('Settings Update', `Successfully updated settings: ${JSON.stringify(result)}`)
+            return result
+          },
+          'settings'
+        )
+        res.json(withId(updated))
+      } catch (dbError) {
+        logError('Database update error', dbError)
+        throw dbError
+      }
     } else {
       logInfo('Settings Update', 'Creating new settings on primary database')
       // Create new settings on primary database using DatabaseRouter
-      const { result } = await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
-        const SettingsModel = getSiteSettingsModel(connection)
-        const settings = new SettingsModel({
-          vodafoneCashNumber: data.vodafoneCashNumber,
-          instapayNumber: data.instapayNumber,
-          activeUploadThingTokenIndex: data.activeUploadThingTokenIndex ?? 0,
-          senderEmail: data.senderEmail ?? '',
-          senderEmailAppPassword: data.senderEmailAppPassword ?? '',
-          dbIndex,
-        })
-        await settings.save()
-        logInfo('Settings Update', `Successfully created new settings: ${JSON.stringify(settings.toJSON())}`)
-        return settings
-      }, 'settings')
-      res.status(201).json(result.toJSON())
+      try {
+        const { result } = await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
+          const SettingsModel = getSiteSettingsModel(connection)
+          const settings = new SettingsModel({
+            vodafoneCashNumber: data.vodafoneCashNumber,
+            instapayNumber: data.instapayNumber,
+            activeUploadThingTokenIndex: data.activeUploadThingTokenIndex ?? 0,
+            senderEmail: data.senderEmail ?? '',
+            senderEmailAppPassword: data.senderEmailAppPassword ?? '',
+            dbIndex,
+          })
+          await settings.save()
+          logInfo('Settings Update', `Successfully created new settings: ${JSON.stringify(settings.toJSON())}`)
+          return settings
+        }, 'settings')
+        res.status(201).json(result.toJSON())
+      } catch (dbError) {
+        logError('Database create error', dbError)
+        throw dbError
+      }
     }
   } catch (error) {
     logError('Update settings', error)
@@ -159,8 +163,9 @@ router.post('/api/settings', requireAdmin, async (req: Request, res: Response): 
       res.status(400).json({ error: 'بيانات غير صحيحة', details: error.issues })
       return
     }
-    logError('Settings Server Error', error instanceof Error ? error.message : String(error))
-    res.status(500).json({ error: 'حدث خطأ في الخادم', message: error instanceof Error ? error.message : String(error) })
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    logError('Settings Server Error', errorMessage)
+    res.status(500).json({ error: 'حدث خطأ في الخادم', message: errorMessage })
   }
 })
 
