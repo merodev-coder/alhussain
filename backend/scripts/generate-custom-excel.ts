@@ -315,10 +315,17 @@ ws.columns.forEach((column) => {
 })
 
 // Save the workbook
-const outputPath = path.resolve(process.cwd(), 'AlHussein_PriceList_Custom.xlsx')
-await wb.xlsx.writeFile(outputPath)
+async function generateExcel() {
+  const outputPath = path.resolve(process.cwd(), 'AlHussein_PriceList_Custom.xlsx')
+  await wb.xlsx.writeFile(outputPath)
 
-console.log(`Excel file generated successfully: ${outputPath}`)
-console.log(`Total items: ${sortedItems.length}`)
-console.log(`Brands: ${[...new Set(sortedItems.map(i => i.brand))].join(', ')}`)
-console.log(`Series groups: ${[...new Set(sortedItems.map(i => `${i.brand}-${i.series}`))].join(', ')}`)
+  console.log(`Excel file generated successfully: ${outputPath}`)
+  console.log(`Total items: ${sortedItems.length}`)
+  console.log(`Brands: ${[...new Set(sortedItems.map(i => i.brand))].join(', ')}`)
+  console.log(`Series groups: ${[...new Set(sortedItems.map(i => `${i.brand}-${i.series}`))].join(', ')}`)
+}
+
+generateExcel().catch(err => {
+  console.error('Error generating Excel file:', err)
+  process.exit(1)
+})
