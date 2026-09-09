@@ -131,12 +131,17 @@ export async function buildPricelistExcelWorkbook(
       model = name.substring(brand.length).trim()
     }
     
-    // Determine series based on model patterns
+    // Determine series based on FULL NAME patterns - specific series grouping
     let series = 'OTHER'
     const upperModel = model.toUpperCase()
     
-    if (upperModel.includes('ZBOOK')) {
+    // HP Series - check these first using full name
+    if (upperName.includes('PROBOOK')) {
+      series = 'PROBOOK'
+    } else if (upperName.includes('ZBOOK')) {
       series = 'ZBOOK'
+    } else if (upperName.includes('ELITEBOOK')) {
+      series = 'ELITEBOOK'
     } else if (upperModel.match(/^\d{3}/)) {
       // Models starting with 3 digits (e.g., 3470, 5400, 7480)
       const firstDigit = upperModel.charAt(0)
@@ -147,8 +152,6 @@ export async function buildPricelistExcelWorkbook(
       else if (firstDigit === '7') series = '7XX'
       else if (firstDigit === '8') series = '8XX'
       else series = 'OTHER'
-    } else if (upperModel.includes('M')) {
-      series = 'M-SERIES'
     } else if (upperModel.includes('65')) {
       series = '65X'
     } else if (upperModel.includes('84')) {
@@ -157,16 +160,42 @@ export async function buildPricelistExcelWorkbook(
       series = '85X'
     }
     
+    // Dell Series - check these first using full name for Dell models
+    if (brand === 'DELL') {
+      if (upperName.includes('LATITUDE')) {
+        series = 'LATITUDE'
+      } else if (upperName.includes('PRECISION')) {
+        series = 'PRECISION'
+      } else if (upperName.includes('OPTIPLEX')) {
+        series = 'OPTIPLEX'
+      } else if (upperName.includes('XPS')) {
+        series = 'XPS'
+      } else if (upperName.includes('INSPIRON')) {
+        series = 'INSPIRON'
+      } else if (upperName.includes('G-SERIES')) {
+        series = 'G-SERIES'
+      } else if (upperName.includes('VOSTRO')) {
+        series = 'VOSTRO'
+      } else if (upperModel.match(/^M\d+/)) {
+        // Check if it's a Precision M-series (e.g., Precision M4800)
+        // If the full name includes "Precision", it should already be caught above
+        // This is for standalone M-series models
+        if (!upperName.includes('PRECISION')) {
+          series = 'M-SERIES'
+        }
+      }
+    }
+    
     return { brand, model, series }
   }
 
   // Brand priority order
   const BRAND_PRIORITY = ['HP', 'DELL', 'LENOVO']
 
-  // Series priority within each brand
+  // Series priority within each brand - specific grouping for ProBook, Latitude, ZBook, Precision
   const SERIES_PRIORITY: Record<string, string[]> = {
-    'HP': ['ZBOOK', '65X', '84X', '85X', '6XX', '8XX', '4XX', '2XX', 'OTHER'],
-    'DELL': ['M-SERIES', '3XX', '4XX', '5XX', '7XX', 'OTHER'],
+    'HP': ['PROBOOK', 'ZBOOK', 'ELITEBOOK', '65X', '84X', '85X', '6XX', '8XX', '4XX', '3XX', '5XX', '7XX', 'OTHER'],
+    'DELL': ['LATITUDE', 'PRECISION', 'XPS', 'OPTIPLEX', 'INSPIRON', 'G-SERIES', 'VOSTRO', '3XX', '4XX', '5XX', '7XX', '6XX', 'M-SERIES', 'OTHER'],
     'LENOVO': ['THINKPAD', 'IDEAPAD', 'OTHER']
   }
 
