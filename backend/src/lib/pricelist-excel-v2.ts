@@ -2,6 +2,9 @@ import ExcelJS from 'exceljs'
 import type { StructuredLaptopItem } from '../models/Pricelist.js'
 import { getCategoryInfo } from './pricelist-excel.js'
 import { normalizeIntegratedGpuVram } from './gpu-normalize.js'
+import { translateCpuGenerationToArabic } from './cpu-normalize.js'
+
+const TABLE_ROW_HEIGHT = 70
 
 const NAVY = 'FF2C3E50'
 const MUTED = 'FF7F8C8D'
@@ -92,7 +95,7 @@ export async function buildPricelistExcelWorkbookV2(
   // ROW 5: column headers
   const headerRowIdx = 5
   const headerRow = ws.getRow(headerRowIdx)
-  headerRow.height = 30
+  headerRow.height = TABLE_ROW_HEIGHT
   const headers = ['#', 'Model', 'Processor  /  CPU', 'RAM', 'Storage', 'Screen', 'Graphics Card  /  VGA', 'Price (EGP)']
   headers.forEach((header, idx) => {
     const cell = headerRow.getCell(idx + 1)
@@ -103,10 +106,11 @@ export async function buildPricelistExcelWorkbookV2(
     cell.border = headerBorder
   })
 
-  // Normalize integrated Intel GPU VRAM ranges before writing
+  // Normalize integrated Intel GPU VRAM ranges and translate CPU generation to Arabic
   const normalizedItems = items.map(it => ({
     ...it,
     gpu: normalizeIntegratedGpuVram(it.gpu),
+    cpu: translateCpuGenerationToArabic(it.cpu),
   }))
 
   let currentRow = headerRowIdx + 1
@@ -127,14 +131,14 @@ export async function buildPricelistExcelWorkbookV2(
       for (let c = 1; c <= 8; c++) {
         ws.getCell(currentRow, c).border = thinBorder
       }
-      ws.getRow(currentRow).height = 26
+      ws.getRow(currentRow).height = TABLE_ROW_HEIGHT
       currentRow++
       stripe = 0
     }
 
     rowNumber++
     const row = ws.getRow(currentRow)
-    row.height = 24
+    row.height = TABLE_ROW_HEIGHT
     const bg = stripe % 2 === 0 ? WHITE : ROW_ALT_BG
     stripe++
 
