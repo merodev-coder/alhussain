@@ -180,6 +180,25 @@ export const api = {
     a.remove()
     window.URL.revokeObjectURL(url)
   },
+  export_pricelist_v2: async (pricelistId: string) => {
+    const response = await fetch(`${API_URL}/api/pricelist/${pricelistId}/export-v2`, {
+      method: 'GET',
+      credentials: 'include',
+    })
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+      throw new Error(error.error || `API error: ${response.status}`)
+    }
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pricelist_catalog_${Date.now()}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(url)
+  },
   upload_pricelist: async (file: File) => {
     const formData = new FormData()
     formData.append('file', file)

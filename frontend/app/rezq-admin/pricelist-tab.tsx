@@ -68,6 +68,7 @@ export default function PricelistTab() {
   // Deletion and Export State
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [isExportingV2, setIsExportingV2] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
   // Fetch current pricelist on mount (using admin endpoint to retain rawExcelFileUrl)
@@ -223,6 +224,19 @@ export default function PricelistTab() {
       setError(err instanceof Error ? err.message : 'فشل تصدير قائمة الأسعار')
     } finally {
       setIsExporting(false)
+    }
+  }
+
+  const handleExportV2 = async () => {
+    if (!pricelist?.id) return
+    setIsExportingV2(true)
+    try {
+      await api.export_pricelist_v2(pricelist.id)
+    } catch (err) {
+      clientLogger.error('Failed to export pricelist (catalog format):', err)
+      setError(err instanceof Error ? err.message : 'فشل تصدير قائمة الأسعار بالتنسيق الجديد')
+    } finally {
+      setIsExportingV2(false)
     }
   }
 
@@ -416,7 +430,17 @@ export default function PricelistTab() {
                 <Download className="w-3.5 h-3.5" />
                 {isExporting ? 'جاري التصدير...' : 'تحميل الليستة بعد التعديل'}
               </button>
-              
+
+              <button
+                onClick={handleExportV2}
+                disabled={isExportingV2 || items.length === 0}
+                title="تحميل قائمة الأسعار بتنسيق الكتالوج الجديد (مطابق لملف new_list.xlsx)"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-1 text-ink hover:bg-surface-2 border border-hairline rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+              >
+                <Download className="w-3.5 h-3.5" />
+                {isExportingV2 ? 'جاري التصدير...' : 'تحميل بالتنسيق الجديد'}
+              </button>
+
               <button
                 onClick={() => setShowDeleteAllModal(true)}
                 disabled={items.length === 0}

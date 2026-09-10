@@ -10,6 +10,8 @@ import { withId } from '../lib/json.js'
 import { normalizePricelistWithGemini, generatePricelistHtml } from '../lib/gemini.js'
 import { getUploadThingTokens } from '../lib/uploadthing-tokens.js'
 import { buildPricelistExcelWorkbook } from '../lib/pricelist-excel.js'
+import { buildPricelistExcelWorkbookV2 } from '../lib/pricelist-excel-v2.js'
+import { normalizeIntegratedGpuVram, normalizeItemsGpuVram } from '../lib/gpu-normalize.js'
 
 const router = Router()
 
@@ -314,8 +316,11 @@ router.post(
       logInfo('Pricelist Upload', `Normalizing ${rawRows.length} rows with Groq`)
       const rawStructuredItems = await normalizePricelistWithGemini(rawRows)
 
+      // 3b. Normalize integrated Intel GPU VRAM ranges to a consistent "1G→2G"
+      const gpuNormalizedItems = normalizeItemsGpuVram(rawStructuredItems)
+
       // 4. Sort structured items by category and price ascending
-      const structuredItems = sortStructuredItems(rawStructuredItems)
+      const structuredItems = sortStructuredItems(gpuNormalizedItems)
 
       // 5. Generate fallback HTML table from sorted structuredItems
       const generatedHtml = generatePricelistHtml(structuredItems)
@@ -406,7 +411,7 @@ router.patch(
         ram: updates.ram !== undefined ? String(updates.ram).trim() : current.ram,
         storage: updates.storage !== undefined ? String(updates.storage).trim() : current.storage,
         screen: updates.screen !== undefined ? String(updates.screen).trim() : current.screen,
-        gpu: updates.gpu !== undefined ? String(updates.gpu).trim() : current.gpu,
+        gpu: updates.gpu !== undefined ? normalizeIntegratedGpuVram(String(updates.gpu).trim()) : current.gpu,
         price: updates.price !== undefined ? Number(updates.price) : current.price,
         category: updates.category !== undefined ? String(updates.category).trim() : current.category,
       }
@@ -516,6 +521,86 @@ router.get('/api/pricelist/:id/export', requireAdmin, async (req: Request, res: 
     res.send(Buffer.from(buffer))
   } catch (error) {
     logError('Export pricelist', error)
+    res.status(500).json({ error: 'حدث خطأ في تصدير قائمة الأسعار' })
+  }
+})
+
+/**
+ * GET /api/pricelist/export-v2
+ * Exports the currently published pricelist as the alternate "catalog style"
+ * Excel format (matching the reference new_list.xlsx layout).
+ */
+router.get('/api/pricelist/export-v2', requireAdmin, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const pricelists = await DatabaseRouter.readAcrossAllDatabases(
+      async connection =>
+        getPricelistModel(connection).find({ published: true }).sort({ uploadedAt: -1 }).lean(),
+      'find-published-pricelist'
+    )
+    let pricelist = pricelists.sort(
+      (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    )[0]
+
+    if (!pricelist) {
+      const fallbackList = await DatabaseRouter.readAcrossAllDatabases(
+        async connection => {
+          const doc = await getPricelistModel(connection).findOne().sort({ uploadedAt: -1 }).lean()
+          return doc ? [doc] : []
+        },
+        'find-latest-pricelist'
+      )
+      pricelist = fallbackList[0]
+    }
+
+    if (!pricelist) {
+      res.status(404).json({ error: 'لا توجد أي قائمة أسعار منشورة للتصدير' })
+      return
+    }
+
+    const items = (pricelist.structuredItems || []) as StructuredLaptopItem[]
+    const wb = await buildPricelistExcelWorkbookV2(items, pricelist.uploadedAt)
+    const buffer = await wb.xlsx.writeBuffer()
+
+    res.setHeader('Content-Disposition', `attachment; filename="AlHussein_Laptops_Catalog_${Date.now()}.xlsx"`)
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    res.send(Buffer.from(buffer))
+  } catch (error) {
+    logError('Export published pricelist v2', error)
+    res.status(500).json({ error: 'حدث خطأ في تصدير قائمة الأسعار' })
+  }
+})
+
+/**
+ * GET /api/pricelist/:id/export-v2
+ * Exports the current state of structuredItems for a specific pricelist using
+ * the alternate "catalog style" Excel format (matching new_list.xlsx).
+ */
+router.get('/api/pricelist/:id/export-v2', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params
+    const pricelists = await DatabaseRouter.readAcrossAllDatabases(
+      async connection => {
+        const doc = await getPricelistModel(connection).findById(id).lean()
+        return doc ? [doc] : []
+      },
+      'find-pricelist-by-id'
+    )
+    const pricelist = pricelists[0]
+
+    if (!pricelist) {
+      res.status(404).json({ error: 'قائمة الأسعار غير موجودة' })
+      return
+    }
+
+    const items = (pricelist.structuredItems || []) as StructuredLaptopItem[]
+    const wb = await buildPricelistExcelWorkbookV2(items, pricelist.uploadedAt)
+    const buffer = await wb.xlsx.writeBuffer()
+
+    res.setHeader('Content-Disposition', `attachment; filename="AlHussein_Laptops_Catalog_${Date.now()}.xlsx"`)
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    res.send(Buffer.from(buffer))
+  } catch (error) {
+    logError('Export pricelist v2', error)
     res.status(500).json({ error: 'حدث خطأ في تصدير قائمة الأسعار' })
   }
 })
