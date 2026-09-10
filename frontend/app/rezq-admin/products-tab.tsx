@@ -1260,8 +1260,9 @@ function BulkImportModal({
 
 // ── Products Tab ────────────────────────────────────────────────────────────────
 export default function ProductsTab() {
+  const [page, setPage] = useState(1)
   const { data, isLoading, error, mutate } = useSWR<{ items: Product[]; total: number; page: number; pages: number }>(
-    '/api/products',
+    `/api/products?page=${page}&limit=24`,
     fetcher
   )
   const { data: specData, mutate: mutateSpecs } = useSWR<{ id: string; type: string; value: string }[]>(
@@ -1276,6 +1277,8 @@ export default function ProductsTab() {
   const [banner, setBanner] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
   const products = data?.items ?? []
+  const totalCount = data?.total ?? products.length
+  const totalPages = data?.pages || 1
   const specs = useMemo<SpecGroups>(
     () => {
       const grouped: SpecGroups = { cpu: [], gpu: [], ram: [], storage: [] }
@@ -1315,7 +1318,11 @@ export default function ProductsTab() {
     try {
       await api.delete_product(deleting.id)
       setDeleting(null)
-      mutate()
+      if (products.length === 1 && page > 1) {
+        setPage(p => p - 1)
+      } else {
+        mutate()
+      }
       flash('success', 'تم حذف المنتج')
     } catch {
       setDeleting(null)
@@ -1349,7 +1356,7 @@ export default function ProductsTab() {
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="font-sans font-bold text-ink text-2xl">المنتجات</h2>
-          <p className="font-body text-sm text-ink-muted">{products.length} منتج</p>
+          <p className="font-body text-sm text-ink-muted">{totalCount} منتج</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -1475,7 +1482,27 @@ export default function ProductsTab() {
                 </div>
               ))}
             </div>
-            {/* Pagination could be added here if needed */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 py-4 border-t border-hairline">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-4 py-2 rounded-full border border-hairline font-body text-sm text-ink hover:bg-surface-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  السابق
+                </button>
+                <span className="font-body text-sm text-ink-muted">
+                  الصفحة {page} من {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-4 py-2 rounded-full border border-hairline font-body text-sm text-ink hover:bg-surface-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  التالي
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
