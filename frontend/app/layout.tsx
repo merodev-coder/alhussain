@@ -21,7 +21,9 @@ const tajawal = Tajawal({
 export const metadata: Metadata = {
   title: 'الحسين للاب توب - أفضل لاب توبات مستوردة في مصر',
   description: 'متجر الحسين للاب توب - استيراد وبيع أجهزة اللاب توب بأفضل الأسعار في مصر. تشكيلة واسعة من أحدث الموديلات.',
-  generator: 'v0.app',
+    icons: {
+    icon: '/logo.jpeg',
+  },
 }
 
 export const viewport: Viewport = {
