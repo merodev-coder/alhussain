@@ -20,7 +20,7 @@ const tajawal = Tajawal({
 
 export const metadata: Metadata = {
   title: 'الحسين للاب توب - أفضل لاب توبات مستوردة في مصر',
-  description: 'متجر الحسين للاب توب - استيراد وبيع أجهزة اللاب توب بأفضل الأسعار في مصر. تشكيلة واسعة من أحدث الموديلات.',
+  description: 'شركة الحسين للاب توب is a local shop in Shibin el-Qanater that sells a variety of imported used and refurbished laptops.  متجر الحسين للاب توب - استيراد وبيع أجهزة اللاب توب بأفضل الأسعار في مصر. تشكيلة واسعة من أحدث الموديلات.',
     icons: {
     icon: '/logo.jpeg',
   },
