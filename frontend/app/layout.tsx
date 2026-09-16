@@ -22,9 +22,14 @@ const tajawal = Tajawal({
 export const metadata: Metadata = {
   title: 'الحسين للاب توب - أفضل لاب توبات مستوردة في مصر',
   description: 'شركة الحسين للاب توب is a local shop in Shibin el-Qanater that sells a variety of imported used and refurbished laptops.  متجر الحسين للاب توب - استيراد وبيع أجهزة اللاب توب بأفضل الأسعار في مصر. تشكيلة واسعة من أحدث الموديلات.',
-    icons: {
-    icon: '/logo.jpeg',
-  },
+  // The actual favicon files now live at app/icon.png, app/apple-icon.png,
+  // and public/favicon.ico (Next.js's file-based icon convention), which it
+  // auto-serves with the right <link> tags and sizes — that's also what
+  // Google reads for the little logo shown next to search results. This
+  // manual /logo.jpeg reference used to be the only icon Next knew about,
+  // and Google/some browsers don't reliably pick up a bare JPEG the same
+  // way; the generated PNG/ICO set is what should now show up everywhere,
+  // including in search result snippets, once Google recrawls the site.
 }
 
 export const viewport: Viewport = {

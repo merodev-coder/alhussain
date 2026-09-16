@@ -79,6 +79,21 @@ export default function AutoScrollCarousel({
     return () => clearInterval(timer)
   }, [shouldLoop, isHovered, intervalMs, scrollForward])
 
+  // Same fix as ProductCarousel: don't let a vertical mouse-wheel gesture
+  // get redirected into this row's horizontal scroll — hand it back to the
+  // page instead. Genuine horizontal gestures (trackpad swipe) still work.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const handleWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return
+      e.preventDefault()
+      window.scrollBy({ top: e.deltaY, left: 0 })
+    }
+    el.addEventListener('wheel', handleWheel, { passive: false })
+    return () => el.removeEventListener('wheel', handleWheel)
+  }, [])
+
   return (
     <div
       className="relative w-full overflow-hidden"

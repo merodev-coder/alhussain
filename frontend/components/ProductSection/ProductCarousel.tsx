@@ -121,6 +121,27 @@ export default function ProductCarousel({ products, sectionKey }: ProductCarouse
     }
   }, [products.length])
 
+  // The scroll snap + progress bar wiring is done, but on desktop the
+  // browser has its own default here that fights the user: an element that
+  // can only scroll horizontally (like this row) silently redirects a
+  // vertical mouse-wheel gesture into horizontal scrolling instead of
+  // letting it bubble up to scroll the page. That's why rolling the wheel
+  // over the middle of a product row scrolled the row sideways instead of
+  // scrolling the page down. A real horizontal gesture (trackpad swipe,
+  // shift+wheel) still has a meaningful deltaX and is left alone; only a
+  // vertical-dominant wheel tick is redirected back to the page.
+  useEffect(() => {
+    const track = trackRef.current
+    if (!track) return
+    const handleWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return
+      e.preventDefault()
+      window.scrollBy({ top: e.deltaY, left: 0 })
+    }
+    track.addEventListener('wheel', handleWheel, { passive: false })
+    return () => track.removeEventListener('wheel', handleWheel)
+  }, [])
+
   if (!products || products.length === 0) return null
 
   return (
