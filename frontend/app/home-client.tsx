@@ -7,6 +7,7 @@ import CategoryRow from '@/components/CategoryRow/CategoryRow'
 import ProductSection from '@/components/ProductSection/ProductSection'
 import FeatureTicker from '@/components/home/feature-ticker'
 import InstallmentBanner, { PerksStrip } from '@/components/home/installment-banner'
+import InstallmentBrandsBar from '@/components/home/installment-brands-bar'
 import TrustSection from '@/components/home/trust-section'
 import { api } from '@/lib/api'
 import type { HeroSlide, Product } from '@/lib/types'
@@ -31,9 +32,6 @@ const SECTION_LABELS: Record<AccessorySectionKey | 'laptops', string> = {
   monitors: 'شاشات',
 }
 
-// Show at most this many items in the curated rows (best sellers, offers, laptops).
-const MAX_CURATED = 12
-
 export default function HomeClient() {
   const [slides, setSlides] = useState<HeroSlide[]>([])
   const [dbProducts, setDbProducts] = useState<Product[]>([])
@@ -46,8 +44,8 @@ export default function HomeClient() {
 
     // The backend caps `limit` at 100 per page, so a single call can silently
     // truncate the catalog once the store has more than 100 products. Walk
-    // every page and merge, so best-sellers/offers/category sections are
-    // always computed against the full product list.
+    // every page and merge, so every homepage row is always computed against
+    // the full product list — with 80+ laptops in the store this matters.
     async function fetchAllProducts() {
       const PAGE_SIZE = 100
       try {
@@ -95,31 +93,53 @@ export default function HomeClient() {
     )
   }, [visibleProducts])
 
-  // Best sellers: admin explicitly assigns homeSection: 'best_sellers' from the dashboard.
-  const bestSellers = useMemo(
-    () => visibleProducts.filter(p => p.homeSection === 'best_sellers').slice(0, MAX_CURATED),
-    [visibleProducts]
-  )
-
-  // Latest offers: admin explicitly assigns homeSection: 'special_offers' from the dashboard.
-  const specialOffers = useMemo(
-    () => visibleProducts.filter(p => p.homeSection === 'special_offers').slice(0, MAX_CURATED),
-    [visibleProducts]
-  )
-
-  // Laptops: every Product in this store is a laptop by model design, so
-  // this row shows the whole catalog (newest first) rather than only
-  // products explicitly tagged homeSection: 'laptops'.
-  const allLaptops = useMemo(() => {
-    return [...visibleProducts]
-      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-      .slice(0, MAX_CURATED)
+  // Every Product in this store is a laptop by model design (cpu/gpu/ram/
+  // storage fields baked into the schema), so "لابتوبات" and "وصل حديثاً"
+  // always show the full catalog — every laptop the admin has ever added —
+  // regardless of the homeSection each product happens to be tagged with.
+  // "الأكثر مبيعاً" and "أحدث العروض" are the two rows the admin actually
+  // curates: a product only appears there once explicitly assigned to that
+  // homeSection from the dashboard, and shows only there for that purpose
+  // (not as a filter on the other two, which always include everything).
+  const allLaptopsNewestFirst = useMemo(() => {
+    return [...visibleProducts].sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    )
   }, [visibleProducts])
+
+  const bestSellers = useMemo(
+    () => visibleProducts.filter(p => p.homeSection === 'best_sellers'),
+    [visibleProducts]
+  )
+
+  const specialOffers = useMemo(
+    () => visibleProducts.filter(p => p.homeSection === 'special_offers'),
+    [visibleProducts]
+  )
 
   return (
     <StoreLayout showTopBar>
       <HeroSection slides={slides} />
       <CategoryRow />
+      <InstallmentBrandsBar />
+
+      <ProductSection
+        id="section-laptops"
+        title={SECTION_LABELS.laptops}
+        sectionKey="laptops"
+        categorySlug="laptops"
+        products={allLaptopsNewestFirst}
+        loading={productsLoading}
+      />
+
+      <ProductSection
+        id="section-new-arrivals"
+        title="وصل حديثاً"
+        sectionKey="new-arrivals"
+        categorySlug="laptops"
+        products={allLaptopsNewestFirst}
+        loading={productsLoading}
+      />
 
       <ProductSection
         id="section-best-sellers"
@@ -151,15 +171,6 @@ export default function HomeClient() {
       />
 
       <InstallmentBanner />
-
-      <ProductSection
-        id="section-laptops"
-        title={SECTION_LABELS.laptops}
-        sectionKey="laptops"
-        categorySlug="laptops"
-        products={allLaptops}
-        loading={productsLoading}
-      />
 
       <ProductSection
         id="section-bags"

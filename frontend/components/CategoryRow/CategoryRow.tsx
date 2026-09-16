@@ -62,7 +62,7 @@ export default function CategoryRow() {
 
   return (
     <section className="w-full bg-canvas py-8 sm:py-10" aria-label="تصفح الأقسام">
-      <div className="w-full px-3 sm:px-6 lg:px-10">
+      <div className="w-full px-2 sm:px-4">
         <StaggerGroup
           className="grid grid-cols-4 gap-3 sm:grid-cols-4 sm:gap-5 md:grid-cols-8 md:gap-4 lg:gap-6"
           staggerDelay={0.06}

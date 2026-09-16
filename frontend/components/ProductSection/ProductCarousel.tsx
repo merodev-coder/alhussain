@@ -11,44 +11,57 @@ interface ProductCarouselProps {
 }
 
 // Auto-advance interval for the carousel
-const AUTO_ADVANCE_MS = 2500
+const AUTO_ADVANCE_MS = 3200
 
 export default function ProductCarousel({ products, sectionKey }: ProductCarouselProps) {
   const trackRef = useRef<HTMLDivElement>(null)
-  const itemRefs = useRef<Array<HTMLDivElement | null>>([])
   const sectionRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [isInView, setIsInView] = useState(false)
+  // Guards against rapid double-clicks stacking multiple scroll animations,
+  // which is what made the arrows feel like they needed several clicks
+  // before anything visibly moved.
+  const isScrolling = useRef(false)
 
-  // Scroll only the carousel's own track — never the page. We compute the
-  // pixel delta between the target item and the track using bounding boxes
-  // (which are direction-agnostic) and move the track with scrollBy, which
-  // never bubbles up to scroll any ancestor or the document.
-  const scrollToIndex = useCallback((idx: number) => {
+  // Move by one full "page" of currently-visible cards (not just one card),
+  // using a direct pixel scrollBy on the track itself — this is immediate
+  // and predictable, unlike scrollIntoView which can silently no-op when
+  // the target card is already partially visible in a multi-item viewport.
+  const scrollByPage = useCallback((direction: 1 | -1) => {
     const track = trackRef.current
-    const item = itemRefs.current[idx]
-    if (!track || !item) return
-    item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    if (!track || isScrolling.current) return
+
+    const firstCard = track.firstElementChild as HTMLElement | null
+    const cardWidth = firstCard?.getBoundingClientRect().width || track.clientWidth
+    const gap = 16 // matches the track's gap-4 (16px); sm:gap-6 handled below
+    const styles = window.getComputedStyle(track)
+    const gapPx = parseFloat(styles.columnGap || styles.gap || String(gap)) || gap
+
+    // RTL: scrolling toward "next" moves left (negative scrollLeft delta in RTL coordinate space).
+    const amount = (cardWidth + gapPx) * direction
+
+    isScrolling.current = true
+    track.scrollBy({ left: amount, behavior: 'smooth' })
+    // Release the guard once the smooth-scroll has had time to finish, so a
+    // deliberate next click is never eaten, but a rapid flurry doesn't
+    // stack conflicting scrollBy calls that visually cancel out.
+    window.setTimeout(() => {
+      isScrolling.current = false
+    }, 420)
   }, [])
 
   const goNext = useCallback(() => {
     if (!products.length) return
-    setActiveIndex(prev => {
-      const next = (prev + 1) % products.length
-      scrollToIndex(next)
-      return next
-    })
-  }, [products.length, scrollToIndex])
+    setActiveIndex(prev => (prev + 1) % products.length)
+    scrollByPage(1)
+  }, [products.length, scrollByPage])
 
   const goPrev = useCallback(() => {
     if (!products.length) return
-    setActiveIndex(prev => {
-      const next = (prev - 1 + products.length) % products.length
-      scrollToIndex(next)
-      return next
-    })
-  }, [products.length, scrollToIndex])
+    setActiveIndex(prev => (prev - 1 + products.length) % products.length)
+    scrollByPage(-1)
+  }, [products.length, scrollByPage])
 
   // Only run the autoplay timer while this carousel is actually visible on
   // screen, so off-screen sections never trigger any scrolling at all.
@@ -66,7 +79,7 @@ export default function ProductCarousel({ products, sectionKey }: ProductCarouse
     return () => observer.disconnect()
   }, [])
 
-  // Auto-advance the carousel every 2.5 seconds, pausing on hover/touch or when off-screen
+  // Auto-advance the carousel every few seconds, pausing on hover/touch or when off-screen
   useEffect(() => {
     if (isPaused || !isInView || products.length <= 1) return
     const timer = setInterval(goNext, AUTO_ADVANCE_MS)
@@ -94,10 +107,7 @@ export default function ProductCarousel({ products, sectionKey }: ProductCarouse
         {products.map((product, idx) => (
           <div
             key={`${sectionKey}-${product.id}`}
-            ref={el => {
-              itemRefs.current[idx] = el
-            }}
-            className="snap-start shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] animate-count"
+            className="snap-start shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-16px)] lg:w-[calc(20%-16px)] xl:w-[calc(16.666%-14px)] animate-count"
             style={{ animationDelay: `${idx * 70}ms` }}
           >
             <ProductCard product={product} />

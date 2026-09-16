@@ -7,15 +7,15 @@ import { StaggerGroup, StaggerItem } from './stagger'
 export default function InstallmentBanner() {
   return (
     <Reveal direction="scale" className="w-full py-8 sm:py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-[24px] sm:rounded-[28px] overflow-hidden shadow-xl">
+      <div className="w-full px-2 sm:px-4">
+        <div className="relative overflow-hidden shadow-xl">
           <Image
             src="/promo/installment-banner.webp"
             alt="اشتري وادفع على مهلك"
             width={1400}
             height={330}
             className="w-full h-auto object-cover"
-            sizes="(max-width: 1024px) 100vw, 1400px"
+            sizes="100vw"
           />
         </div>
       </div>
@@ -33,8 +33,8 @@ const PERKS = [
 export function PerksStrip() {
   return (
     <section className="w-full py-10 sm:py-14">
-      <div className="w-full px-3 sm:px-6 lg:px-10">
-        <StaggerGroup className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-7 lg:gap-8">
+      <div className="w-full px-2 sm:px-4">
+        <StaggerGroup className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-6">
           {PERKS.map(perk => (
             <StaggerItem key={perk.src}>
               <div className="relative rounded-[24px] overflow-hidden shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300">

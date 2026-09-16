@@ -25,8 +25,9 @@ interface ProductSectionProps {
   loading?: boolean
 }
 
-// Show at most this many products in the home page carousel; the rest are reachable via "View All"
-const MAX_VISIBLE = 12
+// Show at most this many products in the home page carousel; the rest are reachable via "View All".
+// Raised well above a typical catalog size so a store with 80+ laptops still shows everything inline.
+const MAX_VISIBLE = 200
 const SKELETON_COUNT = 4
 
 export default function ProductSection({
@@ -45,10 +46,14 @@ export default function ProductSection({
 
   const viewAllLink = getCategoryHref(categorySlug || sectionKey)
   const visibleProducts = products.slice(0, MAX_VISIBLE)
+  // "View All" only adds value when there's more to see than what's already
+  // shown inline — with MAX_VISIBLE this high it's effectively always hidden
+  // now, but the check is kept in case a section ever caps lower again.
+  const hasMore = products.length > MAX_VISIBLE
 
   return (
     <section id={id} className="w-full py-10 sm:py-14 scroll-mt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-2 sm:px-4">
         {/* Section header */}
         <Reveal className="flex items-end justify-between gap-4 mb-6 sm:mb-8">
           <div>
@@ -58,7 +63,7 @@ export default function ProductSection({
             <div className="h-1 w-14 rounded-full bg-brand-primary mt-2" />
           </div>
 
-          {!loading && (
+          {!loading && hasMore && (
             <Link
               href={viewAllLink}
               className="shrink-0 inline-flex items-center gap-1.5 text-xs sm:text-sm font-sans font-bold text-brand-primary hover:text-brand-primary/80 transition-colors border border-brand-primary/30 hover:border-brand-primary/60 px-3 sm:px-4 py-2 rounded-xl"
@@ -74,7 +79,7 @@ export default function ProductSection({
             {Array.from({ length: SKELETON_COUNT }).map((_, idx) => (
               <div
                 key={idx}
-                className="shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)]"
+                className="shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-16px)] lg:w-[calc(20%-16px)] xl:w-[calc(16.666%-14px)]"
               >
                 <ProductCardSkeleton />
               </div>
