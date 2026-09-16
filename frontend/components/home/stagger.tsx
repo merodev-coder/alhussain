@@ -9,6 +9,18 @@ interface StaggerGroupProps {
   amount?: number
   once?: boolean
   staggerDelay?: number
+  /**
+   * Animate in as soon as the group mounts instead of waiting for
+   * `whileInView`'s IntersectionObserver. Use this for rows that sit in (or
+   * very near) the initial viewport — e.g. the category icons right under
+   * the hero. `whileInView` can miss content that's technically visible on
+   * first paint but whose layout is still settling (images/fonts loading
+   * in above it shift things around), which made those rows stay stuck at
+   * opacity 0 until the user scrolled down and back up to re-trigger the
+   * observer. Content further down the page should keep the default
+   * scroll-triggered behavior.
+   */
+  animateOnMount?: boolean
 }
 
 const containerVariants: Variants = {
@@ -25,16 +37,20 @@ export function StaggerGroup({
   amount = 0.15,
   once = false,
   staggerDelay = 0.08,
+  animateOnMount = false,
 }: StaggerGroupProps) {
+  const triggerProps = animateOnMount
+    ? { animate: 'visible' as const }
+    : { whileInView: 'visible' as const, viewport: { once, amount, margin: '0px 0px -60px 0px' } }
+
   return (
     <motion.div
       className={className}
       initial="hidden"
-      whileInView="visible"
       exit="hidden"
-      viewport={{ once, amount, margin: '0px 0px -60px 0px' }}
       variants={containerVariants}
       custom={staggerDelay}
+      {...triggerProps}
     >
       {children}
     </motion.div>
