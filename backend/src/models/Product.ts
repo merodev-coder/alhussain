@@ -18,6 +18,8 @@ export interface ProductDoc {
   discountBadge?: string
   badge?: string | null
   homeSection?:
+    | 'best_sellers'
+    | 'special_offers'
     | 'laptops'
     | 'bags'
     | 'mice'
@@ -60,7 +62,19 @@ const ProductSchema = new Schema<ProductDoc>(
     badge: { type: String, default: null },
     homeSection: {
       type: String,
-      enum: ['laptops', 'bags', 'mice', 'ram', 'storage', 'batteries', 'chargers', 'monitors', null],
+      enum: [
+        'best_sellers',
+        'special_offers',
+        'laptops',
+        'bags',
+        'mice',
+        'ram',
+        'storage',
+        'batteries',
+        'chargers',
+        'monitors',
+        null,
+      ],
       default: null,
     },
     specs: {

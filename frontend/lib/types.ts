@@ -1,6 +1,8 @@
 export type StockStatus = 'in_stock' | 'limited' | 'out_of_stock'
 
 export type HomeSection =
+  | 'best_sellers'
+  | 'special_offers'
   | 'laptops'
   | 'bags'
   | 'mice'
