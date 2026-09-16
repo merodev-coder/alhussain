@@ -1,6 +1,15 @@
 export type StockStatus = 'in_stock' | 'limited' | 'out_of_stock'
 
-export type HomeSection = 'graphics' | 'business' | 'accessories' | 'batteries' | 'storage' | null
+export type HomeSection =
+  | 'laptops'
+  | 'bags'
+  | 'mice'
+  | 'ram'
+  | 'storage'
+  | 'batteries'
+  | 'chargers'
+  | 'monitors'
+  | null
 
 export type Product = {
   id: string
@@ -51,7 +60,7 @@ export interface CategoryQuickAccess {
   name: string
   slug: string
   icon: import('lucide-react').LucideIcon
-  sectionKey: 'graphics' | 'business' | 'accessories' | 'batteries' | 'storage'
+  sectionKey: 'laptops' | 'bags' | 'mice' | 'ram' | 'storage' | 'batteries' | 'chargers' | 'monitors'
 }
 
 export type AddonCategory = 'ram' | 'storage' | 'accessory' | 'other'

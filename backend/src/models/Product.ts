@@ -17,7 +17,16 @@ export interface ProductDoc {
   quantity: number
   discountBadge?: string
   badge?: string | null
-  homeSection?: 'graphics' | 'business' | 'accessories' | 'batteries' | 'storage' | null
+  homeSection?:
+    | 'laptops'
+    | 'bags'
+    | 'mice'
+    | 'ram'
+    | 'storage'
+    | 'batteries'
+    | 'chargers'
+    | 'monitors'
+    | null
   specs?: {
     cpu?: string
     ram?: string
@@ -51,7 +60,7 @@ const ProductSchema = new Schema<ProductDoc>(
     badge: { type: String, default: null },
     homeSection: {
       type: String,
-      enum: ['graphics', 'business', 'accessories', 'batteries', 'storage', null],
+      enum: ['laptops', 'bags', 'mice', 'ram', 'storage', 'batteries', 'chargers', 'monitors', null],
       default: null,
     },
     specs: {

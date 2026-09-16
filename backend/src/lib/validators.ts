@@ -16,7 +16,7 @@ export const productInputSchema = z.object({
   discountBadge: z.string().optional().or(z.literal('')),
   badge: z.string().nullable().optional(),
   homeSection: z
-    .enum(['graphics', 'business', 'accessories', 'batteries', 'storage'])
+    .enum(['laptops', 'bags', 'mice', 'ram', 'storage', 'batteries', 'chargers', 'monitors'])
     .nullable()
     .optional(),
   specs: z

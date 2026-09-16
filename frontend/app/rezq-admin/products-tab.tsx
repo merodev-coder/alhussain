@@ -39,7 +39,7 @@ type ProductForm = {
   stockStatus: Product['stockStatus']
   discountBadge: string
   badge: string
-  homeSection: 'graphics' | 'business' | 'accessories' | 'batteries' | 'storage' | ''
+  homeSection: 'laptops' | 'bags' | 'mice' | 'ram' | 'storage' | 'batteries' | 'chargers' | 'monitors' | ''
   visible: boolean
 }
 
@@ -361,11 +361,14 @@ function ProductFormModal({
                 className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
               >
                 <option value="">بدون (لا يظهر في الصفحة الرئيسية)</option>
-                <option value="graphics">لابتويات جرافيك (graphics)</option>
-                <option value="business">لابتويات بزنس (business)</option>
-                <option value="accessories">إكسسوارات (accessories)</option>
-                <option value="batteries">بطاريات وشاشات (batteries)</option>
-                <option value="storage">تخزين ورام (storage)</option>
+                <option value="laptops">لابتوبات (laptops)</option>
+                <option value="bags">شنط (bags)</option>
+                <option value="mice">ماوسات (mice)</option>
+                <option value="ram">رامات (ram)</option>
+                <option value="storage">هاردات (storage)</option>
+                <option value="batteries">بطاريات (batteries)</option>
+                <option value="chargers">شواحن (chargers)</option>
+                <option value="monitors">شاشات (monitors)</option>
               </select>
               <p className="text-[11px] text-ink-muted">
                 إذا تم اختيار &quot;بدون&quot;، لن يظهر المنتج في الصفحة الرئيسية وسيظهر في البحث وتصنيفات المتجر.
@@ -380,7 +383,7 @@ function ProductFormModal({
                 value={form.badge}
                 onChange={e => set('badge', e.target.value)}
                 className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
-                placeholder="مثال: NEW أو مميز أو فرز أول"
+                placeholder="مثال: الأكثر مبيعاً — يظهر في قسم الأكثر مبيعاً بالصفحة الرئيسية"
               />
             </div>
           </div>

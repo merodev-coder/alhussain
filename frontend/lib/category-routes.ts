@@ -1,12 +1,13 @@
 // Central mapping from a category/section slug (as used across the homepage
 // category tiles and product sections) to the page it should link to.
 //
-// Laptop-related sections (graphics, business) route to the full laptops
-// catalog, while everything else (accessories, batteries & screens,
-// storage & RAM) routes to the accessories catalog.
-const LAPTOP_SECTION_SLUGS = new Set(['graphics', 'business', 'laptops'])
-
-export function getCategoryHref(slug: string): string {
-  if (LAPTOP_SECTION_SLUGS.has(slug)) return '/laptops'
-  return '/accessories'
+// All 8 home sections (laptops, bags, mice, ram, storage, batteries,
+// chargers, monitors) live on the same `Product` model via `homeSection`,
+// and the single `/laptops` route already lists every `Product` document
+// (its name is historical — it predates the wider category set). The
+// separate `/accessories` page is backed by an entirely different
+// `Accessory` model managed independently in the dashboard, so it must
+// never be used as a destination for these categories.
+export function getCategoryHref(_slug: string): string {
+  return '/laptops'
 }

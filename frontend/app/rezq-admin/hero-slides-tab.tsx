@@ -307,7 +307,6 @@ function SlideModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!headline.trim()) return setError('العنوان الرئيسي مطلوب')
     if (images.length === 0) return setError('يرجى إضافة صورة واحدة على الأقل')
 
     setSaving(true)
@@ -338,12 +337,13 @@ function SlideModal({
     }
   }
 
-  // Preview Slide Data
+  // Preview Slide Data — headline left empty when the admin leaves it blank,
+  // so the preview accurately shows the image-only look the live homepage will render.
   const previewSlide: HeroSlide = {
     id: 'preview',
-    headline: headline || 'عنوان تجريبي للشريحة',
-    subtitle: subtitle || 'هذا نص وصفي تجريبي للشريحة لمعاينة شكل السلايدر قبل حفظه.',
-    buttonText: buttonText || 'تصفح الآن',
+    headline: headline,
+    subtitle: subtitle,
+    buttonText: buttonText,
     buttonColor: buttonColor || '#2563eb',
     buttonLink: buttonLink || '/laptops',
     badgeImage: badgeImage || null,
@@ -414,13 +414,13 @@ function SlideModal({
 
             <div className="space-y-1.5">
               <label className="font-body text-sm font-semibold text-ink">
-                العنوان الرئيسي (Headline) *
+                العنوان الرئيسي (Headline) — اختياري
               </label>
               <input
                 type="text"
                 value={headline}
                 onChange={e => setHeadline(e.target.value)}
-                placeholder="مثال: أقوى أجهزة اللاب توب الاستيراد في مصر"
+                placeholder="اتركه فارغًا لعرض صورة فقط بدون نص فوقها"
                 className="w-full rounded-xl border border-hairline px-3.5 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
               />
             </div>
@@ -460,7 +460,7 @@ function SlideModal({
                   type="text"
                   value={buttonLink}
                   onChange={e => setButtonLink(e.target.value)}
-                  placeholder="/laptops?section=graphics"
+                  placeholder="/laptops"
                   className="w-full rounded-xl border border-hairline px-3 py-2 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
                 />
               </div>

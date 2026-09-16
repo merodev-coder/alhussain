@@ -7,11 +7,19 @@ import type { Product } from '@/lib/types'
 import { getCategoryHref } from '@/lib/category-routes'
 import ProductCarousel from './ProductCarousel'
 import ProductCardSkeleton from './ProductCardSkeleton'
+import Reveal from '@/components/home/reveal'
 
 interface ProductSectionProps {
   id: string
   title: string
   sectionKey: string
+  /**
+   * The homeSection this row represents. `/laptops` currently lists every
+   * Product regardless of category (it predates the 8-category split), so
+   * this doesn't filter the destination page yet — it's threaded through so
+   * that if `/laptops` later adds a `?homeSection=` filter, every section's
+   * "View All" link starts targeting the right subset with no further changes.
+   */
   categorySlug?: string
   products: Product[]
   loading?: boolean
@@ -42,7 +50,7 @@ export default function ProductSection({
     <section id={id} className="w-full py-10 sm:py-14 scroll-mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
-        <div className="flex items-end justify-between gap-4 mb-6 sm:mb-8">
+        <Reveal className="flex items-end justify-between gap-4 mb-6 sm:mb-8">
           <div>
             <h2 className="font-sans font-extrabold text-xl sm:text-2xl lg:text-3xl text-ink tracking-tight">
               {title}
@@ -59,7 +67,7 @@ export default function ProductSection({
               <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </Link>
           )}
-        </div>
+        </Reveal>
 
         {loading ? (
           <div className="flex gap-4 sm:gap-6 overflow-hidden">
@@ -74,7 +82,9 @@ export default function ProductSection({
           </div>
         ) : (
           // Auto-advancing product carousel
-          <ProductCarousel products={visibleProducts} sectionKey={sectionKey} />
+          <Reveal direction="scale" delay={100}>
+            <ProductCarousel products={visibleProducts} sectionKey={sectionKey} />
+          </Reveal>
         )}
       </div>
     </section>

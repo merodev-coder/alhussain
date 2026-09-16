@@ -220,7 +220,6 @@
 }
 .category-tile {
   border-radius: 1.5rem 2.75rem 1.5rem 2.75rem;
-  animation: category-dock-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
   transition: background-color 220ms ease, transform 220ms ease, box-shadow 220ms ease;
 }
 .category-tile:hover {
@@ -325,4 +324,81 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ===== Top announcement / installment brand marquees ===== */
+@keyframes marquee-rtl {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(50%); }
+}
+.marquee-track {
+  animation: marquee-rtl 22s linear infinite;
+  width: max-content;
+}
+.marquee-track-slow {
+  animation: marquee-rtl 32s linear infinite;
+  width: max-content;
+}
+.marquee-track:hover,
+.marquee-track-slow:hover {
+  animation-play-state: paused;
+}
+
+/* Mid-page rotating feature strip (kimo-style ticker) */
+@keyframes ticker-rtl {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(50%); }
+}
+.ticker-track {
+  animation: ticker-rtl 26s linear infinite;
+  width: max-content;
+}
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+/* ===== Generic scroll-triggered reveal ===== */
+/* Applied via the useScrollReveal hook: element starts hidden/offset and
+   transitions in once it enters the viewport; when it exits, "visible" is
+   removed (unless once=true) so it can replay when scrolled back into view. */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal-on-scroll.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-on-scroll.reveal-left {
+  transform: translateX(-32px);
+}
+.reveal-on-scroll.reveal-left.reveal-visible {
+  transform: translateX(0);
+}
+.reveal-on-scroll.reveal-right {
+  transform: translateX(32px);
+}
+.reveal-on-scroll.reveal-right.reveal-visible {
+  transform: translateX(0);
+}
+.reveal-on-scroll.reveal-scale {
+  transform: translateY(20px) scale(0.96);
+}
+.reveal-on-scroll.reveal-scale.reveal-visible {
+  transform: translateY(0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track,
+  .marquee-track-slow,
+  .ticker-track {
+    animation: none;
+  }
+  .reveal-on-scroll {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }

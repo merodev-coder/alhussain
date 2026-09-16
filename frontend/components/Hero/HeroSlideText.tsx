@@ -17,6 +17,22 @@ export default function HeroSlideText({ slide, slideKey }: HeroSlideTextProps) {
     ? slide.buttonColor
     : '#0FC7C1'
 
+  // An admin can save an image-only slide (no headline). Mirror that here so
+  // the dashboard preview matches what actually renders on the homepage,
+  // instead of always showing text and a button.
+  if (!slide.headline) {
+    return (
+      <div
+        key={slideKey}
+        className="flex flex-col justify-center h-full max-w-xl text-right z-10"
+      >
+        <p className="text-sm text-white/50 font-body italic">
+          (صورة فقط — بدون عنوان أو زر، كما ستظهر في الصفحة الرئيسية)
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div
       key={slideKey}

@@ -19,7 +19,7 @@ export interface HeroSlideDoc {
 
 const HeroSlideSchema = new Schema<HeroSlideDoc>(
   {
-    headline: { type: String, required: true, trim: true },
+    headline: { type: String, default: '', trim: true },
     subtitle: { type: String, default: '', trim: true },
     buttonText: { type: String, default: 'تصفح الآن', trim: true },
     buttonColor: { type: String, default: '#2563eb', trim: true },

@@ -9,7 +9,7 @@ import { withId, withIds } from '../lib/json.js'
 const router = Router()
 
 const heroSlideSchema = z.object({
-  headline: z.string().min(1, 'العنوان الرئيسي مطلوب'),
+  headline: z.string().default(''),
   subtitle: z.string().default(''),
   buttonText: z.string().default('تصفح الآن'),
   buttonColor: z.string().default('#2563eb'),
@@ -44,7 +44,7 @@ const INITIAL_HERO_SLIDES = [
       'معالجات Core i7/i9 وكروت شاشة RTX مخصصة للمصممين والمهندسين وأعمال الرندر الشاقة بأفضل سعر.',
     buttonText: 'أجهزة الجرافيك والرندر',
     buttonColor: '#2563eb',
-    buttonLink: '/laptops?section=graphics',
+    buttonLink: '/laptops',
     badgeImage: null,
     images: [
       'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?auto=format&fit=crop&w=1400&q=80',
@@ -59,7 +59,7 @@ const INITIAL_HERO_SLIDES = [
       'أجهزة ThinkPad وDell Latitude وHP EliteBook بخفة استثنائية، بطاريات تدوم طويلاً، واعتمادية عسكرية.',
     buttonText: 'أجهزة البيزنس والشركات',
     buttonColor: '#2563eb',
-    buttonLink: '/laptops?section=business',
+    buttonLink: '/laptops',
     badgeImage: null,
     images: [
       'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=1400&q=80',

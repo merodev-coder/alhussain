@@ -11,6 +11,11 @@ export const clientLogger = {
       console.log('[Client]', ...args)
     }
   },
+  info: (...args: unknown[]) => {
+    if (!isProduction) {
+      console.info('[Client]', ...args)
+    }
+  },
   error: (...args: unknown[]) => {
     if (!isProduction) {
       console.error('[Client Error]', ...args)
