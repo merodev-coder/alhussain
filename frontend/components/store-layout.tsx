@@ -17,8 +17,10 @@ export default function StoreLayout({ children, showTopBar = false }: StoreLayou
   return (
     <CartProvider>
       <div className="flex flex-col min-h-screen">
-        {showTopBar && <TopAnnouncementBar />}
-        <Navbar />
+        <div className="sticky top-0 z-50">
+          {showTopBar && <TopAnnouncementBar />}
+          <Navbar />
+        </div>
         <main className="flex-1">
           {children}
         </main>

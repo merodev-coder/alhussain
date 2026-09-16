@@ -29,6 +29,7 @@ import {
   Headphones,
   Boxes,
   Loader2,
+  LayoutGrid,
 } from 'lucide-react'
 import type { Order } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -42,6 +43,7 @@ import InventoryTab from './inventory-tab'
 import PaymentsTab from './payments-tab'
 import SettingsTab from './settings-tab'
 import HeroSlidesTab from './hero-slides-tab'
+import CategoriesTab from './categories-tab'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Skeleton } from '@/components/ui/skeleton'
 import api from '@/lib/api'
@@ -93,6 +95,7 @@ const STATUS_FLOW: OrderStatus[] = ['pending', 'confirmed', 'shipped', 'complete
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
   { id: 'hero', label: 'سلايدر الرئيسية', icon: Sparkles },
+  { id: 'categories', label: 'فئات الرئيسية', icon: LayoutGrid },
   { id: 'payments', label: 'مراجعة الدفع', icon: CreditCard },
   { id: 'orders', label: 'الطلبات', icon: ShoppingBag },
   { id: 'products', label: 'المنتجات', icon: Package },
@@ -872,6 +875,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<
     | 'dashboard'
     | 'hero'
+    | 'categories'
     | 'payments'
     | 'orders'
     | 'products'
@@ -1004,6 +1008,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
           {activeTab === 'dashboard' && <DashboardTab />}
           {activeTab === 'hero' && <HeroSlidesTab />}
+          {activeTab === 'categories' && <CategoriesTab />}
           {activeTab === 'payments' && <PaymentsTab />}
           {activeTab === 'orders' && <OrdersTab />}
           {activeTab === 'products' && <ProductsTab />}

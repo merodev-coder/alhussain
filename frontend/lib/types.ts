@@ -63,6 +63,15 @@ export interface CategoryQuickAccess {
   sectionKey: 'laptops' | 'bags' | 'mice' | 'ram' | 'storage' | 'batteries' | 'chargers' | 'monitors'
 }
 
+// Dashboard-managed category tile record (backend Category model).
+export interface CategoryRecord {
+  id: string
+  slug: 'laptops' | 'bags' | 'mice' | 'ram' | 'storage' | 'batteries' | 'chargers' | 'monitors'
+  name: string
+  image: string | null
+  order: number
+}
+
 export type AddonCategory = 'ram' | 'storage' | 'accessory' | 'other'
 
 export type Addon = {

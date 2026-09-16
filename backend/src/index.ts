@@ -20,6 +20,7 @@ import debugRoutes from './routes/debug.js'
 import settingsRoutes from './routes/settings.js'
 import uploadthingRoutes from './routes/uploadthing.js'
 import heroRoutes from './routes/hero.js'
+import categoriesRoutes from './routes/categories.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -52,6 +53,7 @@ app.use('/api', globalRateLimit)
 app.use(adminRoutes)
 app.use(productsRoutes)
 app.use(heroRoutes)
+app.use(categoriesRoutes)
 app.use(ordersRoutes)
 app.use(specOptionsRoutes)
 app.use(pricelistRoutes)

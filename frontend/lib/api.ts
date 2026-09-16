@@ -64,6 +64,11 @@ export const api = {
       body: JSON.stringify({ ids }),
     }),
 
+  // Categories
+  get_categories: () => apiRequest<any[]>('/api/categories'),
+  update_category: (slug: string, data: any) =>
+    apiRequest<any>(`/api/categories/${slug}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
   // Orders
   create_order: (data: any) => apiRequest<any>('/api/orders', { method: 'POST', body: JSON.stringify(data) }),
   get_orders: (status?: string, page?: number, limit?: number, paymentStatus?: string) => {

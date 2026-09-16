@@ -22,7 +22,7 @@ export default function Marquee({
   children,
   durationSec = 24,
   className = '',
-  pauseOnHover = true,
+  pauseOnHover = false,
   reverse = false,
 }: MarqueeProps) {
   const trackRef = useRef<HTMLDivElement>(null)

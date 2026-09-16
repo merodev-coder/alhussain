@@ -107,7 +107,7 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-canvas text-ink border-b border-hairline shadow-sm transition-colors duration-200">
+    <header className="w-full bg-canvas text-ink border-b border-hairline shadow-sm transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-3 sm:gap-6">
           {/* Logo on the left (in LTR terms) or start */}
