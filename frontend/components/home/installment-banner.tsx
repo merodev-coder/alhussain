@@ -32,19 +32,19 @@ const PERKS = [
 
 export function PerksStrip() {
   return (
-    <section className="w-full py-8 sm:py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <StaggerGroup className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+    <section className="w-full py-10 sm:py-14">
+      <div className="w-full px-3 sm:px-6 lg:px-10">
+        <StaggerGroup className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-7 lg:gap-8">
           {PERKS.map(perk => (
             <StaggerItem key={perk.src}>
-              <div className="relative rounded-[20px] overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div className="relative rounded-[24px] overflow-hidden shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300">
                 <Image
                   src={perk.src}
                   alt={perk.alt}
                   width={800}
-                  height={200}
+                  height={418}
                   className="w-full h-auto object-cover"
-                  sizes="(max-width: 1024px) 100vw, 400px"
+                  sizes="(max-width: 640px) 100vw, 50vw"
                 />
               </div>
             </StaggerItem>

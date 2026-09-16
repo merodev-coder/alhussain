@@ -11,7 +11,7 @@ const FEATURES = [
 
 export default function FeatureTicker() {
   return (
-    <section className="w-full bg-surface-2 border-y border-hairline py-4 sm:py-5 overflow-hidden">
+    <section className="w-full bg-canvas border-y border-hairline py-4 sm:py-5 overflow-hidden">
       <Marquee durationSec={26}>
         {FEATURES.map((f, idx) => (
           <span

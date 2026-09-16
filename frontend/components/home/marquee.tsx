@@ -42,7 +42,7 @@ export default function Marquee({
 
   return (
     <div
-      className={`overflow-hidden ${className}`}
+      className={`w-full overflow-hidden ${className}`}
       onMouseEnter={() => pauseOnHover && setPaused(true)}
       onMouseLeave={() => pauseOnHover && setPaused(false)}
     >
