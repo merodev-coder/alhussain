@@ -16,9 +16,9 @@ const BRAND_LABELS = ['Mylo', 'فرصة FORSA', 'Souhoola', 'Contact', 'valu*', 
 
 export default function TopAnnouncementBar() {
   return (
-    <div className="w-full bg-inverse-canvas text-white select-none">
+    <div className="w-full select-none">
       {/* Messages marquee */}
-      <div className="relative border-b border-white/10">
+      <div className="relative bg-inverse-canvas text-white border-b border-white/10">
         <Marquee durationSec={20} className="py-2">
           {MESSAGES.map((m, idx) => (
             <span
@@ -33,18 +33,20 @@ export default function TopAnnouncementBar() {
       </div>
 
       {/* Installment brands marquee */}
-      <div className="relative bg-gradient-to-l from-[#0A1E2E] via-[#0E2A3D] to-[#0A1E2E]">
-        <Marquee durationSec={28} reverse className="py-2.5">
-          {BRAND_LABELS.map((brand, idx) => (
-            <span
-              key={idx}
-              className="inline-flex items-center gap-1.5 px-5 text-white/90 font-sans font-bold text-sm sm:text-base tracking-tight whitespace-nowrap"
-            >
-              {brand}
-              <span className="text-white/20 ms-5">|</span>
-            </span>
-          ))}
-        </Marquee>
+      <div className="w-full flex justify-center bg-canvas py-2.5 sm:py-3">
+        <div className="w-[95%] rounded-full overflow-hidden bg-gradient-to-l from-[#0A1E2E] via-[#0E2A3D] to-[#0A1E2E] shadow-md">
+          <Marquee durationSec={28} reverse className="py-3.5 sm:py-4">
+            {BRAND_LABELS.map((brand, idx) => (
+              <span
+                key={idx}
+                className="inline-flex items-center gap-1.5 px-6 text-white/90 font-sans font-bold text-base sm:text-lg tracking-tight whitespace-nowrap"
+              >
+                {brand}
+                <span className="text-white/20 ms-6">|</span>
+              </span>
+            ))}
+          </Marquee>
+        </div>
       </div>
     </div>
   )
