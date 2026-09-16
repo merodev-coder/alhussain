@@ -187,16 +187,22 @@ export default function HeroSection({ slides = [] }: HeroSectionProps) {
       <div className="relative pt-4 pb-6 sm:pt-10 sm:pb-12">
         <div className="mx-auto w-[90%] max-w-[1600px]">
           <div className="grid grid-cols-1 lg:grid-cols-[65fr_35fr] gap-3 sm:gap-5 h-auto lg:h-[520px]">
-            {/* Big slideshow card */}
-            <div className="h-[280px] sm:h-[420px] lg:h-full">
+            {/* Big slideshow card — animates in first as soon as the hero paints */}
+            <div className="h-[280px] sm:h-[420px] lg:h-full animate-hero-card-in">
               <MainSlideshow slide={mainSlide} />
             </div>
 
-            {/* Two smaller cards — side-by-side under the main image on mobile, stacked next to it on desktop */}
+            {/* Two smaller cards — side-by-side under the main image on mobile, stacked next to it on desktop.
+                Staggered slightly after the main card so the three images feel like they're
+                arriving one after another rather than popping in all at once. */}
             {sideSlides.length > 0 && (
               <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-5 h-[160px] sm:h-[200px] lg:h-full">
-                {sideSlides.map(s => (
-                  <div key={s.id} className="h-full">
+                {sideSlides.map((s, idx) => (
+                  <div
+                    key={s.id}
+                    className="h-full animate-hero-card-in"
+                    style={{ animationDelay: `${150 + idx * 150}ms` }}
+                  >
                     <SideCard slide={s} />
                   </div>
                 ))}

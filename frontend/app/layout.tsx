@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Cairo, Tajawal } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
+import SplashScreen from '@/components/SplashScreen'
 import './globals.css'
 
 const cairo = Cairo({
@@ -49,6 +50,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased font-body text-ink">
         <ThemeProvider>
+          <SplashScreen />
           {children}
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </ThemeProvider>
