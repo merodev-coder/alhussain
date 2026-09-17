@@ -1,15 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { StaggerGroup, StaggerItem } from './stagger'
+import { useState } from 'react'
 import Reveal from './reveal'
-
-const STATS = [
-  { value: 500, suffix: '+', label: 'عميل راضٍ' },
-  { value: 100, suffix: '+', label: 'موديل متاح' },
-  { value: 3, suffix: ' سنوات', label: 'خبرة في الاستيراد' },
-  { value: 27, suffix: '', label: 'محافظة نوصل لها' },
-]
 
 // The 5 feature cards below. "dark" alternates true/false so the row reads
 // dark-light-dark-light-dark, and each gif is a small looping animated icon
@@ -47,43 +39,14 @@ const TRUST_POINTS = [
   },
 ]
 
-function AnimatedCounter({ target, suffix }: { target: number; suffix: string }) {
-  const [count, setCount] = useState(0)
-  const ref = useRef<HTMLSpanElement>(null)
-  const started = useRef(false)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting && !started.current) {
-          started.current = true
-          let start = 0
-          const duration = 1200
-          const step = 16
-          const increment = target / (duration / step)
-          const timer = setInterval(() => {
-            start += increment
-            if (start >= target) {
-              setCount(target)
-              clearInterval(timer)
-            } else {
-              setCount(Math.floor(start))
-            }
-          }, step)
-        }
-      },
-      { threshold: 0.5 }
-    )
-    if (ref.current) observer.observe(ref.current)
-    return () => observer.disconnect()
-  }, [target])
-
-  return <span ref={ref}>{count}{suffix}</span>
-}
-
 export default function TrustSection() {
   return (
-    <section className="trust-section relative overflow-hidden bg-surface-1 py-16 sm:py-20">
+    <section
+      className="trust-section relative overflow-hidden py-16 sm:py-20"
+      style={{
+        background: 'linear-gradient(120deg, #FBF1E9 0%, #F3F7F5 45%, #E9F7F6 100%)',
+      }}
+    >
       {/* Angled top divider echoing the hero's cut corners */}
       <div
         aria-hidden="true"
@@ -91,27 +54,7 @@ export default function TrustSection() {
         style={{ clipPath: 'polygon(0 0, 100% 0, 100% 40%, 0 100%)' }}
       />
 
-      {/* Ambient drifting glow blobs */}
-      <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-brand-primary/10 blur-3xl animate-blob-drift" />
-      <div className="pointer-events-none absolute -bottom-24 -left-16 h-80 w-80 rounded-full bg-brand-accent/10 blur-3xl animate-blob-drift-slow" />
-
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Stats row */}
-        <StaggerGroup className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
-          {STATS.map(stat => (
-            <StaggerItem key={stat.label}>
-              <div className="stat-tile relative overflow-hidden rounded-[22px] border border-hairline bg-canvas p-6 text-center">
-                <div className="pointer-events-none absolute -left-6 -top-6 h-16 w-16 rounded-full bg-brand-primary/10" />
-                <p className="relative font-sans font-extrabold text-3xl sm:text-4xl text-brand-primary">
-                  <AnimatedCounter target={stat.value} suffix={stat.suffix} />
-                </p>
-                <p className="relative font-body text-sm text-ink-muted mt-1">{stat.label}</p>
-              </div>
-            </StaggerItem>
-          ))}
-        </StaggerGroup>
-
-        {/* Trust points */}
         <Reveal className="text-center mb-10">
           <span className="inline-block font-body text-xs sm:text-sm text-brand-primary font-bold tracking-wide mb-2 px-3 py-1 rounded-full bg-brand-primary/10">
             لماذا نحن؟
@@ -120,7 +63,11 @@ export default function TrustSection() {
             لماذا تختار الحسين للاب توب؟
           </h2>
         </Reveal>
+      </div>
 
+      {/* Full width, not capped to the max-w-7xl container, so the row uses
+          the whole section instead of leaving space at the edges. */}
+      <div className="relative w-full px-4 sm:px-6 lg:px-10">
         <TrustCardsRow />
       </div>
     </section>
@@ -166,7 +113,7 @@ function TrustCardsRow() {
                 onBlur={() => setHovered(null)}
                 tabIndex={0}
                 style={{ flexGrow: isHovered ? 3.4 : 1, flexBasis: 0 }}
-                className={`trust-card group relative flex min-w-0 items-center gap-4 overflow-hidden rounded-[26px] border px-5 py-7 sm:py-8 transition-[flex-grow,transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none ${
+                className={`trust-card group relative flex h-[184px] sm:h-[204px] min-w-0 items-center gap-4 overflow-hidden rounded-[26px] border px-5 transition-[flex-grow,transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none ${
                   point.dark
                     ? 'bg-ink border-ink text-white'
                     : 'bg-canvas border-hairline text-ink'

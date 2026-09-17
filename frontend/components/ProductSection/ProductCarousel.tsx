@@ -24,22 +24,30 @@ export default function ProductCarousel({ products, sectionKey }: ProductCarouse
   const isScrolling = useRef(false)
   const releaseGuardTimer = useRef<number | null>(null)
 
-  // Move to a specific card by index using scrollIntoView on the card itself
-  // rather than a hand-computed pixel offset. Computing "cardWidth + gap"
-  // and calling scrollBy() used to fight the track's CSS scroll-snap: the
-  // pixel amount often didn't land exactly on the next snap point, so the
-  // browser would snap back to where it started and the click appeared to
-  // do nothing — the site felt like it needed two clicks per move.
-  // scrollIntoView lets the browser calculate the exact snap-aligned
-  // position itself, so a single click always visibly moves the row.
+  // Move to a specific card by index using a precise pixel delta measured
+  // from the card and track's actual on-screen positions, then scroll the
+  // *track itself* (not scrollIntoView). scrollIntoView used to fix the old
+  // "need two clicks" bug, but it also asks the browser to bring the card
+  // into the page's vertical viewport — if the row was only partially
+  // visible (e.g. autoplaying while the user had it half-scrolled into
+  // view), that silently dragged the whole page down every few seconds,
+  // which felt broken. track.scrollBy() only ever touches this row's own
+  // horizontal scroll offset and can never move the page, while still
+  // landing precisely on the next snap point since the delta is measured
+  // fresh from getBoundingClientRect() every time (not a stale guess at
+  // card width).
   const scrollToIndex = useCallback((index: number) => {
     const track = trackRef.current
     if (!track) return
     const card = track.children[index] as HTMLElement | undefined
     if (!card) return
 
+    const trackRect = track.getBoundingClientRect()
+    const cardRect = card.getBoundingClientRect()
+    const delta = cardRect.right - trackRect.right
+
     isScrolling.current = true
-    card.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
+    track.scrollBy({ left: -delta, behavior: 'smooth' })
 
     if (releaseGuardTimer.current) window.clearTimeout(releaseGuardTimer.current)
     releaseGuardTimer.current = window.setTimeout(() => {
