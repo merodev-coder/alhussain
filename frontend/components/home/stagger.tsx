@@ -35,7 +35,7 @@ export function StaggerGroup({
   children,
   className = '',
   amount = 0.15,
-  once = false,
+  once = true,
   staggerDelay = 0.08,
   animateOnMount = false,
 }: StaggerGroupProps) {
@@ -47,7 +47,6 @@ export function StaggerGroup({
     <motion.div
       className={className}
       initial="hidden"
-      exit="hidden"
       variants={containerVariants}
       custom={staggerDelay}
       {...triggerProps}

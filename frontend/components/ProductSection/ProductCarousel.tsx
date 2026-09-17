@@ -168,11 +168,10 @@ export default function ProductCarousel({ products, sectionKey }: ProductCarouse
         role="region"
         aria-label="عرض المنتجات"
       >
-        {products.map((product, idx) => (
+        {products.map(product => (
           <div
             key={`${sectionKey}-${product.id}`}
-            className="snap-start shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-16px)] lg:w-[calc(20%-16px)] xl:w-[calc(16.666%-14px)] animate-count"
-            style={{ animationDelay: `${idx * 70}ms` }}
+            className="snap-start shrink-0 w-[calc(50%-8px)] sm:w-[calc(33.333%-16px)] lg:w-[calc(20%-16px)] xl:w-[calc(16.666%-14px)]"
           >
             <ProductCard product={product} />
           </div>

@@ -24,9 +24,8 @@ const OFFSETS: Record<NonNullable<RevealProps['direction']>, { x?: number; y?: n
 }
 
 /**
- * Animates its children in as they scroll into view, and back out as they
- * scroll away, using framer-motion's viewport detection — giving the page a
- * "living" feel on every scroll pass, not just the first.
+ * Animates its children in once as they first scroll into view, then leaves
+ * them alone — it does not fade them back out if the user scrolls past.
  */
 export default function Reveal({
   children,
@@ -34,7 +33,7 @@ export default function Reveal({
   direction = 'up',
   delay = 0,
   amount = 0.2,
-  once = false,
+  once = true,
   as = 'div',
 }: RevealProps) {
   const offset = OFFSETS[direction]
@@ -57,7 +56,6 @@ export default function Reveal({
       className={className}
       initial="hidden"
       whileInView="visible"
-      exit="hidden"
       viewport={{ once, amount, margin: '0px 0px -80px 0px' }}
       variants={variants}
     >

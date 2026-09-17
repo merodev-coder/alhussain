@@ -26,8 +26,14 @@ interface ProductSectionProps {
 }
 
 // Show at most this many products in the home page carousel; the rest are reachable via "View All".
-// Raised well above a typical catalog size so a store with 80+ laptops still shows everything inline.
-const MAX_VISIBLE = 200
+// Kept modest on purpose — a store with 80+ laptops rendering every single
+// card into the DOM on the homepage (across two rows that both use the full
+// catalog) was a big chunk of the site's slowness: dozens of extra cards,
+// each with its own image, hover layers and entrance animation, sitting
+// off-screen in a horizontal scroller nobody was likely to scroll that far
+// into anyway. Capping this and sending people to the full "View All" page
+// for the rest keeps the homepage light without losing any products.
+const MAX_VISIBLE = 20
 const SKELETON_COUNT = 4
 
 export default function ProductSection({
@@ -46,9 +52,6 @@ export default function ProductSection({
 
   const viewAllLink = getCategoryHref(categorySlug || sectionKey)
   const visibleProducts = products.slice(0, MAX_VISIBLE)
-  // "View All" only adds value when there's more to see than what's already
-  // shown inline — with MAX_VISIBLE this high it's effectively always hidden
-  // now, but the check is kept in case a section ever caps lower again.
   const hasMore = products.length > MAX_VISIBLE
 
   return (

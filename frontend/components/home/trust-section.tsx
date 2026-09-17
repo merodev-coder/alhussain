@@ -80,7 +80,21 @@ function TrustCardsRow() {
 
   return (
     <div className="relative">
-      
+      {/* A one-time hint that this row is interactive, matching the reference
+          design's floating "Hover" pill — it fades away for good the first
+          time someone actually hovers a card. */}
+      <div
+        className={`pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 hidden sm:flex items-center gap-1.5 rounded-full bg-ink/80 px-3 py-1 text-xs font-body text-white shadow-lg transition-opacity duration-700 ${
+          everHovered ? 'opacity-0' : 'opacity-100 animate-hint-bounce'
+        }`}
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
+        مرّر بالماوس
+      </div>
+
+      {/* On mobile (where hover doesn't really exist) this just stacks as a
+          normal vertical list of cards. On sm+ it becomes the horizontal
+          hover-to-expand accordion. */}
       <Reveal direction="up" className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch">
         {TRUST_POINTS.map((point, idx) => {
           const isHovered = hovered === idx
@@ -131,6 +145,9 @@ function TrustCardsRow() {
                     src={point.gif}
                     alt=""
                     aria-hidden="true"
+                    width={150}
+                    height={150}
+                    decoding="async"
                     className="h-full w-full object-contain"
                     loading="lazy"
                   />
