@@ -159,6 +159,8 @@ export default function HomeClient() {
         loading={productsLoading}
       />
 
+      <TrustSection />
+
       <FeatureTicker />
 
       <ProductSection
@@ -227,8 +229,6 @@ export default function HomeClient() {
       />
 
       <PerksStrip />
-
-      <TrustSection />
     </StoreLayout>
   )
 }

@@ -213,6 +213,15 @@
   animation: hero-card-in 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Gentle up/down bob for the "hover me" hint pill above the trust cards row */
+@keyframes hint-bounce {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -5px); }
+}
+.animate-hint-bounce {
+  animation: hint-bounce 1.6s ease-in-out infinite;
+}
+
 /* Stat counter animation */
 @keyframes count-up {
   from { opacity: 0; transform: translateY(8px); }
