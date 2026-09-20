@@ -9,8 +9,9 @@ import FeatureTicker from '@/components/home/feature-ticker'
 import InstallmentBanner, { PerksStrip } from '@/components/home/installment-banner'
 import InstallmentBrandsBar from '@/components/home/installment-brands-bar'
 import TrustSection from '@/components/home/trust-section'
+import PromoBannerGrid from '@/components/home/promo-banner-grid'
 import { api } from '@/lib/api'
-import type { HeroSlide, Product } from '@/lib/types'
+import type { Accessory, HeroSlide, Product } from '@/lib/types'
 
 // The 8 dashboard accessory-style categories, in the exact homepage display
 // order requested. "laptops" is handled separately below since every
@@ -35,6 +36,7 @@ const SECTION_LABELS: Record<AccessorySectionKey | 'laptops', string> = {
 export default function HomeClient() {
   const [slides, setSlides] = useState<HeroSlide[]>([])
   const [dbProducts, setDbProducts] = useState<Product[]>([])
+  const [accessories, setAccessories] = useState<Accessory[]>([])
   const [productsLoading, setProductsLoading] = useState(true)
 
   useEffect(() => {
@@ -65,12 +67,38 @@ export default function HomeClient() {
         if (!cancelled) setDbProducts(all)
       } catch {
         // keep whatever we have; sections that end up empty simply hide themselves
-      } finally {
-        if (!cancelled) setProductsLoading(false)
       }
     }
 
-    fetchAllProducts()
+    // Accessory-style categories (bags, mice, ram, storage, batteries,
+    // chargers, monitors) live on the Accessory model, tagged with a
+    // matching homeSection — walk all pages the same way as products.
+    async function fetchAllAccessories() {
+      const PAGE_SIZE = 100
+      try {
+        const first = await api.get_accessories('', 1, PAGE_SIZE)
+        const firstItems = Array.isArray(first) ? first : first.items || []
+        const totalPages = Array.isArray(first) ? 1 : first.pages || 1
+
+        let all = firstItems
+        if (totalPages > 1) {
+          const rest = await Promise.all(
+            Array.from({ length: totalPages - 1 }, (_, i) => api.get_accessories('', i + 2, PAGE_SIZE))
+          )
+          for (const r of rest) {
+            all = all.concat(Array.isArray(r) ? r : r.items || [])
+          }
+        }
+        if (!cancelled) setAccessories(all)
+      } catch {
+        // keep whatever we have; sections that end up empty simply hide themselves
+      }
+    }
+
+    Promise.all([fetchAllProducts(), fetchAllAccessories()]).finally(() => {
+      if (!cancelled) setProductsLoading(false)
+    })
+
     return () => {
       cancelled = true
     }
@@ -81,17 +109,22 @@ export default function HomeClient() {
     [dbProducts]
   )
 
-  // The 7 accessory-style rows: only products explicitly assigned to that
+  const visibleAccessories = useMemo(
+    () => accessories.filter(a => a.visible !== false),
+    [accessories]
+  )
+
+  // The 7 accessory-style rows: only accessories explicitly assigned to that
   // homeSection by the admin (a mouse shouldn't show up under "شواحن", etc).
   const sectionProducts = useMemo(() => {
-    return ACCESSORY_SECTIONS.reduce<Record<AccessorySectionKey, Product[]>>(
+    return ACCESSORY_SECTIONS.reduce<Record<AccessorySectionKey, Accessory[]>>(
       (sections, section) => {
-        sections[section] = visibleProducts.filter(product => product.homeSection === section)
+        sections[section] = visibleAccessories.filter(item => item.homeSection === section)
         return sections
       },
       { bags: [], mice: [], storage: [], ram: [], monitors: [], batteries: [], chargers: [] }
     )
-  }, [visibleProducts])
+  }, [visibleAccessories])
 
   // Every Product in this store is a laptop by model design (cpu/gpu/ram/
   // storage fields baked into the schema), so "لابتوبات" and "وصل حديثاً"
@@ -140,6 +173,8 @@ export default function HomeClient() {
         products={allLaptopsNewestFirst}
         loading={productsLoading}
       />
+
+      <PromoBannerGrid />
 
       <ProductSection
         id="section-best-sellers"

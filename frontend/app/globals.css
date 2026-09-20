@@ -4,8 +4,8 @@
 
 @theme inline {
   /* Al-Hussein Brand Tokens (same in light and dark) */
-  --color-brand-primary: #0FC7C1;
-  --color-brand-accent: #FF7A29;
+  --color-brand-primary: #0EA8A3;
+  --color-brand-accent: #F2994A;
   --color-inverse-canvas: #0E1B1B;
   --color-whatsapp: #25D366;
 
@@ -66,7 +66,7 @@
   --card-foreground: #0E1B1B;
   --popover: #FFFFFF;
   --popover-foreground: #0E1B1B;
-  --primary: #0FC7C1;
+  --primary: #0EA8A3;
   --primary-foreground: #FFFFFF;
   --secondary: #F5F9F9;
   --secondary-foreground: #0E1B1B;
@@ -77,16 +77,16 @@
   --destructive: #EF4444;
   --border: #E1E9E8;
   --input: #E1E9E8;
-  --ring: #0FC7C1;
+  --ring: #0EA8A3;
   --radius: 0.75rem;
   --sidebar: #0E1B1B;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #0FC7C1;
+  --sidebar-primary: #0EA8A3;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: rgba(255,255,255,0.08);
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: rgba(255,255,255,0.1);
-  --sidebar-ring: #0FC7C1;
+  --sidebar-ring: #0EA8A3;
 
   --canvas: #FFFFFF;
   --surface-1: #F5F9F9;
@@ -116,7 +116,7 @@
   --card-foreground: #E8F0EF;
   --popover: #121A1A;
   --popover-foreground: #E8F0EF;
-  --primary: #0FC7C1;
+  --primary: #0EA8A3;
   --primary-foreground: #FFFFFF;
   --secondary: #162222;
   --secondary-foreground: #E8F0EF;
@@ -127,7 +127,7 @@
   --destructive: #EF4444;
   --border: #233535;
   --input: #233535;
-  --ring: #0FC7C1;
+  --ring: #0EA8A3;
 
   --canvas: #0A0F10;
   --surface-1: #121A1A;

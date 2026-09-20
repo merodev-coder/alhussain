@@ -13,16 +13,19 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useUploadThing } from '@/lib/uploadthing'
-import type { Accessory, StockStatus } from '@/lib/types'
+import type { Accessory, AccessoryHomeSection, StockStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 import { Skeleton } from '@/components/ui/skeleton'
+
+type NonNullHomeSection = Exclude<AccessoryHomeSection, null>
 
 type AccessoryForm = {
   name: string
   price: string
   description: string
   category: string
+  homeSection: NonNullHomeSection | ''
   photos: string[]
   stockStatus: StockStatus
   quantity: string
@@ -34,11 +37,26 @@ const EMPTY_FORM: AccessoryForm = {
   price: '',
   description: '',
   category: 'حقائب ومحافظ',
+  homeSection: '',
   photos: [],
   stockStatus: 'in_stock',
   quantity: '0',
   visible: true,
 }
+
+// Which storefront page this product appears on. This is the field the
+// dashboard uses to route a product to its own category page — separate
+// from `category`, which is just a free-text label shown as a filter pill
+// within that page (e.g. homeSection="mice" + category="ماوس لاسلكي").
+const HOME_SECTION_OPTIONS: { value: NonNullHomeSection; label: string }[] = [
+  { value: 'bags', label: 'شنط' },
+  { value: 'mice', label: 'ماوسات' },
+  { value: 'ram', label: 'رامات' },
+  { value: 'storage', label: 'هاردات' },
+  { value: 'batteries', label: 'بطاريات' },
+  { value: 'chargers', label: 'شواحن' },
+  { value: 'monitors', label: 'شاشات' },
+]
 
 const STOCK_LABELS: Record<StockStatus, string> = {
   in_stock: 'متوفر',
@@ -97,6 +115,7 @@ export default function AccessoriesTab() {
       price: acc.price.toString(),
       description: acc.description || '',
       category: acc.category || 'أخرى',
+      homeSection: acc.homeSection || '',
       photos: acc.photos || [],
       stockStatus: acc.stockStatus || 'in_stock',
       quantity: (acc.quantity ?? 0).toString(),
@@ -121,6 +140,7 @@ export default function AccessoriesTab() {
     if (!form.name.trim()) return alert('اسم الإكسسوار مطلوب')
     const priceNum = parseFloat(form.price)
     if (isNaN(priceNum) || priceNum < 0) return alert('السعر غير صحيح')
+    if (!form.homeSection) return alert('اختر الصفحة التي سيظهر بها المنتج')
 
     setSaving(true)
     try {
@@ -129,6 +149,7 @@ export default function AccessoriesTab() {
         price: priceNum,
         description: form.description.trim(),
         category: form.category.trim() || 'أخرى',
+        homeSection: form.homeSection || null,
         photos: form.photos,
         stockStatus: form.stockStatus,
         quantity: parseInt(form.quantity, 10) || 0,
@@ -188,7 +209,7 @@ export default function AccessoriesTab() {
         <div>
           <h2 className="font-sans font-bold text-ink text-2xl">الإكسسوارات (Accessories)</h2>
           <p className="font-body text-sm text-ink-muted">
-            منتجات قائمة بذاتها تباع منفصلة عن اللابتوبات (حقائب، ماوسات، شواحن، إلخ)
+            منتجات قائمة بذاتها تباع منفصلة عن اللابتوبات (شنط، ماوسات، شواحن، شاشات، بطاريات، رامات، هاردات) — اختر لكل منتج الصفحة التي سيظهر بها
           </p>
         </div>
         <button
@@ -209,6 +230,7 @@ export default function AccessoriesTab() {
               <th className="px-5 py-3 text-start">الصورة</th>
               <th className="px-5 py-3 text-start">الاسم</th>
               <th className="px-5 py-3 text-start">الفئة</th>
+              <th className="px-5 py-3 text-start">يظهر في صفحة</th>
               <th className="px-5 py-3 text-start">السعر</th>
               <th className="px-5 py-3 text-start">الكمية</th>
               <th className="px-5 py-3 text-start">الحالة</th>
@@ -218,7 +240,7 @@ export default function AccessoriesTab() {
           <tbody className="divide-y divide-hairline">
             {accessories.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-12 text-center text-ink-muted">
+                <td colSpan={8} className="py-12 text-center text-ink-muted">
                   لا توجد إكسسوارات بعد
                 </td>
               </tr>
@@ -239,6 +261,17 @@ export default function AccessoriesTab() {
                   </td>
                   <td className="px-5 py-4 font-body text-xs text-ink-muted">
                     {acc.category}
+                  </td>
+                  <td className="px-5 py-4">
+                    {acc.homeSection ? (
+                      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-body bg-brand-primary/10 text-brand-primary">
+                        {HOME_SECTION_OPTIONS.find(o => o.value === acc.homeSection)?.label || acc.homeSection}
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-body bg-red-50 text-red-500">
+                        غير محدد
+                      </span>
+                    )}
                   </td>
                   <td className="px-5 py-4 font-sans font-bold text-brand-primary text-sm">
                     {acc.price.toLocaleString('ar-EG')} ج.م
@@ -315,7 +348,7 @@ export default function AccessoriesTab() {
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: ماوس جيمنج RGB لاسلكي"
-                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 />
               </div>
 
@@ -328,7 +361,7 @@ export default function AccessoriesTab() {
                     min="0"
                     value={form.price}
                     onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                   />
                 </div>
                 <div>
@@ -339,7 +372,7 @@ export default function AccessoriesTab() {
                     value={form.category}
                     onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                     placeholder="اختر أو اكتب فئة"
-                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                   />
                   <datalist id="category-list">
                     {CATEGORY_SUGGESTIONS.map(c => (
@@ -347,6 +380,32 @@ export default function AccessoriesTab() {
                     ))}
                   </datalist>
                 </div>
+              </div>
+
+              <div>
+                <label className="block font-body text-xs text-ink-muted mb-1">
+                  يظهر في صفحة *
+                </label>
+                <select
+                  required
+                  value={form.homeSection}
+                  onChange={e =>
+                    setForm(f => ({ ...f, homeSection: e.target.value as AccessoryForm['homeSection'] }))
+                  }
+                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
+                >
+                  <option value="" disabled>
+                    اختر الصفحة التي سيظهر بها المنتج
+                  </option>
+                  {HOME_SECTION_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 font-body text-[11px] text-ink-muted">
+                  يحدد هذا القسم الذي يظهر فيه المنتج في الصفحة الرئيسية وصفحة القسم الخاصة به
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -357,7 +416,7 @@ export default function AccessoriesTab() {
                     min="0"
                     value={form.quantity}
                     onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
-                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                   />
                 </div>
                 <div>
@@ -365,7 +424,7 @@ export default function AccessoriesTab() {
                   <select
                     value={form.stockStatus}
                     onChange={e => setForm(f => ({ ...f, stockStatus: e.target.value as StockStatus }))}
-                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                   >
                     <option value="in_stock">متوفر</option>
                     <option value="limited">محدود</option>
@@ -380,7 +439,7 @@ export default function AccessoriesTab() {
                   rows={3}
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 />
               </div>
 

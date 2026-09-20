@@ -90,17 +90,29 @@ export type Addon = {
   dbIndex?: number
 }
 
+export type AccessoryHomeSection =
+  | 'bags'
+  | 'mice'
+  | 'ram'
+  | 'storage'
+  | 'batteries'
+  | 'chargers'
+  | 'monitors'
+  | null
+
 export type Accessory = {
   id: string
   name: string
   price: number
   description: string
   category: string
+  homeSection?: AccessoryHomeSection
   photos: string[]
   stockStatus: StockStatus
   quantity: number
   visible: boolean
   dbIndex?: number
+  createdAt?: string
 }
 
 export type SelectedAddon = {

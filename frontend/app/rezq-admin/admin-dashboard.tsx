@@ -567,7 +567,7 @@ function OrdersTab() {
               setPage(1)
             }}
             placeholder="ابحث برقم الطلب، الاسم، أو الهاتف..."
-            className="w-full ps-9 pe-4 py-2.5 rounded-xl border border-hairline font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+            className="w-full ps-9 pe-4 py-2.5 rounded-xl border border-hairline font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
           />
         </div>
         <div className="flex gap-2 flex-wrap">

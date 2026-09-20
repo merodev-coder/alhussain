@@ -106,11 +106,22 @@ export const addonInputSchema = z.object({
   visible: z.boolean().default(true),
 })
 
+export const accessoryHomeSectionSchema = z.enum([
+  'bags',
+  'mice',
+  'ram',
+  'storage',
+  'batteries',
+  'chargers',
+  'monitors',
+])
+
 export const accessoryInputSchema = z.object({
   name: z.string().min(1, 'الاسم مطلوب'),
   price: z.coerce.number().min(0, 'السعر غير صحيح'),
   description: z.string().default(''),
   category: z.string().default('other'),
+  homeSection: accessoryHomeSectionSchema.nullable().optional(),
   photos: z.array(z.string().url()).default([]),
   stockStatus: stockStatusSchema.default('in_stock'),
   quantity: z.coerce.number().min(0).optional(),

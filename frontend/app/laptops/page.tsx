@@ -183,7 +183,7 @@ export default function LaptopsPage() {
               setPriceMax(Number(e.target.value))
               setPage(1)
             }}
-            className="w-full accent-[#0FC7C1]"
+            className="w-full accent-[#0EA8A3]"
           />
           <div className="flex justify-between font-body text-xs text-ink-muted">
             <span>10,000 ج.م</span>

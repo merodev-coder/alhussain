@@ -214,7 +214,7 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => toggleAddon(addon.id)}
-                          className="w-4 h-4 rounded border-hairline text-brand-primary focus:ring-[#0FC7C1]"
+                          className="w-4 h-4 rounded border-hairline text-brand-primary focus:ring-[#0EA8A3]"
                         />
                         <div>
                           <p className="font-body text-xs font-semibold text-ink">{addon.name}</p>
@@ -345,7 +345,7 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => toggleAddon(addon.id)}
-                        className="w-4 h-4 rounded border-hairline text-brand-primary focus:ring-[#0FC7C1]"
+                        className="w-4 h-4 rounded border-hairline text-brand-primary focus:ring-[#0EA8A3]"
                       />
                       <div>
                         <p className="font-body text-xs font-semibold text-ink">{addon.name}</p>

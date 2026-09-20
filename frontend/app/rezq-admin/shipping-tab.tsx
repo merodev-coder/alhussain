@@ -93,7 +93,7 @@ export default function ShippingTab() {
                       const val = parseFloat(e.target.value) || 0
                       setRates(prev => prev.map(r => (r.governorate === rate.governorate ? { ...r, cost: val } : r)))
                     }}
-                    className="w-28 px-3 py-1.5 border border-hairline rounded-xl font-sans font-bold text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                    className="w-28 px-3 py-1.5 border border-hairline rounded-xl font-sans font-bold text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                   />
                 </td>
                 <td className="px-5 py-4">
@@ -105,7 +105,7 @@ export default function ShippingTab() {
                       const val = parseInt(e.target.value, 10) || 1
                       setRates(prev => prev.map(r => (r.governorate === rate.governorate ? { ...r, estimatedDays: val } : r)))
                     }}
-                    className="w-24 px-3 py-1.5 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                    className="w-24 px-3 py-1.5 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                   />
                 </td>
                 <td className="px-5 py-4">

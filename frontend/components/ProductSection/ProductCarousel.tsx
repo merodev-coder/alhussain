@@ -2,11 +2,11 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronRight, ChevronLeft } from 'lucide-react'
-import type { Product } from '@/lib/types'
+import type { Accessory, Product } from '@/lib/types'
 import ProductCard from './ProductCard'
 
 interface ProductCarouselProps {
-  products: Product[]
+  products: (Product | Accessory)[]
   sectionKey: string
 }
 

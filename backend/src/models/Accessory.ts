@@ -1,6 +1,22 @@
 import mongoose, { Schema } from 'mongoose'
 import type { StockStatus } from './Product.js'
 
+// The dashboard page an accessory shows on, mirroring Product.homeSection's
+// non-laptop slugs. Lets the admin pick "which page" a mouse/charger/monitor
+// etc. appears on from a single Accessories tab, instead of maintaining a
+// second free-form taxonomy alongside `category`.
+export const ACCESSORY_HOME_SECTIONS = [
+  'bags',
+  'mice',
+  'ram',
+  'storage',
+  'batteries',
+  'chargers',
+  'monitors',
+] as const
+
+export type AccessoryHomeSection = (typeof ACCESSORY_HOME_SECTIONS)[number]
+
 export interface AccessoryDoc {
   _id?: string
   id?: string
@@ -8,6 +24,7 @@ export interface AccessoryDoc {
   price: number
   description: string
   category: string
+  homeSection: AccessoryHomeSection | null
   photos: string[]
   stockStatus: StockStatus
   quantity: number
@@ -23,6 +40,11 @@ const AccessorySchema = new Schema<AccessoryDoc>(
     price: { type: Number, required: true, min: 0 },
     description: { type: String, default: '' },
     category: { type: String, default: 'other', trim: true },
+    homeSection: {
+      type: String,
+      enum: [...ACCESSORY_HOME_SECTIONS, null],
+      default: null,
+    },
     photos: { type: [String], default: [] },
     stockStatus: {
       type: String,
@@ -47,6 +69,7 @@ const AccessorySchema = new Schema<AccessoryDoc>(
 )
 
 AccessorySchema.index({ visible: 1, createdAt: -1 })
+AccessorySchema.index({ homeSection: 1 })
 AccessorySchema.index({ name: 'text', description: 'text' })
 AccessorySchema.index({ dbIndex: 1 })
 

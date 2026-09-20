@@ -1,93 +1,94 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { use, useMemo, useState } from 'react'
 import useSWR from 'swr'
-import { Search, Headphones } from 'lucide-react'
+import { notFound } from 'next/navigation'
+import { PackageSearch, SlidersHorizontal } from 'lucide-react'
 import StoreLayout from '@/components/store-layout'
 import AccessoryCard from '@/components/accessory-card'
 import { fetcher } from '@/lib/fetcher'
 import type { Accessory } from '@/lib/types'
+import { CATEGORY_PAGE_META, CATEGORY_PAGE_SLUGS, type CategoryPageSlug } from '@/lib/category-routes'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export default function AccessoriesPage() {
+function isCategorySlug(value: string): value is CategoryPageSlug {
+  return (CATEGORY_PAGE_SLUGS as readonly string[]).includes(value)
+}
+
+export default function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
+
+  if (!isCategorySlug(slug)) {
+    notFound()
+  }
+
+  return <CategoryPageContent slug={slug} />
+}
+
+function CategoryPageContent({ slug }: { slug: CategoryPageSlug }) {
+  const meta = CATEGORY_PAGE_META[slug]
   const [page, setPage] = useState(1)
-  const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('all')
 
   const { data, isLoading } = useSWR<{ items: Accessory[]; total: number; page: number; pages: number }>(
-    `/api/accessories?page=${page}&search=${encodeURIComponent(search)}`,
+    `/api/accessories?homeSection=${slug}&page=${page}&limit=24`,
     fetcher
   )
 
-  const accessories = data?.items ?? []
+  const items = data?.items ?? []
   const totalPages = data?.pages || 1
 
-  const categories = useMemo(() => {
+  const subCategories = useMemo(() => {
     const set = new Set<string>()
-    accessories.forEach(a => {
+    items.forEach(a => {
       if (a.category) set.add(a.category)
     })
     return Array.from(set)
-  }, [accessories])
+  }, [items])
 
   const filtered = useMemo(() => {
-    return accessories.filter(a => {
+    return items.filter(a => {
       if (!a.visible) return false
-      if (selectedCategory !== 'all' && a.category !== selectedCategory) return false
+      if (selectedSubCategory !== 'all' && a.category !== selectedSubCategory) return false
       return true
     })
-  }, [accessories, selectedCategory])
+  }, [items, selectedSubCategory])
 
   return (
     <StoreLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="font-sans font-bold text-ink text-3xl">الإكسسوارات والملحقات</h1>
-            <p className="font-body text-ink-muted text-sm mt-1">
-              تصفح تشكيلة واسعة من الحقائب، الماوسات، الشواحن، والسماعات المتميزة
-            </p>
-          </div>
-
-          {/* Search bar */}
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => {
-                setSearch(e.target.value)
-                setPage(1)
-              }}
-              placeholder="ابحث عن إكسسوار..."
-              className="w-full ps-9 pe-4 py-2 rounded-full border border-hairline font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
-            />
-          </div>
+        <div className="mb-8">
+          <h1 className="font-sans font-bold text-ink text-3xl">{meta.title}</h1>
+          <p className="font-body text-ink-muted text-sm mt-1.5 max-w-2xl">{meta.description}</p>
         </div>
 
-        {/* Category Pills */}
-        {categories.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-8">
+        {/* Sub-category pills */}
+        {subCategories.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-8">
+            <span className="flex items-center gap-1.5 font-body text-xs text-ink-muted me-1">
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              تصفية:
+            </span>
             <button
-              onClick={() => setSelectedCategory('all')}
+              onClick={() => setSelectedSubCategory('all')}
               className={cn(
                 'px-4 py-2 rounded-full text-xs font-body font-semibold transition-colors',
-                selectedCategory === 'all'
+                selectedSubCategory === 'all'
                   ? 'bg-brand-primary text-white'
                   : 'bg-surface-1 text-ink-muted hover:bg-surface-2'
               )}
             >
               الكل
             </button>
-            {categories.map(cat => (
+            {subCategories.map(cat => (
               <button
                 key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                onClick={() => setSelectedSubCategory(cat)}
                 className={cn(
                   'px-4 py-2 rounded-full text-xs font-body font-semibold transition-colors',
-                  selectedCategory === cat
+                  selectedSubCategory === cat
                     ? 'bg-brand-primary text-white'
                     : 'bg-surface-1 text-ink-muted hover:bg-surface-2'
                 )}
@@ -114,22 +115,23 @@ export default function AccessoriesPage() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
             <div className="w-16 h-16 rounded-full bg-surface-1 flex items-center justify-center">
-              <Headphones className="w-8 h-8 text-ink-muted" />
+              <PackageSearch className="w-8 h-8 text-ink-muted" />
             </div>
-            <h3 className="font-sans font-bold text-ink text-xl">لا توجد إكسسوارات</h3>
-            <p className="font-body text-ink-muted text-sm">جرب البحث بكلمات أخرى أو اختر فئة مختلفة.</p>
+            <h3 className="font-sans font-bold text-ink text-xl">
+              {items.length === 0 ? 'لا توجد منتجات بعد في هذا القسم' : 'لا توجد نتائج مطابقة'}
+            </h3>
+            <p className="font-body text-ink-muted text-sm">سيتم إضافة المنتجات قريباً.</p>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-              {filtered.map(acc => (
-                <AccessoryCard key={acc.id} accessory={acc} />
+              {filtered.map(item => (
+                <AccessoryCard key={item.id} accessory={item} />
               ))}
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-10">
                 <button

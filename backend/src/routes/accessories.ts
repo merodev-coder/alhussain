@@ -12,12 +12,15 @@ const router = Router()
 
 router.get('/api/accessories', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { search, page = '1', limit = '24' } = req.query
+    const { search, homeSection, page = '1', limit = '24' } = req.query
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1)
     const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 24))
 
     const all = await DatabaseRouter.readAcrossAllDatabases(async connection => {
       const query: Record<string, unknown> = {}
+      if (homeSection && typeof homeSection === 'string') {
+        query.homeSection = homeSection
+      }
       if (search && typeof search === 'string') {
         query.$or = [
           { name: { $regex: search, $options: 'i' } },

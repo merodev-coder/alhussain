@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import type { Product } from '@/lib/types'
+import type { Accessory, Product } from '@/lib/types'
 import { getCategoryHref } from '@/lib/category-routes'
 import ProductCarousel from './ProductCarousel'
 import ProductCardSkeleton from './ProductCardSkeleton'
@@ -21,7 +21,7 @@ interface ProductSectionProps {
    * "View All" link starts targeting the right subset with no further changes.
    */
   categorySlug?: string
-  products: Product[]
+  products: (Product | Accessory)[]
   loading?: boolean
 }
 

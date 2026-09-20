@@ -249,7 +249,7 @@ export default function CheckoutClient() {
                     placeholder="مثال: أحمد محمد"
                     value={form.name}
                     onChange={e => set('name', e.target.value)}
-                    className={cn('rounded-xl border-hairline focus-visible:ring-[#0FC7C1]/30 font-body', errors.name && 'border-red-400')}
+                    className={cn('rounded-xl border-hairline focus-visible:ring-[#0EA8A3]/30 font-body', errors.name && 'border-red-400')}
                   />
                   {errors.name && <p className="font-body text-xs text-red-500">{errors.name}</p>}
                 </div>
@@ -260,7 +260,7 @@ export default function CheckoutClient() {
                     placeholder="01xxxxxxxxx"
                     value={form.phone}
                     onChange={e => set('phone', e.target.value)}
-                    className={cn('rounded-xl border-hairline focus-visible:ring-[#0FC7C1]/30 font-body', errors.phone && 'border-red-400')}
+                    className={cn('rounded-xl border-hairline focus-visible:ring-[#0EA8A3]/30 font-body', errors.phone && 'border-red-400')}
                     inputMode="tel"
                   />
                   {errors.phone && <p className="font-body text-xs text-red-500">{errors.phone}</p>}
@@ -273,7 +273,7 @@ export default function CheckoutClient() {
                     placeholder="example@email.com"
                     value={form.email}
                     onChange={e => set('email', e.target.value)}
-                    className={cn('rounded-xl border-hairline focus-visible:ring-[#0FC7C1]/30 font-body', errors.email && 'border-red-400')}
+                    className={cn('rounded-xl border-hairline focus-visible:ring-[#0EA8A3]/30 font-body', errors.email && 'border-red-400')}
                     dir="ltr"
                   />
                   {errors.email && <p className="font-body text-xs text-red-500">{errors.email}</p>}
@@ -317,7 +317,7 @@ export default function CheckoutClient() {
                       value={form.governorate}
                       onChange={e => set('governorate', e.target.value)}
                       className={cn(
-                        'w-full rounded-xl border px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30 transition-shadow',
+                        'w-full rounded-xl border px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30 transition-shadow',
                         errors.governorate ? 'border-red-400' : 'border-hairline',
                         !form.governorate && 'text-ink-muted'
                       )}
@@ -339,7 +339,7 @@ export default function CheckoutClient() {
                       placeholder="مثال: شارع التحرير، مبنى 5، شقة 12"
                       value={form.address}
                       onChange={e => set('address', e.target.value)}
-                      className={cn('rounded-xl border-hairline focus-visible:ring-[#0FC7C1]/30 font-body', errors.address && 'border-red-400')}
+                      className={cn('rounded-xl border-hairline focus-visible:ring-[#0EA8A3]/30 font-body', errors.address && 'border-red-400')}
                     />
                     {errors.address && <p className="font-body text-xs text-red-500">{errors.address}</p>}
                   </div>
@@ -394,7 +394,7 @@ export default function CheckoutClient() {
                         type="checkbox"
                         checked={form.isCashOnDelivery}
                         onChange={e => set('isCashOnDelivery', e.target.checked)}
-                        className="w-5 h-5 rounded border-hairline text-brand-primary focus:ring-[#0FC7C1]"
+                        className="w-5 h-5 rounded border-hairline text-brand-primary focus:ring-[#0EA8A3]"
                       />
                       <div className="flex-1">
                         <span className="font-sans font-bold text-ink text-sm">الدفع عند الاستلام</span>

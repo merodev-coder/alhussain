@@ -15,7 +15,7 @@ export default function HeroSlideText({ slide, slideKey }: HeroSlideTextProps) {
   // Brand teal is default; disciplined styling
   const buttonBg = slide.buttonColor && /^#([0-9A-F]{3}){1,2}$/i.test(slide.buttonColor)
     ? slide.buttonColor
-    : '#0FC7C1'
+    : '#0EA8A3'
 
   // An admin can save an image-only slide (no headline). Mirror that here so
   // the dashboard preview matches what actually renders on the homepage,

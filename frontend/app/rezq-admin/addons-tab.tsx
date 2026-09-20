@@ -310,7 +310,7 @@ export default function AddonsTab() {
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: رام 8 جيجا DDR4 إضافية"
-                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 />
               </div>
 
@@ -323,7 +323,7 @@ export default function AddonsTab() {
                     min="0"
                     value={form.price}
                     onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                   />
                 </div>
                 <div>
@@ -331,7 +331,7 @@ export default function AddonsTab() {
                   <select
                     value={form.category}
                     onChange={e => setForm(f => ({ ...f, category: e.target.value as AddonCategory }))}
-                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                   >
                     {Object.entries(CATEGORY_LABELS).map(([k, label]) => (
                       <option key={k} value={k}>
@@ -350,7 +350,7 @@ export default function AddonsTab() {
                     min="0"
                     value={form.quantity}
                     onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
-                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                   />
                 </div>
                 <div>
@@ -358,7 +358,7 @@ export default function AddonsTab() {
                   <select
                     value={form.stockStatus}
                     onChange={e => setForm(f => ({ ...f, stockStatus: e.target.value as StockStatus }))}
-                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                    className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                   >
                     <option value="in_stock">متوفر</option>
                     <option value="limited">محدود</option>
@@ -402,7 +402,7 @@ export default function AddonsTab() {
                               setForm(f => ({ ...f, compatibleWith: f.compatibleWith.filter(id => id !== p.id) }))
                             }
                           }}
-                          className="rounded border-hairline text-brand-primary focus:ring-[#0FC7C1]"
+                          className="rounded border-hairline text-brand-primary focus:ring-[#0EA8A3]"
                         />
                         <span>{p.name}</span>
                       </label>
@@ -417,7 +417,7 @@ export default function AddonsTab() {
                   rows={2}
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 />
               </div>
 

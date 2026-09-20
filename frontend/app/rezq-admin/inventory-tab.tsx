@@ -158,7 +158,7 @@ export default function InventoryTab() {
         <select
           value={categoryFilter}
           onChange={e => setCategoryFilter(e.target.value)}
-          className="px-3 py-1.5 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+          className="px-3 py-1.5 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
         >
           <option value="all">جميع الفئات</option>
           <option value="laptop">اللابتوبات</option>
@@ -171,7 +171,7 @@ export default function InventoryTab() {
             type="checkbox"
             checked={lowStockFilter}
             onChange={e => setLowStockFilter(e.target.checked)}
-            className="rounded border-hairline text-brand-primary focus:ring-[#0FC7C1]"
+            className="rounded border-hairline text-brand-primary focus:ring-[#0EA8A3]"
           />
           <span className="flex items-center gap-1 text-amber-600 font-semibold">
             <AlertTriangle className="w-3.5 h-3.5" />
@@ -280,7 +280,7 @@ export default function InventoryTab() {
                       setNewStatus(qNum <= 0 ? 'out_of_stock' : qNum <= 3 ? 'limited' : 'in_stock')
                     }
                   }}
-                  className="w-full px-3 py-2 border border-hairline rounded-xl font-sans font-bold text-lg bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                  className="w-full px-3 py-2 border border-hairline rounded-xl font-sans font-bold text-lg bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 />
               </div>
 
@@ -289,7 +289,7 @@ export default function InventoryTab() {
                 <select
                   value={newStatus}
                   onChange={e => setNewStatus(e.target.value as StockStatus)}
-                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 >
                   <option value="in_stock">متوفر</option>
                   <option value="limited">محدود</option>
@@ -305,7 +305,7 @@ export default function InventoryTab() {
                   value={reason}
                   onChange={e => setReason(e.target.value)}
                   placeholder="مثال: جرد دفتري، استلام شحنة جديدة، بضاعة تالفة"
-                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                  className="w-full px-3 py-2 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 />
               </div>
 

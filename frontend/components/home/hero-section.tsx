@@ -10,7 +10,7 @@ function LaptopMark({ tone = 'active' }) {
       <div className="rounded-t-xl border-[6px] border-b-0 border-ink bg-ink p-1.5">
         <div
           className="aspect-[16/10] rounded-[3px]"
-          style={{ background: 'linear-gradient(135deg, #0FC7C1 0%, #FF9A52 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #0EA8A3 0%, #FF9A52 100%)' }}
         />
       </div>
       <div className="mx-[-3px] h-2.5 rounded-b-lg bg-ink" />
@@ -25,7 +25,7 @@ export default function HeroSection() {
       <div
         className="absolute inset-0 opacity-5"
         style={{
-          backgroundImage: `radial-gradient(circle at 15% 45%, #0FC7C1 0%, transparent 55%), radial-gradient(circle at 85% 15%, #FF7A29 0%, transparent 50%)`,
+          backgroundImage: `radial-gradient(circle at 15% 45%, #0EA8A3 0%, transparent 55%), radial-gradient(circle at 85% 15%, #F2994A 0%, transparent 50%)`,
         }}
       />
 
@@ -126,8 +126,8 @@ export default function HeroSection() {
           <div className="order-1 lg:order-2 flex justify-center items-center" aria-hidden="true">
             <div className="relative w-full max-w-md">
               {/* Ambient glow, echoes the section background */}
-              <div className="absolute start-0 top-0 h-28 w-28 rounded-full blur-3xl opacity-30" style={{ background: '#0FC7C1' }} />
-              <div className="absolute end-0 bottom-0 h-28 w-28 rounded-full blur-3xl opacity-25" style={{ background: '#FF7A29' }} />
+              <div className="absolute start-0 top-0 h-28 w-28 rounded-full blur-3xl opacity-30" style={{ background: '#0EA8A3' }} />
+              <div className="absolute end-0 bottom-0 h-28 w-28 rounded-full blur-3xl opacity-25" style={{ background: '#F2994A' }} />
 
               <div className="relative aspect-[4/3]">
                 {/* Back laptop, suggests the wider catalog */}

@@ -100,9 +100,10 @@ export const api = {
   delete_addon: (id: string) => apiRequest<any>(`/api/addons/${id}`, { method: 'DELETE' }),
 
   // Accessories
-  get_accessories: (search?: string, page?: number, limit?: number) => {
+  get_accessories: (search?: string, page?: number, limit?: number, homeSection?: string) => {
     const params = new URLSearchParams()
     if (search) params.append('search', search)
+    if (homeSection) params.append('homeSection', homeSection)
     if (page) params.append('page', page.toString())
     if (limit) params.append('limit', limit.toString())
     const queryString = params.toString()

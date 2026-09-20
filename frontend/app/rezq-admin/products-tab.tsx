@@ -115,7 +115,7 @@ function SpecSelect({
         value={value}
         onChange={e => onChange(e.target.value)}
         className={cn(
-          'w-full rounded-xl border px-3 py-2.5 font-body text-sm bg-canvas border-hairline focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30',
+          'w-full rounded-xl border px-3 py-2.5 font-body text-sm bg-canvas border-hairline focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30',
           !value && 'text-ink-muted'
         )}
       >
@@ -133,7 +133,7 @@ function SpecSelect({
             value={newValue}
             onChange={e => setNewValue(e.target.value)}
             placeholder="قيمة جديدة"
-            className="flex-1 rounded-xl border border-hairline px-3 py-2 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+            className="flex-1 rounded-xl border border-hairline px-3 py-2 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
           />
           <button
             type="button"
@@ -294,7 +294,7 @@ function ProductFormModal({
             <input
               value={form.name}
               onChange={e => set('name', e.target.value)}
-              className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
               placeholder="مثال: ديل إكس بي إس 15"
             />
           </div>
@@ -306,7 +306,7 @@ function ProductFormModal({
                 type="number"
                 value={form.price}
                 onChange={e => set('price', e.target.value)}
-                className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 placeholder="85000"
               />
             </div>
@@ -315,7 +315,7 @@ function ProductFormModal({
               <input
                 value={form.discountBadge}
                 onChange={e => set('discountBadge', e.target.value)}
-                className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 placeholder="-10% أو جديد"
               />
             </div>
@@ -327,7 +327,7 @@ function ProductFormModal({
               value={form.description}
               onChange={e => set('description', e.target.value)}
               rows={3}
-              className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30 resize-none"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30 resize-none"
             />
           </div>
 
@@ -358,7 +358,7 @@ function ProductFormModal({
                     e.target.value as ProductForm['homeSection']
                   )
                 }
-                className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
               >
                 <option value="">بدون (لا يظهر في الصفحة الرئيسية)</option>
                 <option value="best_sellers">الأكثر مبيعاً (best_sellers)</option>
@@ -388,7 +388,7 @@ function ProductFormModal({
               <input
                 value={form.badge}
                 onChange={e => set('badge', e.target.value)}
-                className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 placeholder="مثال: خصم 10% أو جديد"
               />
             </div>
@@ -399,7 +399,7 @@ function ProductFormModal({
             <select
               value={form.stockStatus}
               onChange={e => set('stockStatus', e.target.value as Product['stockStatus'])}
-              className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
             >
               {(Object.keys(STOCK_LABELS) as Product['stockStatus'][]).map(s => (
                 <option key={s} value={s}>
@@ -1174,7 +1174,7 @@ function BulkImportModal({
               value={jsonText}
               onChange={e => setJsonText(e.target.value)}
               rows={12}
-              className="w-full rounded-xl border border-hairline px-3 py-2.5 font-mono text-xs bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30 resize-none"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 font-mono text-xs bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30 resize-none"
               placeholder="[
   {
     &quot;name&quot;: &quot;اسم المنتج&quot;,

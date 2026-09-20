@@ -103,7 +103,7 @@ export default function SettingsTab() {
                 value={vodafoneCashNumber}
                 onChange={e => setVodafoneCashNumber(e.target.value)}
                 placeholder="مثال: 010xxxxxxxx"
-                className="w-full px-4 py-3 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                className="w-full px-4 py-3 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 dir="ltr"
               />
               <p className="font-body text-[11px] text-ink-muted mt-1">
@@ -120,7 +120,7 @@ export default function SettingsTab() {
                 value={instapayNumber}
                 onChange={e => setInstapayNumber(e.target.value)}
                 placeholder="مثال: 010xxxxxxxx@instapay"
-                className="w-full px-4 py-3 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                className="w-full px-4 py-3 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 dir="ltr"
               />
               <p className="font-body text-[11px] text-ink-muted mt-1">
@@ -137,7 +137,7 @@ export default function SettingsTab() {
                 value={activeUploadThingTokenIndex}
                 onChange={e => setActiveUploadThingTokenIndex(parseInt(e.target.value) || 0)}
                 min="0"
-                className="w-full px-4 py-3 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                className="w-full px-4 py-3 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 dir="ltr"
               />
               <p className="font-body text-[11px] text-ink-muted mt-1">
@@ -160,7 +160,7 @@ export default function SettingsTab() {
                 value={senderEmail}
                 onChange={e => setSenderEmail(e.target.value)}
                 placeholder="store@gmail.com"
-                className="w-full px-4 py-3 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                className="w-full px-4 py-3 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 dir="ltr"
               />
               <p className="font-body text-[11px] text-ink-muted mt-1">
@@ -177,7 +177,7 @@ export default function SettingsTab() {
                 value={senderEmailAppPassword}
                 onChange={e => setSenderEmailAppPassword(e.target.value)}
                 placeholder="xxxxxxxxxxxxxxxx"
-                className="w-full px-4 py-3 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0FC7C1]/30"
+                className="w-full px-4 py-3 border border-hairline rounded-xl font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
                 dir="ltr"
               />
               <p className="font-body text-[11px] text-ink-muted mt-1">
