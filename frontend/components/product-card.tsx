@@ -2,10 +2,12 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { ShoppingCart, Cpu, MemoryStick, HardDrive, Zap } from 'lucide-react'
+import { useState } from 'react'
+import { ShoppingCart, Cpu, MemoryStick, HardDrive, Zap, Eye } from 'lucide-react'
 import { useCart } from '@/lib/cart-context'
 import type { Product } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import QuickViewModal from '@/components/product-quick-view'
 
 type Props = {
   product: Product
@@ -20,6 +22,7 @@ const STOCK_STYLES: Record<Product['stockStatus'], { label: string; dot: string;
 
 export default function ProductCard({ product, className }: Props) {
   const { addItem } = useCart()
+  const [quickViewOpen, setQuickViewOpen] = useState(false)
   const stock = STOCK_STYLES[product.stockStatus]
   const isOutOfStock = product.stockStatus === 'out_of_stock'
 
@@ -54,6 +57,20 @@ export default function ProductCard({ product, className }: Props) {
             </span>
           )}
         </div>
+
+        {/* Quick view — top right, revealed on hover (always visible on touch) */}
+        <button
+          onClick={e => {
+            e.preventDefault()
+            e.stopPropagation()
+            setQuickViewOpen(true)
+          }}
+          aria-label="عرض سريع"
+          title="عرض سريع"
+          className="absolute top-3 end-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-canvas/95 text-ink opacity-100 shadow-md backdrop-blur-sm transition-all hover:bg-brand-primary hover:text-white sm:opacity-0 sm:group-hover:opacity-100"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
 
         {product.stockStatus === 'limited' && (
           <span className="absolute bottom-2.5 start-2.5 z-10 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">
@@ -112,6 +129,8 @@ export default function ProductCard({ product, className }: Props) {
           </button>
         </div>
       </div>
+
+      <QuickViewModal product={product} open={quickViewOpen} onOpenChange={setQuickViewOpen} />
     </div>
   )
 }

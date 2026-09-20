@@ -1,10 +1,12 @@
 'use client'
 
 import Image from 'next/image'
-import { ShoppingCart, PackageSearch, Zap } from 'lucide-react'
+import { useState } from 'react'
+import { ShoppingCart, PackageSearch, Zap, Eye } from 'lucide-react'
 import { useCart } from '@/lib/cart-context'
 import type { Accessory } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import QuickViewModal from '@/components/product-quick-view'
 
 type Props = {
   accessory: Accessory
@@ -19,6 +21,7 @@ const STOCK_STYLES: Record<Accessory['stockStatus'], { label: string; dot: strin
 
 export default function AccessoryCard({ accessory, className }: Props) {
   const { addAccessory } = useCart()
+  const [quickViewOpen, setQuickViewOpen] = useState(false)
   const stock = STOCK_STYLES[accessory.stockStatus]
   const isOutOfStock = accessory.stockStatus === 'out_of_stock'
 
@@ -45,14 +48,24 @@ export default function AccessoryCard({ accessory, className }: Props) {
           </div>
         )}
 
+        {/* Quick view — top right, revealed on hover (always visible on touch) */}
+        <button
+          onClick={() => setQuickViewOpen(true)}
+          aria-label="عرض سريع"
+          title="عرض سريع"
+          className="absolute top-2.5 end-2.5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-canvas/95 text-ink opacity-100 shadow-md backdrop-blur-sm transition-all hover:bg-brand-primary hover:text-white sm:opacity-0 sm:group-hover:opacity-100"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+
         {accessory.stockStatus === 'limited' && (
-          <span className="absolute top-2.5 start-2.5 z-10 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">
+          <span className="absolute bottom-2.5 start-2.5 z-10 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">
             <Zap className="h-3 w-3" />
             كمية محدودة
           </span>
         )}
         {isOutOfStock && (
-          <span className="absolute top-2.5 start-2.5 z-10 rounded-full bg-inverse-canvas/85 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
+          <span className="absolute bottom-2.5 start-2.5 z-10 rounded-full bg-inverse-canvas/85 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
             غير متوفر حالياً
           </span>
         )}
@@ -96,6 +109,8 @@ export default function AccessoryCard({ accessory, className }: Props) {
           </button>
         </div>
       </div>
+
+      <QuickViewModal product={accessory} open={quickViewOpen} onOpenChange={setQuickViewOpen} />
     </div>
   )
 }

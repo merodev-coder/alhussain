@@ -16,7 +16,6 @@ const AUTO_ADVANCE_MS = 3200
 export default function ProductCarousel({ products, sectionKey }: ProductCarouselProps) {
   const trackRef = useRef<HTMLDivElement>(null)
   const sectionRef = useRef<HTMLDivElement>(null)
-  const activeIndexRef = useRef(0)
   const [isPaused, setIsPaused] = useState(false)
   const [isInView, setIsInView] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -24,50 +23,55 @@ export default function ProductCarousel({ products, sectionKey }: ProductCarouse
   const isScrolling = useRef(false)
   const releaseGuardTimer = useRef<number | null>(null)
 
-  // Move to a specific card by index using a precise pixel delta measured
-  // from the card and track's actual on-screen positions, then scroll the
-  // *track itself* (not scrollIntoView). scrollIntoView used to fix the old
-  // "need two clicks" bug, but it also asks the browser to bring the card
-  // into the page's vertical viewport — if the row was only partially
-  // visible (e.g. autoplaying while the user had it half-scrolled into
-  // view), that silently dragged the whole page down every few seconds,
-  // which felt broken. track.scrollBy() only ever touches this row's own
-  // horizontal scroll offset and can never move the page, while still
-  // landing precisely on the next snap point since the delta is measured
-  // fresh from getBoundingClientRect() every time (not a stale guess at
-  // card width).
-  const scrollToIndex = useCallback((index: number) => {
-    const track = trackRef.current
-    if (!track) return
-    const card = track.children[index] as HTMLElement | undefined
-    if (!card) return
+  // Step one card at a time, always measured from wherever the track
+  // actually is right now — never from a separately tracked "active index".
+  //
+  // The old version kept its own activeIndexRef and scrolled to
+  // `track.children[index]`. That index only matched reality as long as
+  // nothing else ever moved the track. The moment a user dragged/swiped the
+  // row by hand, or autoplay and a click landed back to back, the tracked
+  // index silently drifted out of sync with the real scroll offset — so the
+  // arrow would scroll to a card that was already on screen (or skip past
+  // the next one), which is exactly what "the arrows don't work" looks like.
+  // Reading scrollLeft fresh on every click removes that whole class of bug.
+  const step = useCallback(
+    (direction: 1 | -1) => {
+      const track = trackRef.current
+      if (!track || isScrolling.current || products.length <= 1) return
 
-    const trackRect = track.getBoundingClientRect()
-    const cardRect = card.getBoundingClientRect()
-    const delta = cardRect.right - trackRect.right
+      const firstCard = track.children[0] as HTMLElement | undefined
+      if (!firstCard) return
+      const cardWidth = firstCard.getBoundingClientRect().width
+      const gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap || '0')
+      const stepSize = cardWidth + gap
 
-    isScrolling.current = true
-    track.scrollBy({ left: -delta, behavior: 'smooth' })
+      const maxScroll = track.scrollWidth - track.clientWidth
+      // RTL browsers report scrollLeft as 0..-maxScroll; normalize to a
+      // plain positive 0..maxScroll "distance scrolled" value so the same
+      // math works regardless of scroll-direction quirks.
+      const current = Math.abs(track.scrollLeft)
+      // "Next" in this RTL row moves further into negative scrollLeft
+      // (visually leftward), so direction is inverted relative to a normal
+      // LTR carousel.
+      let target = current + direction * stepSize
+      if (target > maxScroll) target = 0 // wrap to the start
+      if (target < 0) target = maxScroll // wrap to the end
 
-    if (releaseGuardTimer.current) window.clearTimeout(releaseGuardTimer.current)
-    releaseGuardTimer.current = window.setTimeout(() => {
-      isScrolling.current = false
-    }, 500)
-  }, [])
+      const sign = track.scrollLeft < 0 || getComputedStyle(track).direction === 'rtl' ? -1 : 1
 
-  const goNext = useCallback(() => {
-    if (!products.length || isScrolling.current) return
-    const next = (activeIndexRef.current + 1) % products.length
-    activeIndexRef.current = next
-    scrollToIndex(next)
-  }, [products.length, scrollToIndex])
+      isScrolling.current = true
+      track.scrollTo({ left: sign * target, behavior: 'smooth' })
 
-  const goPrev = useCallback(() => {
-    if (!products.length || isScrolling.current) return
-    const prev = (activeIndexRef.current - 1 + products.length) % products.length
-    activeIndexRef.current = prev
-    scrollToIndex(prev)
-  }, [products.length, scrollToIndex])
+      if (releaseGuardTimer.current) window.clearTimeout(releaseGuardTimer.current)
+      releaseGuardTimer.current = window.setTimeout(() => {
+        isScrolling.current = false
+      }, 500)
+    },
+    [products.length]
+  )
+
+  const goNext = useCallback(() => step(1), [step])
+  const goPrev = useCallback(() => step(-1), [step])
 
   // Only run the autoplay timer while this carousel is actually visible on
   // screen, so off-screen sections never trigger any scrolling at all.
