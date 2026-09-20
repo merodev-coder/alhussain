@@ -59,7 +59,7 @@ export default function QuickViewModal({ product, open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="max-w-3xl overflow-hidden p-0 sm:rounded-3xl"
+        className="!block max-w-[calc(100%-2rem)] overflow-hidden p-0 sm:max-w-xl sm:rounded-3xl lg:max-w-3xl"
       >
         <DialogTitle className="sr-only">{product.name}</DialogTitle>
 
@@ -71,7 +71,7 @@ export default function QuickViewModal({ product, open, onOpenChange }: Props) {
           <X className="h-4 w-4" />
         </button>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2">
+        <div className="grid max-h-[85vh] grid-cols-1 overflow-y-auto sm:grid-cols-2 sm:overflow-visible">
           {/* Gallery */}
           <div className="flex flex-col gap-3 bg-surface-1 p-5 sm:p-6">
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-canvas">
