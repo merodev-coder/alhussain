@@ -58,9 +58,10 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
     })
   }, [items, search])
 
-  const handlePrint = () => {
-    // Opens the public pricelist page in a new tab so the printed PDF matches
-    // exactly what customers see, with the nice thumbnails and large layout.
+  const handleOpenList = () => {
+    // Opens the public pricelist page in a new tab where the admin can use
+    // the "تحميل PDF" button to get the exact same nicely-formatted PDF
+    // customers would get, with thumbnails and large readable rows.
     window.open('/pricelist', '_blank', 'noopener,noreferrer')
   }
 
@@ -115,12 +116,12 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
         </button>
 
         <button
-          onClick={handlePrint}
+          onClick={handleOpenList}
           disabled={items.length === 0}
           className="flex items-center gap-1.5 px-4 py-2.5 bg-brand-primary text-white hover:bg-brand-primary/90 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
         >
           <Printer className="w-4 h-4" />
-          فتح صفحة القائمة للطباعة / PDF
+          فتح صفحة القائمة (تحميل PDF من هناك)
         </button>
       </div>
 
