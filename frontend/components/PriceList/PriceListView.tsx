@@ -366,7 +366,7 @@ export default function PriceListView() {
               لا توجد قائمة أسعار منشورة حالياً
             </h3>
             <p className="text-xs text-ink-muted">
-              سيتم عرض الأجهزة هنا تلقائياً بمجرد إضافتها كمنتجات ظاهرة في قسم اللابتوبات.
+              سيتم عرض الأجهزة هنا تلقائياً بمجرد إضافتها كمنتجات ظاهرة في المتجر.
             </p>
           </div>
         ) : filteredItems.length === 0 ? (

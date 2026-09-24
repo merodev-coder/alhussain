@@ -70,7 +70,7 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
       <div>
         <h2 className="font-sans font-bold text-ink text-2xl mb-2">قائمة الأسعار</h2>
         <p className="font-body text-sm text-ink-muted leading-relaxed">
-          هذه القائمة تُبنى تلقائياً من كل جهاز لابتوب <strong>ظاهر</strong> في المتجر (تم تفعيله ووضعه ضمن قسم اللابتوبات).
+          هذه القائمة تُبنى تلقائياً من كل منتج <strong>ظاهر</strong> في المتجر (مفعّل من تاب المنتجات).
           لتعديل أو إضافة أو إخفاء جهاز، استخدم تاب <strong>المنتجات</strong> — أي تغيير هناك يظهر هنا وفي صفحة قائمة الأسعار العامة فوراً.
         </p>
       </div>
@@ -134,7 +134,7 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
       ) : items.length === 0 ? (
         <div className="bg-canvas border border-hairline rounded-[20px] p-8 text-center text-ink-muted">
           <p className="font-body text-sm">
-            لا توجد أجهزة لابتوب ظاهرة حالياً. أضف جهازاً من تاب المنتجات واجعل قسمه الرئيسي "لابتوبات" وفعّله ليظهر هنا.
+            لا توجد منتجات ظاهرة حالياً. فعّل ظهور جهاز واحد على الأقل من تاب المنتجات ليظهر هنا.
           </p>
         </div>
       ) : (

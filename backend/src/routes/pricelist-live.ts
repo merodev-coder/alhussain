@@ -13,10 +13,13 @@ const router = Router()
  * the real product catalog instead of an uploaded/AI-normalized Excel file.
  *
  * Rules:
- * - Only products with homeSection === 'laptops' are included (these are the
- *   laptops shown on the site).
- * - Only products with visible === true are included (hidden laptops never
- *   show up on the price list, matching the storefront).
+ * - Every product with visible === true is included. This store's catalog
+ *   is laptops only (there is no separate accessories/category split in the
+ *   Product model), so "visible" is exactly the same rule the storefront's
+ *   /laptops page uses to decide what a customer can see.
+ * - `homeSection` is a different, unrelated field (it only controls which
+ *   curated row a product shows in on the homepage, e.g. "best sellers" or
+ *   "special offers") and must NOT be used to filter the price list.
  * - Each item carries its primary photo (photos[0]) so the price list can
  *   show a thumbnail and link back to the product page.
  * - Sorted by price ascending so the list reads cheapest -> most expensive.
@@ -25,7 +28,7 @@ router.get('/api/pricelist-live', async (_req: Request, res: Response): Promise<
   try {
     const allProducts = await DatabaseRouter.readAcrossAllDatabases(async connection => {
       const ProductModel = getProductModel(connection)
-      return ProductModel.find({ homeSection: 'laptops', visible: true })
+      return ProductModel.find({ visible: true })
         .sort({ price: 1 })
         .lean()
     }, 'pricelist-live')
