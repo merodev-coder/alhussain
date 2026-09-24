@@ -1016,7 +1016,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           {activeTab === 'accessories' && <AccessoriesTab />}
           {activeTab === 'inventory' && <InventoryTab />}
           {activeTab === 'shipping' && <ShippingTab />}
-          {activeTab === 'pricelist' && <PricelistTab />}
+          {activeTab === 'pricelist' && <PricelistTab onGoToProducts={() => setActiveTab('products')} />}
           {activeTab === 'settings' && <SettingsTab />}
         </main>
       </div>

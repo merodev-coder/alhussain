@@ -151,7 +151,11 @@ export const api = {
     apiRequest<any>(`/api/spec-options/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete_spec_option: (id: string) => apiRequest<any>(`/api/spec-options/${id}`, { method: 'DELETE' }),
 
-  // Pricelist
+  // Pricelist (live, built automatically from visible laptop products)
+  get_pricelist_live: () =>
+    apiRequest<{ items: any[]; total: number; updatedAt: string }>('/api/pricelist-live'),
+
+  // Pricelist (legacy Excel/AI-based system, kept for backward compatibility)
   get_pricelist: () => apiRequest<any>('/api/pricelist'),
   get_admin_pricelist: () => apiRequest<any>('/api/pricelist/admin'),
   update_pricelist_item: (pricelistId: string, itemId: string, data: any) =>

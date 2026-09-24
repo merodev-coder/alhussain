@@ -426,49 +426,78 @@ function ProductFormModal({
           <div className="space-y-2">
             <label className="font-body text-sm text-ink">الصور</label>
             {form.photos.length > 0 && (
-              <div className="flex flex-wrap gap-3">
-                {form.photos.map((url, i) => (
-                  <div key={url + i} className="relative w-24">
-                    <div className="w-24 h-20 rounded-xl overflow-hidden border border-hairline bg-surface-1">
-                      <Image
-                        src={url}
-                        alt={`صورة ${i + 1}`}
-                        width={96}
-                        height={80}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(i)}
-                      className="absolute -top-2 -end-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow"
-                      aria-label="حذف الصورة"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                    <div className="flex justify-center gap-1 mt-1">
+              <>
+                <p className="font-body text-xs text-ink-muted">
+                  الصورة الأولى هي <strong>الصورة الأساسية</strong> التي تظهر للعميل في قائمة الأسعار وصفحة المنتج.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {form.photos.map((url, i) => (
+                    <div key={url + i} className="relative w-24">
+                      <div
+                        className={cn(
+                          'w-24 h-20 rounded-xl overflow-hidden border-2 bg-surface-1',
+                          i === 0 ? 'border-brand-primary' : 'border-hairline'
+                        )}
+                      >
+                        <Image
+                          src={url}
+                          alt={`صورة ${i + 1}`}
+                          width={96}
+                          height={80}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {i === 0 && (
+                        <span className="absolute -top-2 -start-2 px-1.5 py-0.5 rounded-full bg-brand-primary text-white text-[9px] font-bold shadow">
+                          أساسية
+                        </span>
+                      )}
                       <button
                         type="button"
-                        onClick={() => movePhoto(i, -1)}
-                        disabled={i === 0}
-                        className="p-1 rounded-md bg-surface-1 text-ink-muted disabled:opacity-30"
-                        aria-label="تحريك يمين"
+                        onClick={() => removePhoto(i)}
+                        className="absolute -top-2 -end-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow"
+                        aria-label="حذف الصورة"
                       >
-                        <ArrowRight className="w-3 h-3" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => movePhoto(i, 1)}
-                        disabled={i === form.photos.length - 1}
-                        className="p-1 rounded-md bg-surface-1 text-ink-muted disabled:opacity-30"
-                        aria-label="تحريك يسار"
-                      >
-                        <ArrowLeft className="w-3 h-3" />
-                      </button>
+                      <div className="flex justify-center gap-1 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => movePhoto(i, -1)}
+                          disabled={i === 0}
+                          className="p-1 rounded-md bg-surface-1 text-ink-muted disabled:opacity-30"
+                          aria-label="تحريك يمين"
+                        >
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => movePhoto(i, 1)}
+                          disabled={i === form.photos.length - 1}
+                          className="p-1 rounded-md bg-surface-1 text-ink-muted disabled:opacity-30"
+                          aria-label="تحريك يسار"
+                        >
+                          <ArrowLeft className="w-3 h-3" />
+                        </button>
+                      </div>
+                      {i !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setForm(prev => {
+                            const photos = [...prev.photos]
+                            const [chosen] = photos.splice(i, 1)
+                            photos.unshift(chosen)
+                            return { ...prev, photos }
+                          })}
+                          className="mt-1 w-full text-[10px] font-semibold text-brand-primary hover:underline"
+                        >
+                          اجعلها الصورة الأساسية
+                        </button>
+                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
             <label className="flex flex-col items-center gap-2 border-2 border-dashed border-hairline rounded-[16px] p-5 cursor-pointer hover:border-brand-primary/50 hover:bg-surface-1 transition-colors">
               {isUploading ? (
