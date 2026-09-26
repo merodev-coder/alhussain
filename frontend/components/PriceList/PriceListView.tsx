@@ -27,7 +27,7 @@ interface LiveLaptopItem {
   stockStatus?: string
 }
 
-const GRID_COLS = 'grid-cols-[72px_1.7fr_1.1fr_0.8fr_0.9fr_1.1fr_auto] sm:grid-cols-[88px_1.7fr_1.1fr_0.8fr_0.9fr_1.1fr_auto]'
+const GRID_COLS = 'grid-cols-[110px_1.7fr_1.1fr_0.8fr_0.9fr_1.1fr_auto] sm:grid-cols-[130px_1.7fr_1.1fr_0.8fr_0.9fr_1.1fr_auto]'
 
 /** Fetches an image and converts it to a base64 data URL so html2canvas can render it
  *  without hitting canvas-tainting / CORS issues, and so the PDF never shows a broken image. */
@@ -126,7 +126,11 @@ export default function PriceListView() {
       node.style.width = '1000px'
       node.style.background = '#ffffff'
       node.style.color = '#0f172a'
-      node.style.padding = '32px'
+      node.style.padding = '0'
+      node.style.position = 'fixed'
+      node.style.top = '0'
+      node.style.left = '-99999px'
+      node.style.zIndex = '-1'
 
       const header = document.createElement('div')
       header.style.display = 'flex'
@@ -144,53 +148,58 @@ export default function PriceListView() {
       `
       node.appendChild(header)
 
-      const table = document.createElement('div')
-      table.style.borderRadius = '16px'
-      table.style.overflow = 'hidden'
-      table.style.border = '1px solid #e2e8f0'
-      node.appendChild(table)
-
-      const colTemplate = '76px 2.1fr 1.3fr 0.9fr 1fr 1.3fr 1fr'
-
-      const headerRow = document.createElement('div')
-      headerRow.style.display = 'grid'
-      headerRow.style.gridTemplateColumns = colTemplate
-      headerRow.style.alignItems = 'center'
-      headerRow.style.background = '#0f172a'
-      headerRow.style.color = '#ffffff'
-      headerRow.style.fontWeight = '700'
-      headerRow.style.fontSize = '14px'
+      const headerRowEl = document.createElement('div')
+      const colTemplate = '110px 2.1fr 1.3fr 0.9fr 1fr 1.3fr 1fr'
+      headerRowEl.style.display = 'grid'
+      headerRowEl.style.gridTemplateColumns = colTemplate
+      headerRowEl.style.alignItems = 'center'
+      headerRowEl.style.background = '#0f172a'
+      headerRowEl.style.color = '#ffffff'
+      headerRowEl.style.fontWeight = '700'
+      headerRowEl.style.fontSize = '14px'
+      headerRowEl.style.borderRadius = '16px 16px 0 0'
+      headerRowEl.style.overflow = 'hidden'
       ;['الصورة', 'اسم الجهاز', 'المعالج', 'الرام', 'التخزين', 'كارت الشاشة', 'السعر (ج.م)'].forEach((label, i) => {
         const cell = document.createElement('div')
         cell.textContent = label
         cell.style.padding = '14px 12px'
         cell.style.textAlign = i === 0 || i === 6 ? 'center' : 'right'
-        headerRow.appendChild(cell)
+        headerRowEl.appendChild(cell)
       })
-      table.appendChild(headerRow)
+      node.appendChild(headerRowEl)
 
+      // Each product row is built as its own element so it can be rasterized
+      // individually. This lets the paginator below place a *whole row* on a
+      // page and push it to the next page if it doesn't fit, instead of
+      // slicing one giant image at arbitrary page-height boundaries (which is
+      // what was cutting rows in half at the bottom of a page).
+      const rowElements: HTMLDivElement[] = []
       filteredItems.forEach((item, idx) => {
         const row = document.createElement('div')
         row.style.display = 'grid'
         row.style.gridTemplateColumns = colTemplate
         row.style.alignItems = 'center'
         row.style.background = idx % 2 === 0 ? '#ffffff' : '#f8fafc'
-        row.style.borderTop = '1px solid #e2e8f0'
+        row.style.border = '1px solid #e2e8f0'
+        row.style.borderTop = 'none'
+        row.style.minHeight = '138px'
 
         const photoCell = document.createElement('div')
         photoCell.style.display = 'flex'
         photoCell.style.justifyContent = 'center'
-        photoCell.style.padding = '10px'
+        photoCell.style.padding = '12px'
         const thumbBox = document.createElement('div')
-        thumbBox.style.width = '56px'
-        thumbBox.style.height = '56px'
-        thumbBox.style.borderRadius = '10px'
+        // Doubled from the previous 56px thumbnail per request.
+        thumbBox.style.width = '112px'
+        thumbBox.style.height = '112px'
+        thumbBox.style.borderRadius = '12px'
         thumbBox.style.overflow = 'hidden'
         thumbBox.style.border = '1px solid #e2e8f0'
         thumbBox.style.background = '#f1f5f9'
         thumbBox.style.display = 'flex'
         thumbBox.style.alignItems = 'center'
         thumbBox.style.justifyContent = 'center'
+        thumbBox.style.flexShrink = '0'
         const dataUrl = photoDataUrls[idx]
         if (dataUrl) {
           const img = document.createElement('img')
@@ -207,7 +216,7 @@ export default function PriceListView() {
         nameCell.textContent = item.name
         nameCell.style.padding = '12px'
         nameCell.style.fontWeight = '700'
-        nameCell.style.fontSize = '15px'
+        nameCell.style.fontSize = '16px'
         nameCell.style.color = '#0f172a'
         row.appendChild(nameCell)
 
@@ -215,7 +224,7 @@ export default function PriceListView() {
           const cell = document.createElement('div')
           cell.textContent = text || '—'
           cell.style.padding = '12px'
-          cell.style.fontSize = '13px'
+          cell.style.fontSize = '14px'
           cell.style.color = '#475569'
           cell.dir = 'ltr'
           cell.style.textAlign = 'right'
@@ -230,7 +239,7 @@ export default function PriceListView() {
         priceCell.textContent = `${item.price.toLocaleString('ar-EG')} ج.م`
         priceCell.style.padding = '12px'
         priceCell.style.fontWeight = '800'
-        priceCell.style.fontSize = '15px'
+        priceCell.style.fontSize = '16px'
         priceCell.style.color = '#0f766e'
         priceCell.style.background = '#0f766e14'
         priceCell.style.textAlign = 'center'
@@ -240,41 +249,72 @@ export default function PriceListView() {
         priceCell.style.justifyContent = 'center'
         row.appendChild(priceCell)
 
-        table.appendChild(row)
+        if (idx === filteredItems.length - 1) {
+          row.style.borderRadius = '0 0 16px 16px'
+        }
+
+        rowElements.push(row)
       })
+      rowElements.forEach(row => node.appendChild(row))
 
-      // Render fully off-screen but laid out (not display:none) so the browser
-      // actually computes layout/paint for html2canvas to capture.
-      node.style.position = 'fixed'
-      node.style.top = '0'
-      node.style.left = '-99999px'
-      node.style.zIndex = '-1'
+      // Capture the header block (logo/title/date), the table's header row,
+      // and each product row as separate canvases so they can be placed as
+      // whole, unbroken units on the page.
+      const titleCanvas = await html2canvas(header, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+      const tableHeaderCanvas = await html2canvas(headerRowEl, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+      const rowCanvases = await Promise.all(
+        rowElements.map(row => html2canvas(row, { scale: 2, backgroundColor: '#ffffff', useCORS: true }))
+      )
 
-      const canvas = await html2canvas(node, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-      })
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.95)
+      // --- Paginate with real top/bottom margins and whole, unbroken rows ---
       const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
-      const imgWidth = pageWidth
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      const marginX = 12
+      const marginTop = 14
+      const marginBottom = 14
+      const usableWidth = pageWidth - marginX * 2
+      const usableBottom = pageHeight - marginBottom
 
-      let heightLeft = imgHeight
-      let position = 0
+      const mmHeightFor = (canvas: HTMLCanvasElement) => (canvas.height * usableWidth) / canvas.width
 
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
-      heightLeft -= pageHeight
+      let cursorY = marginTop
 
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight
-        pdf.addPage()
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
-        heightLeft -= pageHeight
+      const placeCanvas = (canvas: HTMLCanvasElement) => {
+        const h = mmHeightFor(canvas)
+        if (cursorY + h > usableBottom) {
+          pdf.addPage()
+          cursorY = marginTop
+        }
+        const imgData = canvas.toDataURL('image/jpeg', 0.95)
+        pdf.addImage(imgData, 'JPEG', marginX, cursorY, usableWidth, h)
+        cursorY += h
       }
+
+      // Title block only appears once, at the very top of the first page.
+      placeCanvas(titleCanvas)
+
+      // Table header row: placed once, and re-placed at the top of any later
+      // page a row overflows onto, so every page reads as a complete table.
+      const placeTableHeader = () => {
+        const h = mmHeightFor(tableHeaderCanvas)
+        const imgData = tableHeaderCanvas.toDataURL('image/jpeg', 0.95)
+        pdf.addImage(imgData, 'JPEG', marginX, cursorY, usableWidth, h)
+        cursorY += h
+      }
+      placeTableHeader()
+
+      rowCanvases.forEach(canvas => {
+        const h = mmHeightFor(canvas)
+        if (cursorY + h > usableBottom) {
+          pdf.addPage()
+          cursorY = marginTop
+          placeTableHeader()
+        }
+        const imgData = canvas.toDataURL('image/jpeg', 0.95)
+        pdf.addImage(imgData, 'JPEG', marginX, cursorY, usableWidth, h)
+        cursorY += h
+      })
 
       pdf.save(`قائمة-اسعار-الحسين-${new Date().toISOString().slice(0, 10)}.pdf`)
     } catch (err) {
@@ -414,17 +454,17 @@ export default function PriceListView() {
                     >
                       {/* Photo */}
                       <div className="p-3 flex items-center justify-center">
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border border-hairline bg-surface-2 shrink-0 flex items-center justify-center">
+                        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden border border-hairline bg-surface-2 shrink-0 flex items-center justify-center">
                           {item.photo ? (
                             <Image
                               src={item.photo}
                               alt={item.name}
-                              width={64}
-                              height={64}
+                              width={128}
+                              height={128}
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <ImageOff className="w-6 h-6 text-ink-muted" />
+                            <ImageOff className="w-8 h-8 text-ink-muted" />
                           )}
                         </div>
                       </div>
