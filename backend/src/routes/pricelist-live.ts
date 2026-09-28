@@ -44,7 +44,7 @@ router.get('/api/pricelist-live', async (_req: Request, res: Response): Promise<
         ram: p.specs?.ram || p.ram || '',
         storage: p.specs?.storage || p.storage || '',
         gpu: p.specs?.gpu || p.gpu || '',
-        screen: p.specs?.screen || '',
+        screen: p.screen || p.specs?.screen || '',
         stockStatus: p.stockStatus,
       }))
       .sort((a: any, b: any) => (a.price || 0) - (b.price || 0))
