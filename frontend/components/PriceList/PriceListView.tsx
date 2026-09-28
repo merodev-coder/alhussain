@@ -1,18 +1,11 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import {
-  Search,
-  X,
-  Calendar,
-  Layers,
-  Download,
-  ImageOff,
-  Loader2,
-} from 'lucide-react'
+import { Search, X, Calendar, Layers, Download, ImageOff } from 'lucide-react'
 import { api } from '@/lib/api'
+import { splitCpu, splitGpu, formatPrice } from '@/lib/pricelist-format'
 
 interface LiveLaptopItem {
   id: string
@@ -27,41 +20,22 @@ interface LiveLaptopItem {
   stockStatus?: string
 }
 
-const GRID_COLS = 'grid-cols-[110px_1.7fr_1.1fr_0.8fr_0.9fr_1.1fr_auto] sm:grid-cols-[130px_1.7fr_1.1fr_0.8fr_0.9fr_1.1fr_auto]'
-
-/** Fetches an image and converts it to a base64 data URL so html2canvas can render it
- *  without hitting canvas-tainting / CORS issues, and so the PDF never shows a broken image. */
-async function toDataUrl(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url, { mode: 'cors' })
-    if (!res.ok) return null
-    const blob = await res.blob()
-    return await new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = () => resolve(reader.result as string)
-      reader.onerror = reject
-      reader.readAsDataURL(blob)
-    })
-  } catch {
-    return null
-  }
-}
+// Left → right: photo · name · CPU · RAM · storage · GPU · price
+const GRID_COLS =
+  'grid-cols-[170px_1.6fr_1.2fr_0.6fr_0.9fr_1.4fr_0.9fr] sm:grid-cols-[190px_1.6fr_1.2fr_0.6fr_0.9fr_1.4fr_0.9fr]'
 
 export default function PriceListView() {
   const [items, setItems] = useState<LiveLaptopItem[]>([])
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [generatingPdf, setGeneratingPdf] = useState(false)
+  const [pdfReady, setPdfReady] = useState<boolean | null>(null)
+  const [pdfDate, setPdfDate] = useState<string | null>(null)
 
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  const exportRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(search.trim())
-    }, 300)
+    const handler = setTimeout(() => setDebouncedSearch(search.trim()), 300)
     return () => clearTimeout(handler)
   }, [search])
 
@@ -73,12 +47,17 @@ export default function PriceListView() {
         setItems(data?.items || [])
         setUpdatedAt(data?.updatedAt || null)
       })
-      .catch(() => {
-        setItems([])
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false))
+
+    // Is there a published (pre-generated) PDF customers can download?
+    api
+      .get_pricelist_pdf_meta()
+      .then(meta => {
+        setPdfReady(!!meta?.exists)
+        setPdfDate(meta?.updatedAt || null)
       })
-      .finally(() => {
-        setLoading(false)
-      })
+      .catch(() => setPdfReady(false))
   }, [])
 
   const filteredItems = useMemo(() => {
@@ -92,248 +71,16 @@ export default function PriceListView() {
 
   const clearFilters = () => setSearch('')
 
-  const formattedDate = new Intl.DateTimeFormat('ar-EG', {
+  const dateFormatter = new Intl.DateTimeFormat('ar-EG', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     weekday: 'long',
-  }).format(updatedAt ? new Date(updatedAt) : new Date())
-
-  const handleDownloadPdf = async () => {
-    if (filteredItems.length === 0 || generatingPdf) return
-    setGeneratingPdf(true)
-    try {
-      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-        import('jspdf'),
-        import('html2canvas-pro'),
-      ])
-
-      // Pre-fetch every photo as a data URL so the offscreen render never
-      // shows a broken/placeholder image and never taints the canvas.
-      const photoDataUrls = await Promise.all(
-        filteredItems.map(item => (item.photo ? toDataUrl(item.photo) : Promise.resolve(null)))
-      )
-
-      const node = exportRef.current
-      if (!node) return
-
-      // Build the plain, self-contained export markup (no Tailwind CSS vars,
-      // fixed pixel sizing) so the rasterized PDF always looks right
-      // regardless of the visitor's theme or browser.
-      node.innerHTML = ''
-      node.style.direction = 'rtl'
-      node.style.fontFamily = "'Cairo', 'Tajawal', Arial, sans-serif"
-      node.style.width = '1000px'
-      node.style.background = '#ffffff'
-      node.style.color = '#0f172a'
-      node.style.padding = '0'
-      node.style.position = 'fixed'
-      node.style.top = '0'
-      node.style.left = '-99999px'
-      node.style.zIndex = '-1'
-
-      const header = document.createElement('div')
-      header.style.display = 'flex'
-      header.style.justifyContent = 'space-between'
-      header.style.alignItems = 'flex-start'
-      header.style.borderBottom = '2px solid #e2e8f0'
-      header.style.paddingBottom = '20px'
-      header.style.marginBottom = '20px'
-      header.innerHTML = `
-        <div>
-          <div style="display:inline-block;background:#0f766e1a;color:#0f766e;font-weight:700;font-size:12px;padding:4px 12px;border-radius:999px;margin-bottom:8px;">قائمة الأسعار المحدثة</div>
-          <div style="font-size:28px;font-weight:800;color:#0f172a;">الحسين للاب توب</div>
-          <div style="font-size:13px;color:#64748b;margin-top:6px;">تاريخ التحديث: ${formattedDate}</div>
-        </div>
-      `
-      node.appendChild(header)
-
-      const headerRowEl = document.createElement('div')
-      const colTemplate = '110px 2.1fr 1.3fr 0.9fr 1fr 1.3fr 1fr'
-      headerRowEl.style.display = 'grid'
-      headerRowEl.style.gridTemplateColumns = colTemplate
-      headerRowEl.style.alignItems = 'center'
-      headerRowEl.style.background = '#0f172a'
-      headerRowEl.style.color = '#ffffff'
-      headerRowEl.style.fontWeight = '700'
-      headerRowEl.style.fontSize = '14px'
-      headerRowEl.style.borderRadius = '16px 16px 0 0'
-      headerRowEl.style.overflow = 'hidden'
-      ;['الصورة', 'اسم الجهاز', 'المعالج', 'الرام', 'التخزين', 'كارت الشاشة', 'السعر (ج.م)'].forEach((label, i) => {
-        const cell = document.createElement('div')
-        cell.textContent = label
-        cell.style.padding = '14px 12px'
-        cell.style.textAlign = i === 0 || i === 6 ? 'center' : 'right'
-        headerRowEl.appendChild(cell)
-      })
-      node.appendChild(headerRowEl)
-
-      // Each product row is built as its own element so it can be rasterized
-      // individually. This lets the paginator below place a *whole row* on a
-      // page and push it to the next page if it doesn't fit, instead of
-      // slicing one giant image at arbitrary page-height boundaries (which is
-      // what was cutting rows in half at the bottom of a page).
-      const rowElements: HTMLDivElement[] = []
-      filteredItems.forEach((item, idx) => {
-        const row = document.createElement('div')
-        row.style.display = 'grid'
-        row.style.gridTemplateColumns = colTemplate
-        row.style.alignItems = 'center'
-        row.style.background = idx % 2 === 0 ? '#ffffff' : '#f8fafc'
-        row.style.border = '1px solid #e2e8f0'
-        row.style.borderTop = 'none'
-        row.style.minHeight = '138px'
-
-        const photoCell = document.createElement('div')
-        photoCell.style.display = 'flex'
-        photoCell.style.justifyContent = 'center'
-        photoCell.style.padding = '12px'
-        const thumbBox = document.createElement('div')
-        // Doubled from the previous 56px thumbnail per request.
-        thumbBox.style.width = '112px'
-        thumbBox.style.height = '112px'
-        thumbBox.style.borderRadius = '12px'
-        thumbBox.style.overflow = 'hidden'
-        thumbBox.style.border = '1px solid #e2e8f0'
-        thumbBox.style.background = '#f1f5f9'
-        thumbBox.style.display = 'flex'
-        thumbBox.style.alignItems = 'center'
-        thumbBox.style.justifyContent = 'center'
-        thumbBox.style.flexShrink = '0'
-        const dataUrl = photoDataUrls[idx]
-        if (dataUrl) {
-          const img = document.createElement('img')
-          img.src = dataUrl
-          img.style.width = '100%'
-          img.style.height = '100%'
-          img.style.objectFit = 'cover'
-          thumbBox.appendChild(img)
-        }
-        photoCell.appendChild(thumbBox)
-        row.appendChild(photoCell)
-
-        const nameCell = document.createElement('div')
-        nameCell.textContent = item.name
-        nameCell.style.padding = '12px'
-        nameCell.style.fontWeight = '700'
-        nameCell.style.fontSize = '16px'
-        nameCell.style.color = '#0f172a'
-        row.appendChild(nameCell)
-
-        const makeTextCell = (text: string) => {
-          const cell = document.createElement('div')
-          cell.textContent = text || '—'
-          cell.style.padding = '12px'
-          cell.style.fontSize = '14px'
-          cell.style.color = '#475569'
-          cell.dir = 'ltr'
-          cell.style.textAlign = 'right'
-          return cell
-        }
-        row.appendChild(makeTextCell(item.cpu))
-        row.appendChild(makeTextCell(item.ram))
-        row.appendChild(makeTextCell(item.storage))
-        row.appendChild(makeTextCell(item.gpu))
-
-        const priceCell = document.createElement('div')
-        priceCell.textContent = `${item.price.toLocaleString('ar-EG')} ج.م`
-        priceCell.style.padding = '12px'
-        priceCell.style.fontWeight = '800'
-        priceCell.style.fontSize = '16px'
-        priceCell.style.color = '#0f766e'
-        priceCell.style.background = '#0f766e14'
-        priceCell.style.textAlign = 'center'
-        priceCell.style.alignSelf = 'stretch'
-        priceCell.style.display = 'flex'
-        priceCell.style.alignItems = 'center'
-        priceCell.style.justifyContent = 'center'
-        row.appendChild(priceCell)
-
-        if (idx === filteredItems.length - 1) {
-          row.style.borderRadius = '0 0 16px 16px'
-        }
-
-        rowElements.push(row)
-      })
-      rowElements.forEach(row => node.appendChild(row))
-
-      // Capture the header block (logo/title/date), the table's header row,
-      // and each product row as separate canvases so they can be placed as
-      // whole, unbroken units on the page.
-      const titleCanvas = await html2canvas(header, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
-      const tableHeaderCanvas = await html2canvas(headerRowEl, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
-      const rowCanvases = await Promise.all(
-        rowElements.map(row => html2canvas(row, { scale: 2, backgroundColor: '#ffffff', useCORS: true }))
-      )
-
-      // --- Paginate with real top/bottom margins and whole, unbroken rows ---
-      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
-      const pageWidth = pdf.internal.pageSize.getWidth()
-      const pageHeight = pdf.internal.pageSize.getHeight()
-      const marginX = 12
-      const marginTop = 14
-      const marginBottom = 14
-      const usableWidth = pageWidth - marginX * 2
-      const usableBottom = pageHeight - marginBottom
-
-      const mmHeightFor = (canvas: HTMLCanvasElement) => (canvas.height * usableWidth) / canvas.width
-
-      let cursorY = marginTop
-
-      const placeCanvas = (canvas: HTMLCanvasElement) => {
-        const h = mmHeightFor(canvas)
-        if (cursorY + h > usableBottom) {
-          pdf.addPage()
-          cursorY = marginTop
-        }
-        const imgData = canvas.toDataURL('image/jpeg', 0.95)
-        pdf.addImage(imgData, 'JPEG', marginX, cursorY, usableWidth, h)
-        cursorY += h
-      }
-
-      // Title block only appears once, at the very top of the first page.
-      placeCanvas(titleCanvas)
-
-      // Table header row: placed once, and re-placed at the top of any later
-      // page a row overflows onto, so every page reads as a complete table.
-      const placeTableHeader = () => {
-        const h = mmHeightFor(tableHeaderCanvas)
-        const imgData = tableHeaderCanvas.toDataURL('image/jpeg', 0.95)
-        pdf.addImage(imgData, 'JPEG', marginX, cursorY, usableWidth, h)
-        cursorY += h
-      }
-      placeTableHeader()
-
-      rowCanvases.forEach(canvas => {
-        const h = mmHeightFor(canvas)
-        if (cursorY + h > usableBottom) {
-          pdf.addPage()
-          cursorY = marginTop
-          placeTableHeader()
-        }
-        const imgData = canvas.toDataURL('image/jpeg', 0.95)
-        pdf.addImage(imgData, 'JPEG', marginX, cursorY, usableWidth, h)
-        cursorY += h
-      })
-
-      pdf.save(`قائمة-اسعار-الحسين-${new Date().toISOString().slice(0, 10)}.pdf`)
-    } catch (err) {
-      console.error('PDF generation failed:', err)
-      alert('حدث خطأ أثناء إنشاء ملف PDF، برجاء المحاولة مرة أخرى.')
-    } finally {
-      if (exportRef.current) {
-        exportRef.current.innerHTML = ''
-        exportRef.current.removeAttribute('style')
-      }
-      setGeneratingPdf(false)
-    }
-  }
+  })
+  const formattedDate = dateFormatter.format(updatedAt ? new Date(updatedAt) : new Date())
 
   return (
     <div className="w-full bg-surface-1 min-h-screen py-8 sm:py-12 transition-colors duration-200">
-      {/* Offscreen container used only to render the exportable PDF markup */}
-      <div ref={exportRef} aria-hidden="true" />
-
       <div className="max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-hairline">
@@ -351,23 +98,26 @@ export default function PriceListView() {
             </div>
           </div>
 
-          <button
-            onClick={handleDownloadPdf}
-            disabled={generatingPdf || filteredItems.length === 0}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-primary text-white font-sans font-bold text-sm hover:brightness-110 transition-all shadow-sm shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {generatingPdf ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>جاري التجهيز...</span>
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                <span>تحميل PDF</span>
-              </>
-            )}
-          </button>
+          {/* Instant download of the pre-generated PDF (no generation in the browser) */}
+          {pdfReady ? (
+            <a
+              href={api.pricelist_pdf_url()}
+              download
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-primary text-white font-sans font-bold text-sm hover:brightness-110 transition-all shadow-sm shrink-0"
+              title={pdfDate ? `آخر تحديث للملف: ${dateFormatter.format(new Date(pdfDate))}` : undefined}
+            >
+              <Download className="w-4 h-4" />
+              <span>تحميل PDF</span>
+            </a>
+          ) : (
+            <button
+              disabled
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-primary text-white font-sans font-bold text-sm shadow-sm shrink-0 opacity-60 cursor-not-allowed"
+            >
+              <Download className="w-4 h-4" />
+              <span>{pdfReady === null ? 'تحميل PDF' : 'ملف PDF غير متاح حالياً'}</span>
+            </button>
+          )}
         </div>
 
         {/* Search Bar */}
@@ -397,26 +147,18 @@ export default function PriceListView() {
 
         {/* Content */}
         {loading ? (
-          <div className="p-16 text-center text-ink-muted font-body">
-            جاري تحميل قائمة الأسعار...
-          </div>
+          <div className="p-16 text-center text-ink-muted font-body">جاري تحميل قائمة الأسعار...</div>
         ) : items.length === 0 ? (
           <div className="p-12 text-center bg-canvas rounded-2xl border border-hairline shadow-sm space-y-3">
-            <h3 className="font-bold text-ink text-base">
-              لا توجد قائمة أسعار منشورة حالياً
-            </h3>
+            <h3 className="font-bold text-ink text-base">لا توجد قائمة أسعار منشورة حالياً</h3>
             <p className="text-xs text-ink-muted">
               سيتم عرض الأجهزة هنا تلقائياً بمجرد إضافتها كمنتجات ظاهرة في المتجر.
             </p>
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="p-12 text-center bg-canvas rounded-2xl border border-hairline shadow-sm space-y-3">
-            <h3 className="font-bold text-ink text-base">
-              لا توجد أجهزة مطابقة للبحث
-            </h3>
-            <p className="text-xs text-ink-muted">
-              جرّب كلمة بحث أخرى.
-            </p>
+            <h3 className="font-bold text-ink text-base">لا توجد أجهزة مطابقة للبحث</h3>
+            <p className="text-xs text-ink-muted">جرّب كلمة بحث أخرى.</p>
             <button
               onClick={clearFilters}
               className="px-4 py-2 rounded-xl bg-brand-primary text-white text-xs font-bold hover:brightness-110 transition-colors"
@@ -426,77 +168,80 @@ export default function PriceListView() {
           </div>
         ) : (
           <div className="bg-canvas rounded-2xl border border-hairline shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <div className="min-w-[760px]">
+            <div className="overflow-x-auto" dir="ltr">
+              <div className="min-w-[860px]">
                 {/* Header row */}
                 <div
                   className={`grid ${GRID_COLS} items-center bg-inverse-canvas text-white font-sans font-bold select-none`}
                 >
-                  <div className="py-4 px-4 border-b border-white/15 text-center text-sm">الصورة</div>
-                  <div className="py-4 px-4 border-b border-white/15 text-base">اسم الجهاز</div>
-                  <div className="py-4 px-4 border-b border-white/15 text-base">المعالج</div>
-                  <div className="py-4 px-4 border-b border-white/15 text-base">الرام</div>
-                  <div className="py-4 px-4 border-b border-white/15 text-base">التخزين</div>
-                  <div className="py-4 px-4 border-b border-white/15 text-base">كارت الشاشة</div>
-                  <div className="py-4 px-4 border-b border-white/15 text-base text-center">السعر (ج.م)</div>
+                  <div className="py-4 px-4 text-center text-sm" dir="rtl">الصورة</div>
+                  <div className="py-4 px-3 text-sm text-right" dir="rtl">اسم الجهاز</div>
+                  <div className="py-4 px-3 text-sm text-right" dir="rtl">المعالج</div>
+                  <div className="py-4 px-3 text-sm text-right" dir="rtl">الرام</div>
+                  <div className="py-4 px-3 text-sm text-right" dir="rtl">التخزين</div>
+                  <div className="py-4 px-3 text-sm text-right" dir="rtl">كارت الشاشة</div>
+                  <div className="py-4 px-3 text-sm text-center" dir="rtl">السعر (ج.م)</div>
                 </div>
 
                 {/* Rows */}
                 {filteredItems.map((item, idx) => {
-                  const isEven = idx % 2 === 0
+                  const cpu = splitCpu(item.cpu)
+                  const gpu = splitGpu(item.gpu)
                   return (
                     <Link
                       key={item.id}
                       href={`/laptops/${item.id}`}
                       className={`grid ${GRID_COLS} items-center border-b border-hairline transition-colors hover:bg-brand-primary/5 ${
-                        isEven ? 'bg-canvas' : 'bg-surface-1'
+                        idx % 2 === 0 ? 'bg-canvas' : 'bg-surface-1'
                       }`}
                     >
-                      {/* Photo */}
-                      <div className="p-3 flex items-center justify-center">
-                        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden border border-hairline bg-surface-2 shrink-0 flex items-center justify-center">
+                      {/* Photo: wider than tall, with margin on both sides */}
+                      <div className="py-2.5 px-4 flex items-center justify-center">
+                        <div className="w-full max-w-[150px] aspect-[5/3] rounded-lg overflow-hidden border border-hairline bg-white flex items-center justify-center">
                           {item.photo ? (
                             <Image
                               src={item.photo}
                               alt={item.name}
-                              width={128}
-                              height={128}
-                              className="w-full h-full object-cover"
+                              width={300}
+                              height={180}
+                              className="w-full h-full object-contain"
                             />
                           ) : (
-                            <ImageOff className="w-8 h-8 text-ink-muted" />
+                            <ImageOff className="w-7 h-7 text-ink-muted" />
                           )}
                         </div>
                       </div>
 
                       {/* Name */}
-                      <div className="py-3 px-3 font-sans font-bold text-ink text-base leading-snug">
+                      <div className="py-3 px-3 font-sans font-bold text-ink text-sm sm:text-base leading-snug text-left">
                         {item.name}
                       </div>
 
-                      {/* CPU */}
-                      <div className="py-3 px-3 text-ink-muted text-sm">
-                        <span dir="ltr">{item.cpu || '—'}</span>
+                      {/* CPU + Arabic generation */}
+                      <div className="py-3 px-3 text-sm text-left">
+                        <div className="text-ink">{cpu.name || '—'}</div>
+                        {cpu.generation && (
+                          <div dir="rtl" className="text-ink-muted text-xs mt-0.5 text-right">
+                            {cpu.generation}
+                          </div>
+                        )}
                       </div>
 
                       {/* RAM */}
-                      <div className="py-3 px-3 text-ink-muted text-sm">
-                        <span dir="ltr">{item.ram || '—'}</span>
-                      </div>
+                      <div className="py-3 px-3 text-ink text-sm text-left">{item.ram || '—'}</div>
 
                       {/* Storage */}
-                      <div className="py-3 px-3 text-ink-muted text-sm">
-                        <span dir="ltr">{item.storage || '—'}</span>
+                      <div className="py-3 px-3 text-ink text-sm text-left">{item.storage || '—'}</div>
+
+                      {/* GPU name, VRAM underneath */}
+                      <div className="py-3 px-3 text-sm text-left">
+                        <div className="text-ink">{gpu.name || '—'}</div>
+                        {gpu.vram && <div className="text-ink-muted text-xs mt-0.5">{gpu.vram}</div>}
                       </div>
 
-                      {/* GPU */}
-                      <div className="py-3 px-3 text-ink-muted text-sm">
-                        <span dir="ltr">{item.gpu || '—'}</span>
-                      </div>
-
-                      {/* Price */}
-                      <div className="py-3 px-4 text-center bg-brand-primary/10 text-brand-primary font-sans font-extrabold text-base self-stretch flex items-center justify-center whitespace-nowrap">
-                        {item.price.toLocaleString('ar-EG')} ج.م
+                      {/* Price (English digits) */}
+                      <div className="py-3 px-3 text-center bg-brand-primary/10 text-brand-primary font-sans font-extrabold text-base self-stretch flex items-center justify-center whitespace-nowrap">
+                        {formatPrice(item.price)}
                       </div>
                     </Link>
                   )

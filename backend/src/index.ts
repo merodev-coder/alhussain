@@ -12,6 +12,7 @@ import ordersRoutes from './routes/orders.js'
 import specOptionsRoutes from './routes/spec-options.js'
 import pricelistRoutes from './routes/pricelist.js'
 import pricelistLiveRoutes from './routes/pricelist-live.js'
+import pricelistPdfRoutes from './routes/pricelist-pdf.js'
 import dashboardRoutes from './routes/dashboard.js'
 import addonsRoutes from './routes/addons.js'
 import accessoriesRoutes from './routes/accessories.js'
@@ -59,6 +60,7 @@ app.use(ordersRoutes)
 app.use(specOptionsRoutes)
 app.use(pricelistRoutes)
 app.use(pricelistLiveRoutes)
+app.use(pricelistPdfRoutes)
 app.use(dashboardRoutes)
 app.use(addonsRoutes)
 app.use(accessoriesRoutes)

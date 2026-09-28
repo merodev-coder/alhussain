@@ -5,13 +5,28 @@ import Image from 'next/image'
 import {
   RefreshCw,
   Search,
-  Printer,
   Pencil,
   ImageOff,
   Info,
+  FileDown,
+  ExternalLink,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { clientLogger } from '@/lib/client-logger'
+import { buildPricelistPdf } from '@/lib/pricelist-pdf'
+import { splitCpu, splitGpu, formatPrice } from '@/lib/pricelist-format'
+
+interface PdfMeta {
+  exists: boolean
+  fileName?: string
+  sizeBytes?: number
+  itemCount?: number
+  signature?: string
+  updatedAt?: string
+}
 
 interface LiveLaptopItem {
   id: string
@@ -31,13 +46,27 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [signature, setSignature] = useState('')
+  const [pdfMeta, setPdfMeta] = useState<PdfMeta | null>(null)
+  const [publishing, setPublishing] = useState(false)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [publishError, setPublishError] = useState<string | null>(null)
+
+  const fetchPdfMeta = async () => {
+    try {
+      setPdfMeta(await api.get_pricelist_pdf_meta())
+    } catch (err) {
+      clientLogger.error('Failed to load pricelist PDF status:', err)
+    }
+  }
 
   const fetchList = async () => {
     setLoading(true)
     try {
-      const data = await api.get_pricelist_live()
+      const [data] = await Promise.all([api.get_pricelist_live(), fetchPdfMeta()])
       setItems(data?.items || [])
       setUpdatedAt(data?.updatedAt || null)
+      setSignature(data?.signature || '')
     } catch (err) {
       clientLogger.error('Failed to load live pricelist:', err)
     } finally {
@@ -58,11 +87,38 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
     })
   }, [items, search])
 
-  const handleOpenList = () => {
-    // Opens the public pricelist page in a new tab where the admin can use
-    // the "تحميل PDF" button to get the exact same nicely-formatted PDF
-    // customers would get, with thumbnails and large readable rows.
-    window.open('/pricelist', '_blank', 'noopener,noreferrer')
+  const hasUnpublishedChanges =
+    !!pdfMeta?.exists && !!signature && !!pdfMeta.signature && pdfMeta.signature !== signature
+
+  const handlePublish = async () => {
+    if (items.length === 0 || publishing) return
+    setPublishing(true)
+    setPublishError(null)
+    setProgress({ done: 0, total: items.length })
+    try {
+      // Re-read the catalog right before building so the PDF matches what is
+      // in the database now, not what was loaded when the tab was opened.
+      const fresh = await api.get_pricelist_live()
+      const freshItems = fresh?.items || []
+      if (freshItems.length === 0) throw new Error('لا توجد منتجات ظاهرة لنشرها')
+      setProgress({ done: 0, total: freshItems.length })
+
+      const blob = await buildPricelistPdf(freshItems, new Date(), (done, total) =>
+        setProgress({ done, total })
+      )
+      await api.publish_pricelist_pdf(blob, freshItems.length, fresh?.signature || '')
+
+      setItems(freshItems)
+      setSignature(fresh?.signature || '')
+      setUpdatedAt(fresh?.updatedAt || null)
+      await fetchPdfMeta()
+    } catch (err) {
+      clientLogger.error('Failed to publish pricelist PDF:', err)
+      setPublishError(err instanceof Error ? err.message : 'حدث خطأ أثناء نشر القائمة')
+    } finally {
+      setPublishing(false)
+      setProgress(null)
+    }
   }
 
   return (
@@ -72,7 +128,42 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
         <p className="font-body text-sm text-ink-muted leading-relaxed">
           هذه القائمة تُبنى تلقائياً من كل منتج <strong>ظاهر</strong> في المتجر (مفعّل من تاب المنتجات).
           لتعديل أو إضافة أو إخفاء جهاز، استخدم تاب <strong>المنتجات</strong> — أي تغيير هناك يظهر هنا وفي صفحة قائمة الأسعار العامة فوراً.
+          بعد الانتهاء من التعديلات اضغط <strong>نشر قائمة الأسعار</strong> لإنشاء ملف PDF جاهز للتحميل الفوري للعملاء.
         </p>
+      </div>
+
+      {/* Publish status */}
+      <div
+        className={`flex flex-wrap items-center gap-3 p-4 rounded-xl border ${
+          hasUnpublishedChanges || (pdfMeta && !pdfMeta.exists)
+            ? 'bg-amber-500/10 border-amber-500/30'
+            : 'bg-emerald-500/10 border-emerald-500/30'
+        }`}
+      >
+        {hasUnpublishedChanges || (pdfMeta && !pdfMeta.exists) ? (
+          <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600" />
+        ) : (
+          <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
+        )}
+        <div className="flex-1 min-w-[220px] font-body text-sm text-ink leading-relaxed">
+          {!pdfMeta ? (
+            'جاري التحقق من حالة الملف...'
+          ) : !pdfMeta.exists ? (
+            <>لم يتم نشر ملف PDF بعد — العملاء لن يتمكنوا من التحميل حتى تضغط على <strong>نشر قائمة الأسعار</strong>.</>
+          ) : hasUnpublishedChanges ? (
+            <>
+              <strong>يوجد تعديلات لم يتم نشرها.</strong> الملف الحالي منشور بتاريخ{' '}
+              {pdfMeta.updatedAt ? new Date(pdfMeta.updatedAt).toLocaleString('ar-EG') : '-'} ولا يعكس آخر التغييرات في المنتجات.
+            </>
+          ) : (
+            <>
+              الملف المنشور محدّث ({pdfMeta.itemCount} جهاز
+              {pdfMeta.sizeBytes ? ` · ${(pdfMeta.sizeBytes / 1024 / 1024).toFixed(2)} MB` : ''}) — آخر نشر{' '}
+              {pdfMeta.updatedAt ? new Date(pdfMeta.updatedAt).toLocaleString('ar-EG') : '-'}
+            </>
+          )}
+          {publishError && <div className="mt-1 text-red-600 font-semibold">{publishError}</div>}
+        </div>
       </div>
 
       {/* Info banner */}
@@ -116,12 +207,29 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
         </button>
 
         <button
-          onClick={handleOpenList}
-          disabled={items.length === 0}
-          className="flex items-center gap-1.5 px-4 py-2.5 bg-brand-primary text-white hover:bg-brand-primary/90 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+          onClick={() => window.open('/pricelist', '_blank', 'noopener,noreferrer')}
+          className="flex items-center gap-1.5 px-3 py-2.5 bg-surface-1 text-ink hover:bg-surface-2 border border-hairline rounded-xl text-sm font-medium transition-colors"
         >
-          <Printer className="w-4 h-4" />
-          فتح صفحة القائمة (تحميل PDF من هناك)
+          <ExternalLink className="w-4 h-4" />
+          فتح الصفحة العامة
+        </button>
+
+        <button
+          onClick={handlePublish}
+          disabled={publishing || loading || items.length === 0}
+          className="flex items-center gap-1.5 px-4 py-2.5 bg-brand-primary text-white hover:bg-brand-primary/90 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {publishing ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {progress ? `جاري إنشاء الملف... ${progress.done}/${progress.total}` : 'جاري التجهيز...'}
+            </>
+          ) : (
+            <>
+              <FileDown className="w-4 h-4" />
+              نشر قائمة الأسعار (إنشاء PDF)
+            </>
+          )}
         </button>
       </div>
 
@@ -149,41 +257,51 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
               </p>
             )}
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-right border-collapse text-sm">
+          <div className="overflow-x-auto" dir="ltr">
+            <table className="w-full text-left border-collapse text-sm">
               <thead>
                 <tr className="bg-surface-2 text-ink font-semibold text-xs border-b border-hairline">
-                  <th className="p-3 w-16 text-center">الصورة</th>
-                  <th className="p-3 min-w-[180px]">اسم الجهاز</th>
-                  <th className="p-3 min-w-[140px]">المعالج</th>
-                  <th className="p-3 min-w-[90px]">الرام</th>
-                  <th className="p-3 min-w-[110px]">التخزين</th>
-                  <th className="p-3 min-w-[130px]">كارت الشاشة</th>
-                  <th className="p-3 min-w-[100px]">السعر (ج.م)</th>
+                  <th className="p-3 w-32 text-center">الصورة</th>
+                  <th className="p-3 min-w-[160px] text-right">اسم الجهاز</th>
+                  <th className="p-3 min-w-[140px] text-right">المعالج</th>
+                  <th className="p-3 min-w-[70px] text-right">الرام</th>
+                  <th className="p-3 min-w-[100px] text-right">التخزين</th>
+                  <th className="p-3 min-w-[160px] text-right">كارت الشاشة</th>
+                  <th className="p-3 min-w-[100px] text-center">السعر (ج.م)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-hairline font-body">
-                {filteredItems.map(item => (
-                  <tr key={item.id} className="hover:bg-surface-1/70 transition-colors">
-                    <td className="p-3">
-                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-hairline bg-surface-1 flex items-center justify-center mx-auto">
-                        {item.photo ? (
-                          <Image src={item.photo} alt={item.name} width={48} height={48} className="w-full h-full object-cover" />
-                        ) : (
-                          <ImageOff className="w-5 h-5 text-ink-muted" />
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3 font-semibold text-ink">{item.name}</td>
-                    <td className="p-3 text-ink text-xs">{item.cpu || '-'}</td>
-                    <td className="p-3 text-ink text-xs whitespace-nowrap">{item.ram || '-'}</td>
-                    <td className="p-3 text-ink text-xs whitespace-nowrap">{item.storage || '-'}</td>
-                    <td className="p-3 text-ink-muted text-xs">{item.gpu || '-'}</td>
-                    <td className="p-3 font-bold text-brand-primary whitespace-nowrap font-mono">
-                      {Number(item.price || 0).toLocaleString('ar-EG')} ج.م
-                    </td>
-                  </tr>
-                ))}
+                {filteredItems.map(item => {
+                  const cpu = splitCpu(item.cpu)
+                  const gpu = splitGpu(item.gpu)
+                  return (
+                    <tr key={item.id} className="hover:bg-surface-1/70 transition-colors">
+                      <td className="p-3">
+                        <div className="w-24 h-14 mx-4 rounded-lg overflow-hidden border border-hairline bg-white flex items-center justify-center">
+                          {item.photo ? (
+                            <Image src={item.photo} alt={item.name} width={96} height={56} className="w-full h-full object-contain" />
+                          ) : (
+                            <ImageOff className="w-5 h-5 text-ink-muted" />
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 font-semibold text-ink">{item.name}</td>
+                      <td className="p-3 text-ink text-xs">
+                        <div>{cpu.name || '-'}</div>
+                        {cpu.generation && <div dir="rtl" className="text-ink-muted text-right">{cpu.generation}</div>}
+                      </td>
+                      <td className="p-3 text-ink text-xs whitespace-nowrap">{item.ram || '-'}</td>
+                      <td className="p-3 text-ink text-xs whitespace-nowrap">{item.storage || '-'}</td>
+                      <td className="p-3 text-ink text-xs">
+                        <div>{gpu.name || '-'}</div>
+                        {gpu.vram && <div className="text-ink-muted">{gpu.vram}</div>}
+                      </td>
+                      <td className="p-3 font-bold text-brand-primary whitespace-nowrap text-center">
+                        {formatPrice(item.price)}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

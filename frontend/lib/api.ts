@@ -153,7 +153,38 @@ export const api = {
 
   // Pricelist (live, built automatically from visible laptop products)
   get_pricelist_live: () =>
-    apiRequest<{ items: any[]; total: number; updatedAt: string }>('/api/pricelist-live'),
+    apiRequest<{ items: any[]; total: number; updatedAt: string; signature?: string }>(
+      '/api/pricelist-live'
+    ),
+
+  // Pre-generated price list PDF (built once by the admin, downloaded instantly by customers)
+  get_pricelist_pdf_meta: () =>
+    apiRequest<{
+      exists: boolean
+      fileName?: string
+      sizeBytes?: number
+      itemCount?: number
+      signature?: string
+      updatedAt?: string
+    }>('/api/pricelist-pdf/meta'),
+  pricelist_pdf_url: () => `${API_URL}/api/pricelist-pdf`,
+  publish_pricelist_pdf: async (blob: Blob, itemCount: number, signature: string) => {
+    const response = await fetch(`${API_URL}/api/pricelist-pdf`, {
+      method: 'POST',
+      body: blob,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/pdf',
+        'X-Item-Count': String(itemCount),
+        'X-Signature': signature,
+      },
+    })
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+      throw new Error(error.error || `API error: ${response.status}`)
+    }
+    return response.json() as Promise<{ success: boolean; updatedAt: string }>
+  },
 
   // Pricelist (legacy Excel/AI-based system, kept for backward compatibility)
   get_pricelist: () => apiRequest<any>('/api/pricelist'),

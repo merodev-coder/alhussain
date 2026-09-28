@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express'
+import { createHash } from 'crypto'
 import { getProductModel } from '../models/Product.js'
 import { logError } from '../lib/logger.js'
 import { DatabaseRouter } from '../lib/db-router.js'
@@ -48,9 +49,21 @@ router.get('/api/pricelist-live', async (_req: Request, res: Response): Promise<
       }))
       .sort((a: any, b: any) => (a.price || 0) - (b.price || 0))
 
+    // Fingerprint of everything that appears in the PDF. The admin dashboard
+    // compares it with the fingerprint stored with the published PDF to warn
+    // when laptops were added/hidden/edited after the last publish.
+    const signature = createHash('sha1')
+      .update(
+        JSON.stringify(
+          items.map((i: any) => [i.id, i.name, i.price, i.photo, i.cpu, i.ram, i.storage, i.gpu])
+        )
+      )
+      .digest('hex')
+
     res.json({
       items,
       total: items.length,
+      signature,
       updatedAt: new Date().toISOString(),
     })
   } catch (error) {
