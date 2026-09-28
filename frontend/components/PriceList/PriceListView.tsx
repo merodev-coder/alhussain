@@ -20,9 +20,9 @@ interface LiveLaptopItem {
   stockStatus?: string
 }
 
-// Left → right: photo · name · CPU · RAM · storage · GPU · price
+// Left → right: photo · name · CPU · RAM · storage · screen · GPU · price
 const GRID_COLS =
-  'grid-cols-[170px_1.6fr_1.2fr_0.6fr_0.9fr_1.4fr_0.9fr] sm:grid-cols-[190px_1.6fr_1.2fr_0.6fr_0.9fr_1.4fr_0.9fr]'
+  'grid-cols-[170px_1.6fr_1.2fr_0.6fr_0.9fr_0.7fr_1.4fr_0.9fr] sm:grid-cols-[190px_1.6fr_1.2fr_0.6fr_0.9fr_0.7fr_1.4fr_0.9fr]'
 
 export default function PriceListView() {
   const [items, setItems] = useState<LiveLaptopItem[]>([])
@@ -64,7 +64,7 @@ export default function PriceListView() {
     if (!debouncedSearch) return items
     const term = debouncedSearch.toLowerCase()
     return items.filter(item => {
-      const text = `${item.name} ${item.cpu || ''} ${item.gpu || ''} ${item.ram || ''} ${item.storage || ''}`.toLowerCase()
+      const text = `${item.name} ${item.cpu || ''} ${item.gpu || ''} ${item.ram || ''} ${item.storage || ''} ${item.screen || ''}`.toLowerCase()
       return text.includes(term)
     })
   }, [items, debouncedSearch])
@@ -169,7 +169,7 @@ export default function PriceListView() {
         ) : (
           <div className="bg-canvas rounded-2xl border border-hairline shadow-sm overflow-hidden">
             <div className="overflow-x-auto" dir="ltr">
-              <div className="min-w-[860px]">
+              <div className="min-w-[940px]">
                 {/* Header row */}
                 <div
                   className={`grid ${GRID_COLS} items-center bg-inverse-canvas text-white font-sans font-bold select-none`}
@@ -179,6 +179,7 @@ export default function PriceListView() {
                   <div className="py-4 px-3 text-sm text-center" dir="rtl">المعالج</div>
                   <div className="py-4 px-3 text-sm text-center" dir="rtl">الرام</div>
                   <div className="py-4 px-3 text-sm text-center" dir="rtl">التخزين</div>
+                  <div className="py-4 px-3 text-sm text-center" dir="rtl">حجم الشاشة</div>
                   <div className="py-4 px-3 text-sm text-center" dir="rtl">كارت الشاشة</div>
                   <div className="py-4 px-3 text-sm text-center" dir="rtl">السعر (ج.م)</div>
                 </div>
@@ -232,6 +233,9 @@ export default function PriceListView() {
 
                       {/* Storage */}
                       <div className="py-3 px-3 text-ink text-sm text-center">{item.storage || '—'}</div>
+
+                      {/* Screen size */}
+                      <div className="py-3 px-3 text-ink text-sm text-center whitespace-nowrap">{item.screen || '—'}</div>
 
                       {/* GPU name, VRAM underneath */}
                       <div className="py-3 px-3 text-sm text-center">

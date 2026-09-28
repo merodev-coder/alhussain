@@ -3,7 +3,7 @@
  * dashboard ("نشر قائمة الأسعار"); the resulting file is uploaded to the backend
  * and customers download the stored copy instantly.
  *
- * Layout (left → right): photo · name · CPU · RAM · storage · GPU · price
+ * Layout (left → right): photo · name · CPU · RAM · storage · screen · GPU · price
  */
 import { splitCpu, splitGpu, formatPrice } from './pricelist-format'
 
@@ -15,11 +15,12 @@ export interface PricelistPdfItem {
   cpu: string
   ram: string
   storage: string
+  screen?: string
   gpu: string
 }
 
 /** Bump when the layout changes; shown in the admin dashboard after publishing. */
-export const PDF_LAYOUT_VERSION = 'v3 · 15 لكل صفحة'
+export const PDF_LAYOUT_VERSION = 'v4 · 15 لكل صفحة · مع حجم الشاشة'
 
 // --- Page geometry (px are laid out at 1000px wide, then scaled to A4 width) ---
 const PAGE_PX_WIDTH = 1000
@@ -30,11 +31,11 @@ const PAGE_PX_WIDTH = 1000
 const ROW_HEIGHT = 96
 const HEADER_ROW_HEIGHT = 44
 const TITLE_HEIGHT = ROW_HEIGHT
-const COLUMNS = '180px 170px 150px 70px 110px 190px 130px' // = 1000px
+const COLUMNS = '170px 160px 140px 65px 100px 75px 170px 120px' // = 1000px
 const PHOTO_W = 130
 const PHOTO_H = 78
 
-const HEADERS = ['الصورة', 'اسم الجهاز', 'المعالج', 'الرام', 'التخزين', 'كارت الشاشة', 'السعر (ج.م)']
+const HEADERS = ['الصورة', 'اسم الجهاز', 'المعالج', 'الرام', 'التخزين', 'حجم الشاشة', 'كارت الشاشة', 'السعر (ج.م)']
 
 /** Fetch an image, downscale it and return a small JPEG data URL (keeps the PDF light). */
 async function toSmallDataUrl(url: string): Promise<string | null> {
@@ -262,6 +263,9 @@ export async function buildPricelistPdf(
       // RAM / Storage
       row.appendChild(textCell([{ text: item.ram }]))
       row.appendChild(textCell([{ text: item.storage }]))
+
+      // Screen size
+      row.appendChild(textCell([{ text: item.screen || '' }]))
 
       // GPU: name on the first line, VRAM under it
       const gpu = splitGpu(item.gpu)

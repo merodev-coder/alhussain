@@ -283,6 +283,7 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
                   <th className="p-3 min-w-[140px] text-center">المعالج</th>
                   <th className="p-3 min-w-[70px] text-center">الرام</th>
                   <th className="p-3 min-w-[100px] text-center">التخزين</th>
+                  <th className="p-3 min-w-[90px] text-center">حجم الشاشة</th>
                   <th className="p-3 min-w-[160px] text-center">كارت الشاشة</th>
                   <th className="p-3 min-w-[100px] text-center">السعر (ج.م)</th>
                 </tr>
@@ -309,6 +310,7 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
                       </td>
                       <td className="p-3 text-ink text-xs whitespace-nowrap text-center">{item.ram || '-'}</td>
                       <td className="p-3 text-ink text-xs whitespace-nowrap text-center">{item.storage || '-'}</td>
+                      <td className="p-3 text-ink text-xs whitespace-nowrap text-center">{item.screen || '-'}</td>
                       <td className="p-3 text-ink text-xs text-center">
                         <div>{gpu.name || '-'}</div>
                         {gpu.vram && <div className="text-ink-muted">{gpu.vram}</div>}

@@ -55,7 +55,7 @@ router.get('/api/pricelist-live', async (_req: Request, res: Response): Promise<
     const signature = createHash('sha1')
       .update(
         JSON.stringify(
-          items.map((i: any) => [i.id, i.name, i.price, i.photo, i.cpu, i.ram, i.storage, i.gpu])
+          items.map((i: any) => [i.id, i.name, i.price, i.photo, i.cpu, i.ram, i.storage, i.screen, i.gpu])
         )
       )
       .digest('hex')
