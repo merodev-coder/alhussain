@@ -11,6 +11,16 @@ import { suggestStockStatus } from '../lib/stock.js'
 
 const router = Router()
 
+/** Keeps the top-level `screen` and `specs.screen` fields in sync (price lists read specs.screen). */
+function withSyncedScreen<T extends { screen?: string; specs?: { screen?: string } & Record<string, unknown> }>(
+  data: T
+): T {
+  const screen = data.screen ?? data.specs?.screen
+  if (screen === undefined) return data
+  return { ...data, screen, specs: { ...(data.specs ?? {}), screen } }
+}
+
+
 router.get('/api/products', async (req: Request, res: Response): Promise<void> => {
   try {
     const { search, homeSection, page = '1', limit = '24' } = req.query
@@ -92,7 +102,7 @@ router.get('/api/products/:id', async (req: Request, res: Response): Promise<voi
 
 router.post('/api/products', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
-    const data = productInputSchema.parse(req.body)
+    const data = withSyncedScreen(productInputSchema.parse(req.body))
     const quantity = data.quantity ?? 0
     const { result } = await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
       const ProductModel = getProductModel(connection)
@@ -125,7 +135,8 @@ router.post('/api/products/bulk', requireAdmin, async (req: Request, res: Respon
         photos: z.array(z.string()).optional().default([]),
       })),
     })
-    const { items } = bulkSchema.parse(req.body)
+    const { items: rawItems } = bulkSchema.parse(req.body)
+    const items = rawItems.map(withSyncedScreen)
     
     const failed: { index: number; name?: string; error: string }[] = []
     let created = 0
@@ -198,7 +209,7 @@ router.post('/api/products/bulk', requireAdmin, async (req: Request, res: Respon
 
 router.patch('/api/products/:id', requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
-    const data = productInputSchema.partial().parse(req.body)
+    const data = withSyncedScreen(productInputSchema.partial().parse(req.body))
     const found = await DatabaseRouter.findByIdAcrossDatabases(
       req.params.id,
       async (connection, id) => getProductModel(connection).findById(id),

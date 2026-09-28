@@ -344,6 +344,24 @@ function ProductFormModal({
             ))}
           </div>
 
+          {/* Screen size */}
+          <div className="space-y-1.5">
+            <label className="font-body text-sm text-ink">حجم الشاشة (Screen Size)</label>
+            <input
+              list="screen-size-options"
+              value={form.screen}
+              onChange={e => set('screen', e.target.value)}
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 font-body text-sm bg-canvas focus:outline-none focus:ring-2 focus:ring-[#0EA8A3]/30"
+              placeholder='مثال: 15.6"'
+              dir="ltr"
+            />
+            <datalist id="screen-size-options">
+              {['11.6"', '12.5"', '13.3"', '14.1"', '15.6"', '17.3"'].map(v => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
+          </div>
+
           {/* Home Section Assignment & Badge */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">

@@ -10,6 +10,7 @@ export const productInputSchema = z.object({
   gpu: z.string().default(''),
   ram: z.string().default(''),
   storage: z.string().default(''),
+  screen: z.string().trim().optional(),
   photos: z.array(z.string().url()).default([]),
   stockStatus: stockStatusSchema.default('in_stock'),
   quantity: z.coerce.number().min(0).optional(),

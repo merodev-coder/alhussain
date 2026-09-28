@@ -179,7 +179,8 @@ export default function ProductDetailClient({ product, allProducts }: Props) {
                   { label: 'كارت الشاشة', value: product.gpu },
                   { label: 'الرام', value: product.ram },
                   { label: 'التخزين', value: product.storage },
-                ].map((spec, i) => (
+                  { label: 'حجم الشاشة', value: product.screen || product.specs?.screen || '' },
+                ].filter(spec => spec.value).map((spec, i) => (
                   <tr key={spec.label} className={cn('border-b border-hairline last:border-b-0', i % 2 === 0 ? 'bg-canvas' : 'bg-surface-1')}>
                     <td className="px-4 py-3 font-body text-sm font-semibold text-ink-muted w-1/3">{spec.label}</td>
                     <td className="px-4 py-3 font-body text-sm text-ink">{spec.value}</td>

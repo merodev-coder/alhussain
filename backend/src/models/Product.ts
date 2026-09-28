@@ -12,6 +12,7 @@ export interface ProductDoc {
   gpu: string
   ram: string
   storage: string
+  screen?: string
   photos: string[]
   stockStatus: StockStatus
   quantity: number
@@ -51,6 +52,7 @@ const ProductSchema = new Schema<ProductDoc>(
     gpu: { type: String, default: '' },
     ram: { type: String, default: '' },
     storage: { type: String, default: '' },
+    screen: { type: String, default: '' },
     photos: { type: [String], default: [] },
     stockStatus: {
       type: String,
