@@ -20,18 +20,16 @@ export interface PricelistPdfItem {
 
 // --- Page geometry (px are laid out at 1000px wide, then scaled to A4 width) ---
 const PAGE_PX_WIDTH = 1000
-// Page maths (A4, 10mm margins, 1000px == 190mm => 0.19mm per px):
-//   usable height 277mm = 1457px
-//   header 44px + 14 rows x 100px = 1444px  -> exactly 14 laptops per page
-//   page 1: the title block is one row tall (100px) -> 13 laptops + title
-const ROWS_PER_PAGE = 14 // documentation only; the sizes below produce it
-void ROWS_PER_PAGE
-const ROW_HEIGHT = 100
+// Page maths (A4, 6mm top/bottom margins, 10mm sides, 1000px == 190mm => 0.19mm per px):
+//   usable height 285mm = 1500px
+//   header 44px + 15 rows x 96px = 1484px  -> exactly 15 laptops per page
+//   page 1: the title block is one row tall (96px) -> 14 laptops + title
+const ROW_HEIGHT = 96
 const HEADER_ROW_HEIGHT = 44
 const TITLE_HEIGHT = ROW_HEIGHT
 const COLUMNS = '180px 170px 150px 70px 110px 190px 130px' // = 1000px
-const PHOTO_W = 136
-const PHOTO_H = 82
+const PHOTO_W = 130
+const PHOTO_H = 78
 
 const HEADERS = ['الصورة', 'اسم الجهاز', 'المعالج', 'الرام', 'التخزين', 'كارت الشاشة', 'السعر (ج.م)']
 
@@ -308,8 +306,8 @@ export async function buildPricelistPdf(
     const pageWidth = pdf.internal.pageSize.getWidth()
     const pageHeight = pdf.internal.pageSize.getHeight()
     const marginX = 10
-    const marginTop = 10
-    const marginBottom = 10
+    const marginTop = 6
+    const marginBottom = 6
     const usableWidth = pageWidth - marginX * 2
     const usableBottom = pageHeight - marginBottom
     const mmH = (c: HTMLCanvasElement) => (c.height * usableWidth) / c.width
