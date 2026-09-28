@@ -18,6 +18,9 @@ export interface PricelistPdfItem {
   gpu: string
 }
 
+/** Bump when the layout changes; shown in the admin dashboard after publishing. */
+export const PDF_LAYOUT_VERSION = 'v3 · 15 لكل صفحة'
+
 // --- Page geometry (px are laid out at 1000px wide, then scaled to A4 width) ---
 const PAGE_PX_WIDTH = 1000
 // Page maths (A4, 6mm top/bottom margins, 10mm sides, 1000px == 190mm => 0.19mm per px):
@@ -111,7 +114,7 @@ export async function buildPricelistPdf(
   items: PricelistPdfItem[],
   updatedAt: Date,
   onProgress?: (done: number, total: number, phase: 'render' | 'assemble') => void
-): Promise<Blob> {
+): Promise<{ blob: Blob; pages: number }> {
   const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
     import('jspdf'),
     import('html2canvas-pro'),
@@ -332,7 +335,8 @@ export async function buildPricelistPdf(
       y += h
     })
 
-    return pdf.output('blob')
+    pdf.setProperties({ title: 'قائمة أسعار الحسين', subject: `layout ${PDF_LAYOUT_VERSION}` })
+    return { blob: pdf.output('blob'), pages: pdf.getNumberOfPages() }
   } finally {
     stage.remove()
   }

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import api from '@/lib/api'
 import { clientLogger } from '@/lib/client-logger'
-import { buildPricelistPdf } from '@/lib/pricelist-pdf'
+import { buildPricelistPdf, PDF_LAYOUT_VERSION } from '@/lib/pricelist-pdf'
 import { splitCpu, splitGpu, formatPrice } from '@/lib/pricelist-format'
 
 interface PdfMeta {
@@ -50,6 +50,7 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
   const [pdfMeta, setPdfMeta] = useState<PdfMeta | null>(null)
   const [publishing, setPublishing] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [lastBuild, setLastBuild] = useState<{ pages: number; count: number } | null>(null)
   const [phase, setPhase] = useState<'render' | 'assemble' | 'upload'>('render')
   const [publishError, setPublishError] = useState<string | null>(null)
 
@@ -105,13 +106,14 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
       setProgress({ done: 0, total: freshItems.length })
 
       setPhase('render')
-      const blob = await buildPricelistPdf(freshItems, new Date(), (done, total, ph) => {
+      const { blob, pages } = await buildPricelistPdf(freshItems, new Date(), (done, total, ph) => {
         setPhase(ph)
         setProgress({ done, total })
       })
       setPhase('upload')
       await api.publish_pricelist_pdf(blob, freshItems.length, fresh?.signature || '')
 
+      setLastBuild({ pages, count: freshItems.length })
       setItems(freshItems)
       setSignature(fresh?.signature || '')
       setUpdatedAt(fresh?.updatedAt || null)
@@ -165,6 +167,11 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
               {pdfMeta.sizeBytes ? ` · ${(pdfMeta.sizeBytes / 1024 / 1024).toFixed(2)} MB` : ''}) — آخر نشر{' '}
               {pdfMeta.updatedAt ? new Date(pdfMeta.updatedAt).toLocaleString('ar-EG') : '-'}
             </>
+          )}
+          {lastBuild && (
+            <div className="mt-1 text-emerald-700 font-semibold">
+              تم النشر الآن ✓ — {lastBuild.count} جهاز في {lastBuild.pages} صفحات — تخطيط {PDF_LAYOUT_VERSION}
+            </div>
           )}
           {publishError && <div className="mt-1 text-red-600 font-semibold">{publishError}</div>}
         </div>
