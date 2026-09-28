@@ -20,11 +20,18 @@ export interface PricelistPdfItem {
 
 // --- Page geometry (px are laid out at 1000px wide, then scaled to A4 width) ---
 const PAGE_PX_WIDTH = 1000
-const ROW_HEIGHT = 112 // was 138 -> 2 more laptops fit on every page
-const HEADER_ROW_HEIGHT = 48
+// Page maths (A4, 10mm margins, 1000px == 190mm => 0.19mm per px):
+//   usable height 277mm = 1457px
+//   header 44px + 14 rows x 100px = 1444px  -> exactly 14 laptops per page
+//   page 1: the title block is one row tall (100px) -> 13 laptops + title
+const ROWS_PER_PAGE = 14 // documentation only; the sizes below produce it
+void ROWS_PER_PAGE
+const ROW_HEIGHT = 100
+const HEADER_ROW_HEIGHT = 44
+const TITLE_HEIGHT = ROW_HEIGHT
 const COLUMNS = '180px 170px 150px 70px 110px 190px 130px' // = 1000px
-const PHOTO_W = 148
-const PHOTO_H = 88
+const PHOTO_W = 136
+const PHOTO_H = 82
 
 const HEADERS = ['الصورة', 'اسم الجهاز', 'المعالج', 'الرام', 'التخزين', 'كارت الشاشة', 'السعر (ج.م)']
 
@@ -53,7 +60,7 @@ async function toSmallDataUrl(url: string): Promise<string | null> {
       ctx.fillStyle = '#ffffff'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      return canvas.toDataURL('image/jpeg', 0.85)
+      return canvas.toDataURL('image/jpeg', 0.82)
     } finally {
       URL.revokeObjectURL(bitmapUrl)
     }
@@ -74,10 +81,11 @@ function textCell(lines: Array<{ text: string; rtl?: boolean; muted?: boolean; b
     padding: '0 10px',
     display: 'flex',
     flexDirection: 'column',
-    justifyContent: 'center',
+    justifyContent: 'center', // vertical centre
+    alignItems: 'center', // horizontal centre
     gap: '4px',
     height: '100%',
-    textAlign: 'left',
+    textAlign: 'center',
     overflow: 'hidden',
   })
   const visible = lines.filter(l => l.text)
@@ -91,9 +99,8 @@ function textCell(lines: Array<{ text: string; rtl?: boolean; muted?: boolean; b
         color: l.muted ? '#64748b' : '#1e293b',
         lineHeight: '1.35',
         direction: l.rtl ? 'rtl' : 'ltr',
-        textAlign: l.rtl ? 'right' : 'left',
-        // A generation line sits right under the CPU name, aligned to the same edge
-        alignSelf: 'flex-start',
+        textAlign: 'center',
+        alignSelf: 'stretch',
       },
       l.text
     )
@@ -105,7 +112,7 @@ function textCell(lines: Array<{ text: string; rtl?: boolean; muted?: boolean; b
 export async function buildPricelistPdf(
   items: PricelistPdfItem[],
   updatedAt: Date,
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number, phase: 'render' | 'assemble') => void
 ): Promise<Blob> {
   const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
     import('jspdf'),
@@ -143,9 +150,9 @@ export async function buildPricelistPdf(
       justifyContent: 'space-between',
       alignItems: 'center',
       direction: 'rtl',
-      padding: '0 4px 14px',
+      padding: '0 4px',
+      height: `${TITLE_HEIGHT}px`,
       borderBottom: '2px solid #e2e8f0',
-      marginBottom: '14px',
       boxSizing: 'border-box',
     })
     const titleRight = el('div')
@@ -190,7 +197,7 @@ export async function buildPricelistPdf(
         {
           padding: '0 10px',
           direction: 'rtl',
-          textAlign: i === 0 || i === HEADERS.length - 1 ? 'center' : 'left',
+          textAlign: 'center',
         },
         label
       )
@@ -289,21 +296,25 @@ export async function buildPricelistPdf(
     const rowCanvases: HTMLCanvasElement[] = []
     for (let i = 0; i < rowElements.length; i++) {
       rowCanvases.push(await shot(rowElements[i]))
-      onProgress?.(i + 1, rowElements.length)
+      onProgress?.(i + 1, rowElements.length, 'render')
     }
+
+    // Let the UI repaint before the (synchronous) assembly step starts.
+    onProgress?.(rowElements.length, rowElements.length, 'assemble')
+    await new Promise(r => setTimeout(r, 30))
 
     // --- Paginate whole rows; repeat the table header on every page ---
     const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true })
     const pageWidth = pdf.internal.pageSize.getWidth()
     const pageHeight = pdf.internal.pageSize.getHeight()
-    const marginX = 12
-    const marginTop = 12
-    const marginBottom = 12
+    const marginX = 10
+    const marginTop = 10
+    const marginBottom = 10
     const usableWidth = pageWidth - marginX * 2
     const usableBottom = pageHeight - marginBottom
     const mmH = (c: HTMLCanvasElement) => (c.height * usableWidth) / c.width
     const add = (c: HTMLCanvasElement, y: number) =>
-      pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', marginX, y, usableWidth, mmH(c))
+      pdf.addImage(c.toDataURL('image/jpeg', 0.85), 'JPEG', marginX, y, usableWidth, mmH(c))
 
     let y = marginTop
     add(titleCanvas, y)
@@ -313,7 +324,7 @@ export async function buildPricelistPdf(
 
     rowCanvases.forEach(c => {
       const h = mmH(c)
-      if (y + h > usableBottom) {
+      if (y + h > usableBottom + 0.05) {
         pdf.addPage()
         y = marginTop
         add(headerCanvas, y)

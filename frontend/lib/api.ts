@@ -169,16 +169,25 @@ export const api = {
     }>('/api/pricelist-pdf/meta'),
   pricelist_pdf_url: () => `${API_URL}/api/pricelist-pdf`,
   publish_pricelist_pdf: async (blob: Blob, itemCount: number, signature: string) => {
+    // Never hang silently: abort after 2 minutes and show a clear error.
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 120_000)
     const response = await fetch(`${API_URL}/api/pricelist-pdf`, {
       method: 'POST',
       body: blob,
       credentials: 'include',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/pdf',
         'X-Item-Count': String(itemCount),
         'X-Signature': signature,
       },
     })
+      .catch(err => {
+        if (err?.name === 'AbortError') throw new Error('انتهت مهلة رفع الملف، تحقق من الاتصال وحاول مرة أخرى')
+        throw err
+      })
+      .finally(() => clearTimeout(timer))
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }))
       throw new Error(error.error || `API error: ${response.status}`)

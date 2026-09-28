@@ -50,6 +50,7 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
   const [pdfMeta, setPdfMeta] = useState<PdfMeta | null>(null)
   const [publishing, setPublishing] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [phase, setPhase] = useState<'render' | 'assemble' | 'upload'>('render')
   const [publishError, setPublishError] = useState<string | null>(null)
 
   const fetchPdfMeta = async () => {
@@ -103,9 +104,12 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
       if (freshItems.length === 0) throw new Error('لا توجد منتجات ظاهرة لنشرها')
       setProgress({ done: 0, total: freshItems.length })
 
-      const blob = await buildPricelistPdf(freshItems, new Date(), (done, total) =>
+      setPhase('render')
+      const blob = await buildPricelistPdf(freshItems, new Date(), (done, total, ph) => {
+        setPhase(ph)
         setProgress({ done, total })
-      )
+      })
+      setPhase('upload')
       await api.publish_pricelist_pdf(blob, freshItems.length, fresh?.signature || '')
 
       setItems(freshItems)
@@ -222,7 +226,13 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
           {publishing ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              {progress ? `جاري إنشاء الملف... ${progress.done}/${progress.total}` : 'جاري التجهيز...'}
+              {phase === 'upload'
+                ? 'جاري رفع الملف...'
+                : phase === 'assemble'
+                  ? 'جاري تجميع الصفحات...'
+                  : progress
+                    ? `جاري إنشاء الملف... ${progress.done}/${progress.total}`
+                    : 'جاري التجهيز...'}
             </>
           ) : (
             <>
@@ -262,11 +272,11 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
               <thead>
                 <tr className="bg-surface-2 text-ink font-semibold text-xs border-b border-hairline">
                   <th className="p-3 w-32 text-center">الصورة</th>
-                  <th className="p-3 min-w-[160px] text-right">اسم الجهاز</th>
-                  <th className="p-3 min-w-[140px] text-right">المعالج</th>
-                  <th className="p-3 min-w-[70px] text-right">الرام</th>
-                  <th className="p-3 min-w-[100px] text-right">التخزين</th>
-                  <th className="p-3 min-w-[160px] text-right">كارت الشاشة</th>
+                  <th className="p-3 min-w-[160px] text-center">اسم الجهاز</th>
+                  <th className="p-3 min-w-[140px] text-center">المعالج</th>
+                  <th className="p-3 min-w-[70px] text-center">الرام</th>
+                  <th className="p-3 min-w-[100px] text-center">التخزين</th>
+                  <th className="p-3 min-w-[160px] text-center">كارت الشاشة</th>
                   <th className="p-3 min-w-[100px] text-center">السعر (ج.م)</th>
                 </tr>
               </thead>
@@ -285,14 +295,14 @@ export default function PricelistTab({ onGoToProducts }: { onGoToProducts?: () =
                           )}
                         </div>
                       </td>
-                      <td className="p-3 font-semibold text-ink">{item.name}</td>
-                      <td className="p-3 text-ink text-xs">
+                      <td className="p-3 font-semibold text-ink text-center">{item.name}</td>
+                      <td className="p-3 text-ink text-xs text-center">
                         <div>{cpu.name || '-'}</div>
-                        {cpu.generation && <div dir="rtl" className="text-ink-muted text-right">{cpu.generation}</div>}
+                        {cpu.generation && <div dir="rtl" className="text-ink-muted text-center">{cpu.generation}</div>}
                       </td>
-                      <td className="p-3 text-ink text-xs whitespace-nowrap">{item.ram || '-'}</td>
-                      <td className="p-3 text-ink text-xs whitespace-nowrap">{item.storage || '-'}</td>
-                      <td className="p-3 text-ink text-xs">
+                      <td className="p-3 text-ink text-xs whitespace-nowrap text-center">{item.ram || '-'}</td>
+                      <td className="p-3 text-ink text-xs whitespace-nowrap text-center">{item.storage || '-'}</td>
+                      <td className="p-3 text-ink text-xs text-center">
                         <div>{gpu.name || '-'}</div>
                         {gpu.vram && <div className="text-ink-muted">{gpu.vram}</div>}
                       </td>

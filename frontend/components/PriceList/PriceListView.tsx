@@ -175,11 +175,11 @@ export default function PriceListView() {
                   className={`grid ${GRID_COLS} items-center bg-inverse-canvas text-white font-sans font-bold select-none`}
                 >
                   <div className="py-4 px-4 text-center text-sm" dir="rtl">الصورة</div>
-                  <div className="py-4 px-3 text-sm text-right" dir="rtl">اسم الجهاز</div>
-                  <div className="py-4 px-3 text-sm text-right" dir="rtl">المعالج</div>
-                  <div className="py-4 px-3 text-sm text-right" dir="rtl">الرام</div>
-                  <div className="py-4 px-3 text-sm text-right" dir="rtl">التخزين</div>
-                  <div className="py-4 px-3 text-sm text-right" dir="rtl">كارت الشاشة</div>
+                  <div className="py-4 px-3 text-sm text-center" dir="rtl">اسم الجهاز</div>
+                  <div className="py-4 px-3 text-sm text-center" dir="rtl">المعالج</div>
+                  <div className="py-4 px-3 text-sm text-center" dir="rtl">الرام</div>
+                  <div className="py-4 px-3 text-sm text-center" dir="rtl">التخزين</div>
+                  <div className="py-4 px-3 text-sm text-center" dir="rtl">كارت الشاشة</div>
                   <div className="py-4 px-3 text-sm text-center" dir="rtl">السعر (ج.م)</div>
                 </div>
 
@@ -213,28 +213,28 @@ export default function PriceListView() {
                       </div>
 
                       {/* Name */}
-                      <div className="py-3 px-3 font-sans font-bold text-ink text-sm sm:text-base leading-snug text-left">
+                      <div className="py-3 px-3 font-sans font-bold text-ink text-sm sm:text-base leading-snug text-center">
                         {item.name}
                       </div>
 
                       {/* CPU + Arabic generation */}
-                      <div className="py-3 px-3 text-sm text-left">
+                      <div className="py-3 px-3 text-sm text-center">
                         <div className="text-ink">{cpu.name || '—'}</div>
                         {cpu.generation && (
-                          <div dir="rtl" className="text-ink-muted text-xs mt-0.5 text-right">
+                          <div dir="rtl" className="text-ink-muted text-xs mt-0.5 text-center">
                             {cpu.generation}
                           </div>
                         )}
                       </div>
 
                       {/* RAM */}
-                      <div className="py-3 px-3 text-ink text-sm text-left">{item.ram || '—'}</div>
+                      <div className="py-3 px-3 text-ink text-sm text-center">{item.ram || '—'}</div>
 
                       {/* Storage */}
-                      <div className="py-3 px-3 text-ink text-sm text-left">{item.storage || '—'}</div>
+                      <div className="py-3 px-3 text-ink text-sm text-center">{item.storage || '—'}</div>
 
                       {/* GPU name, VRAM underneath */}
-                      <div className="py-3 px-3 text-sm text-left">
+                      <div className="py-3 px-3 text-sm text-center">
                         <div className="text-ink">{gpu.name || '—'}</div>
                         {gpu.vram && <div className="text-ink-muted text-xs mt-0.5">{gpu.vram}</div>}
                       </div>
