@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Truck, Store, Upload, MapPin, CheckCircle, ChevronRight, CreditCard, ShieldCheck, Loader2 } from 'lucide-react'
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 import { clientLogger } from '@/lib/client-logger'
 import { useUploadThing } from '@/lib/uploadthing'
+import { compressImage } from '@/lib/compress-image'
 
 type FormData = {
   name: string
@@ -46,7 +47,15 @@ function validate(form: FormData): Errors {
 
 export default function CheckoutClient() {
   const { items, total: subtotal, clearCart } = useCart()
-  const { startUpload } = useUploadThing('depositPhotos')
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const { startUpload } = useUploadThing('depositPhotos', {
+    onUploadProgress: (p) => setUploadProgress(Math.round(p)),
+  })
+
+  // Receipt upload runs in the background as soon as the file is picked
+  const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle')
+  const [previewUrl, setPreviewUrl] = useState<string>('')
+  const uploadPromiseRef = useRef<Promise<string> | null>(null)
 
   const [shippingRates, setShippingRates] = useState<ShippingRate[]>([])
   const [settings, setSettings] = useState<{ vodafoneCashNumber: string; instapayNumber: string } | null>(null)
@@ -98,6 +107,41 @@ export default function CheckoutClient() {
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }))
   }
 
+  const uploadReceipt = (file: File): Promise<string> => {
+    setUploadState('uploading')
+    setUploadProgress(0)
+    const promise = (async () => {
+      const small = await compressImage(file)
+      const uploaded = await startUpload([small])
+      const first = uploaded?.[0] as { ufsUrl?: string; url?: string } | undefined
+      const url = first?.ufsUrl ?? first?.url
+      if (!url) throw new Error('تعذّر رفع صورة إيصال التحويل')
+      return url
+    })()
+    uploadPromiseRef.current = promise
+    promise
+      .then(() => {
+        if (uploadPromiseRef.current === promise) setUploadState('done')
+      })
+      .catch(() => {
+        if (uploadPromiseRef.current === promise) setUploadState('error')
+      })
+    return promise
+  }
+
+  const handleFileSelected = (file: File | null) => {
+    set('depositFile', file)
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    if (!file) {
+      setPreviewUrl('')
+      setUploadState('idle')
+      uploadPromiseRef.current = null
+      return
+    }
+    setPreviewUrl(URL.createObjectURL(file))
+    uploadReceipt(file).catch(() => {})
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const errs = validate(form)
@@ -110,14 +154,14 @@ export default function CheckoutClient() {
     setSubmitError('')
 
     try {
-      // Upload deposit photo if provided (UploadThing presigned-URL flow)
+      // The receipt has usually finished uploading already (it starts on file pick).
+      // If it is still running we wait for it; if it failed we retry once.
       let depositPhotoUrl: string | undefined
       if (form.depositFile) {
-        const uploaded = await startUpload([form.depositFile])
-        const first = uploaded?.[0] as { ufsUrl?: string; url?: string } | undefined
-        depositPhotoUrl = first?.ufsUrl ?? first?.url
-        if (!depositPhotoUrl) {
-          throw new Error('تعذّر رفع صورة إيصال التحويل')
+        try {
+          depositPhotoUrl = await (uploadPromiseRef.current ?? uploadReceipt(form.depositFile))
+        } catch {
+          depositPhotoUrl = await uploadReceipt(form.depositFile)
         }
       }
 
@@ -444,18 +488,47 @@ export default function CheckoutClient() {
                       'flex flex-col items-center gap-2 border-2 border-dashed rounded-[16px] p-4 cursor-pointer transition-colors',
                       errors.depositFile ? 'border-red-400 bg-red-50' : 'border-hairline hover:border-brand-primary/50 hover:bg-canvas'
                     )}>
-                      <Upload className="w-5 h-5 text-ink-muted" />
+                      {previewUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={previewUrl} alt="إيصال التحويل" className="h-24 w-auto rounded-lg object-cover" />
+                      ) : (
+                        <Upload className="w-5 h-5 text-ink-muted" />
+                      )}
                       <span className="font-body text-xs text-ink-muted">
                         {form.depositFile ? form.depositFile.name : 'اضغط هنا لرفع صورة الإيصال'}
                       </span>
                       <input
                         type="file"
                         accept="image/*"
-                        required
                         className="hidden"
-                        onChange={e => set('depositFile', e.target.files?.[0] ?? null)}
+                        onChange={e => handleFileSelected(e.target.files?.[0] ?? null)}
                       />
                     </label>
+
+                    {uploadState === 'uploading' && (
+                      <div className="mt-2 space-y-1" aria-live="polite">
+                        <div className="flex items-center gap-2 font-body text-xs text-ink-muted">
+                          <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
+                          <span>جاري رفع الصورة... {uploadProgress}%</span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-surface-2 overflow-hidden">
+                          <div
+                            className="h-full bg-brand-primary transition-all duration-200"
+                            style={{ width: `${Math.max(5, uploadProgress)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {uploadState === 'done' && (
+                      <p className="mt-2 flex items-center gap-1.5 font-body text-xs text-green-600">
+                        <CheckCircle className="w-4 h-4" /> تم رفع الصورة بنجاح
+                      </p>
+                    )}
+                    {uploadState === 'error' && (
+                      <p className="mt-2 font-body text-xs text-red-500">
+                        تعذّر رفع الصورة — سنحاول مرة أخرى عند إرسال الطلب، أو اختر الصورة من جديد.
+                      </p>
+                    )}
                     {errors.depositFile && <p className="font-body text-xs text-red-500 mt-1">{errors.depositFile}</p>}
                   </div>
                 </div>
@@ -542,7 +615,14 @@ export default function CheckoutClient() {
                 disabled={isLoading}
                 className="w-full mt-5 rounded-full bg-brand-primary hover:bg-brand-primary/90 text-white font-sans font-bold h-12 active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'جاري إرسال الطلب...' : 'تأكيد وإرسال الطلب'}
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {uploadState === 'uploading' ? 'جاري رفع الإيصال...' : 'جاري إرسال الطلب...'}
+                  </span>
+                ) : (
+                  'تأكيد وإرسال الطلب'
+                )}
               </Button>
               <p className="font-body text-xs text-ink-muted text-center mt-3">
                 تأكيد مجاني وسيتواصل معك موظف المبيعات لإنهاء الدفع

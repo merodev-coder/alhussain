@@ -37,6 +37,13 @@ router.post('/api/orders', orderRateLimit, async (req: Request, res: Response): 
       return
     }
 
+    // Start the shipping-rate lookup now so it runs while items are validated
+    const shippingRatePromise =
+      data.deliveryMethod === 'shipping' && data.governorate
+        ? findShippingRate(data.governorate)
+        : Promise.resolve(null)
+    shippingRatePromise.catch(() => {})
+
     const validatedItems: OrderItemDoc[] = []
     let itemsTotal = 0
 
@@ -103,7 +110,7 @@ router.post('/api/orders', orderRateLimit, async (req: Request, res: Response): 
         res.status(400).json({ error: 'المحافظة مطلوبة للشحن' })
         return
       }
-      const rate = await findShippingRate(data.governorate)
+      const rate = await shippingRatePromise
       if (!rate) {
         res.status(400).json({ error: 'لا يتوفر الشحن لهذه المحافظة حالياً' })
         return
@@ -144,13 +151,16 @@ router.post('/api/orders', orderRateLimit, async (req: Request, res: Response): 
 
     logInfo('Create order', `Order created: ${result.orderNumber} dbIndex=${result.dbIndex}`)
 
-    // Send order confirmation email
-    await sendMail({
+    // Respond immediately - the customer should not wait for the email.
+    const orderJson = result.toJSON()
+    res.status(201).json(orderJson)
+
+    // Send order confirmation email in the background (sendMail never throws)
+    void sendMail({
       to: data.email,
       ...orderConfirmationEmail(result),
-    })
-
-    res.status(201).json(result.toJSON())
+    }).catch(err => logError('Order confirmation email', err))
+    return
   } catch (error) {
     logError('Create order', error)
     if (error instanceof z.ZodError) {
