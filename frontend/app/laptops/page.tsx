@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { Suspense, useState, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
 import { SlidersHorizontal, X, Loader2 } from 'lucide-react'
 import StoreLayout from '@/components/store-layout'
@@ -58,10 +59,20 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
   )
 }
 
-export default function LaptopsPage() {
+function LaptopsContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const searchTerm = (searchParams.get('search') ?? '').trim()
+
   const [page, setPage] = useState(1)
+
+  // Go back to page 1 whenever the search text changes
+  useEffect(() => {
+    setPage(1)
+  }, [searchTerm])
+
   const { data, isLoading } = useSWR<{ items: Product[]; total: number; page: number; pages: number }>(
-    `/api/products?page=${page}`,
+    `/api/products?page=${page}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`,
     fetcher
   )
   const { data: specData } = useSWR<{ id: string; type: string; value: string }[]>('/api/spec-options', fetcher)
@@ -116,6 +127,8 @@ export default function LaptopsPage() {
     storageFilter.length > 0 ||
     stockFilter.length > 0 ||
     priceMax < PRICE_CEILING
+
+  const clearSearch = () => router.push('/laptops')
 
   const filtered = useMemo(() => {
     return products.filter(p => {
@@ -202,6 +215,20 @@ export default function LaptopsPage() {
           <div>
             <h1 className="font-sans font-bold text-ink text-3xl">اللابتوبات</h1>
             <p className="font-body text-ink-muted text-sm mt-1">{filtered.length} منتج</p>
+            {searchTerm && (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-surface-1 border border-hairline ps-4 pe-2 py-1.5">
+                <span className="font-body text-sm text-ink">
+                  نتائج البحث عن: <strong className="font-bold">{searchTerm}</strong>
+                </span>
+                <button
+                  onClick={clearSearch}
+                  className="p-1 rounded-full hover:bg-surface-2 text-ink-muted hover:text-ink transition-colors"
+                  aria-label="إلغاء البحث"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
           <button
             onClick={() => setMobileFiltersOpen(true)}
@@ -234,13 +261,24 @@ export default function LaptopsPage() {
                   <SlidersHorizontal className="w-8 h-8 text-ink-muted" />
                 </div>
                 <h3 className="font-sans font-bold text-ink text-xl">
-                  {products.length === 0 ? 'لا توجد منتجات بعد' : 'لا توجد نتائج مطابقة'}
+                  {searchTerm
+                    ? `لا توجد نتائج لـ "${searchTerm}"`
+                    : products.length === 0
+                      ? 'لا توجد منتجات بعد'
+                      : 'لا توجد نتائج مطابقة'}
                 </h3>
                 <p className="font-body text-ink-muted text-sm">
-                  {products.length === 0
-                    ? 'سيتم إضافة المنتجات قريباً.'
-                    : 'جرب تغيير الفلاتر للحصول على نتائج أخرى.'}
+                  {searchTerm
+                    ? 'جرب كلمات أخرى مثل اسم الموديل أو المعالج أو الرام.'
+                    : products.length === 0
+                      ? 'سيتم إضافة المنتجات قريباً.'
+                      : 'جرب تغيير الفلاتر للحصول على نتائج أخرى.'}
                 </p>
+                {searchTerm && (
+                  <button onClick={clearSearch} className="font-body text-sm text-brand-primary hover:underline">
+                    عرض كل اللابتوبات
+                  </button>
+                )}
                 {hasFilters && (
                   <button onClick={clearAll} className="font-body text-sm text-brand-primary hover:underline">
                     مسح الفلاتر
@@ -304,5 +342,13 @@ export default function LaptopsPage() {
         </div>
       )}
     </StoreLayout>
+  )
+}
+
+export default function LaptopsPage() {
+  return (
+    <Suspense fallback={null}>
+      <LaptopsContent />
+    </Suspense>
   )
 }

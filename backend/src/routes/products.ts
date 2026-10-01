@@ -8,6 +8,7 @@ import { logError, logInfo } from '../lib/logger.js'
 import { DatabaseRouter } from '../lib/db-router.js'
 import { withId, withIds } from '../lib/json.js'
 import { suggestStockStatus } from '../lib/stock.js'
+import { buildSearchFilter } from '../lib/search.js'
 
 const router = Router()
 
@@ -34,24 +35,15 @@ router.get('/api/products', async (req: Request, res: Response): Promise<void> =
         query.homeSection = homeSection
       }
       if (search && typeof search === 'string') {
-        const numericSearch = Number(search)
-        const orConditions: Record<string, unknown>[] = [
-          { name: { $regex: search, $options: 'i' } },
-          { model: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
-          { cpu: { $regex: search, $options: 'i' } },
-          { gpu: { $regex: search, $options: 'i' } },
-          { ram: { $regex: search, $options: 'i' } },
-          { storage: { $regex: search, $options: 'i' } },
-          { 'specs.cpu': { $regex: search, $options: 'i' } },
-          { 'specs.gpu': { $regex: search, $options: 'i' } },
-          { 'specs.ram': { $regex: search, $options: 'i' } },
-          { 'specs.storage': { $regex: search, $options: 'i' } },
-        ]
-        if (!isNaN(numericSearch) && numericSearch > 0) {
-          orConditions.push({ price: numericSearch })
-        }
-        query.$or = orConditions
+        const filter = buildSearchFilter(
+          search,
+          [
+            'name', 'model', 'description', 'cpu', 'gpu', 'ram', 'storage',
+            'specs.cpu', 'specs.gpu', 'specs.ram', 'specs.storage',
+          ],
+          { numericField: 'price' }
+        )
+        if (filter) Object.assign(query, filter)
       }
       return ProductModel.find(query).sort({ createdAt: -1 }).lean()
     }, 'products')

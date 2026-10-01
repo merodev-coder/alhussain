@@ -9,9 +9,7 @@
  * calls until a merchant account and keys are provided.
  */
 export class ManualPaymentProvider {
-    constructor() {
-        this.id = 'manual';
-    }
+    id = 'manual';
     listMethods() {
         const methods = ['vodafone_cash', 'instapay', 'bank_transfer'];
         return methods

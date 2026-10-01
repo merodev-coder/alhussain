@@ -7,6 +7,7 @@ import { logError, logInfo } from '../lib/logger.js'
 import { DatabaseRouter } from '../lib/db-router.js'
 import { withIds } from '../lib/json.js'
 import { suggestStockStatus } from '../lib/stock.js'
+import { buildSearchFilter } from '../lib/search.js'
 
 const router = Router()
 
@@ -22,11 +23,10 @@ router.get('/api/accessories', async (req: Request, res: Response): Promise<void
         query.homeSection = homeSection
       }
       if (search && typeof search === 'string') {
-        query.$or = [
-          { name: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
-          { category: { $regex: search, $options: 'i' } },
-        ]
+        const filter = buildSearchFilter(search, ['name', 'description', 'category'], {
+          numericField: 'price',
+        })
+        if (filter) Object.assign(query, filter)
       }
       return getAccessoryModel(connection).find(query).sort({ createdAt: -1 }).lean()
     }, 'accessories')

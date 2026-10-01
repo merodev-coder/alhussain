@@ -8,21 +8,33 @@ import { logError, logInfo } from '../lib/logger.js';
 import { DatabaseRouter } from '../lib/db-router.js';
 import { withId, withIds } from '../lib/json.js';
 import { suggestStockStatus } from '../lib/stock.js';
+import { buildSearchFilter } from '../lib/search.js';
 const router = Router();
+/** Keeps the top-level `screen` and `specs.screen` fields in sync (price lists read specs.screen). */
+function withSyncedScreen(data) {
+    const screen = data.screen ?? data.specs?.screen;
+    if (screen === undefined)
+        return data;
+    return { ...data, screen, specs: { ...(data.specs ?? {}), screen } };
+}
 router.get('/api/products', async (req, res) => {
     try {
-        const { search, page = '1', limit = '24' } = req.query;
+        const { search, homeSection, page = '1', limit = '24' } = req.query;
         const pageNum = Math.max(1, parseInt(page, 10) || 1);
         const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 24));
         const allProducts = await DatabaseRouter.readAcrossAllDatabases(async (connection) => {
             const ProductModel = getProductModel(connection);
             const query = {};
+            if (homeSection && typeof homeSection === 'string') {
+                query.homeSection = homeSection;
+            }
             if (search && typeof search === 'string') {
-                query.$or = [
-                    { name: { $regex: search, $options: 'i' } },
-                    { description: { $regex: search, $options: 'i' } },
-                    { cpu: { $regex: search, $options: 'i' } },
-                ];
+                const filter = buildSearchFilter(search, [
+                    'name', 'model', 'description', 'cpu', 'gpu', 'ram', 'storage',
+                    'specs.cpu', 'specs.gpu', 'specs.ram', 'specs.storage',
+                ], { numericField: 'price' });
+                if (filter)
+                    Object.assign(query, filter);
             }
             return ProductModel.find(query).sort({ createdAt: -1 }).lean();
         }, 'products');
@@ -64,7 +76,7 @@ router.get('/api/products/:id', async (req, res) => {
 });
 router.post('/api/products', requireAdmin, async (req, res) => {
     try {
-        const data = productInputSchema.parse(req.body);
+        const data = withSyncedScreen(productInputSchema.parse(req.body));
         const quantity = data.quantity ?? 0;
         const { result } = await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
             const ProductModel = getProductModel(connection);
@@ -97,7 +109,8 @@ router.post('/api/products/bulk', requireAdmin, async (req, res) => {
                 photos: z.array(z.string()).optional().default([]),
             })),
         });
-        const { items } = bulkSchema.parse(req.body);
+        const { items: rawItems } = bulkSchema.parse(req.body);
+        const items = rawItems.map(withSyncedScreen);
         const failed = [];
         let created = 0;
         for (let i = 0; i < items.length; i++) {
@@ -167,7 +180,7 @@ router.post('/api/products/bulk', requireAdmin, async (req, res) => {
 });
 router.patch('/api/products/:id', requireAdmin, async (req, res) => {
     try {
-        const data = productInputSchema.partial().parse(req.body);
+        const data = withSyncedScreen(productInputSchema.partial().parse(req.body));
         const found = await DatabaseRouter.findByIdAcrossDatabases(req.params.id, async (connection, id) => getProductModel(connection).findById(id), 'product');
         if (!found) {
             res.status(404).json({ error: 'المنتج غير موجود' });

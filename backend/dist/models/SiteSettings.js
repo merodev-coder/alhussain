@@ -1,11 +1,11 @@
 import mongoose, { Schema } from 'mongoose';
 const SiteSettingsSchema = new Schema({
-    vodafoneCashNumber: { type: String, required: true, trim: true },
-    instapayNumber: { type: String, required: true, trim: true },
-    activeUploadThingTokenIndex: { type: Number, required: true, default: 0 },
-    senderEmail: { type: String, required: true, default: '' },
-    senderEmailAppPassword: { type: String, required: true, default: '' },
-    dbIndex: { type: Number, required: true, default: 0 },
+    vodafoneCashNumber: { type: String, required: false, default: '', trim: true },
+    instapayNumber: { type: String, required: false, default: '', trim: true },
+    activeUploadThingTokenIndex: { type: Number, required: false, default: 0 },
+    senderEmail: { type: String, required: false, default: '' },
+    senderEmailAppPassword: { type: String, required: false, default: '' },
+    dbIndex: { type: Number, required: false, default: 0 },
 }, {
     timestamps: true,
     toJSON: {

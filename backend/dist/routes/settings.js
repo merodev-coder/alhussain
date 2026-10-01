@@ -2,28 +2,39 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { getSiteSettingsModel } from '../models/SiteSettings.js';
 import { requireAdmin } from '../middleware/auth.js';
-import { logError } from '../lib/logger.js';
+import { logError, logInfo } from '../lib/logger.js';
 import { DatabaseRouter } from '../lib/db-router.js';
 import { withId } from '../lib/json.js';
 import { getAllConnections } from '../lib/db.js';
 const router = Router();
 const settingsSchema = z.object({
-    vodafoneCashNumber: z.string().min(1),
-    instapayNumber: z.string().min(1),
+    vodafoneCashNumber: z.string().optional(),
+    instapayNumber: z.string().optional(),
     activeUploadThingTokenIndex: z.number().int().min(0).optional(),
-    senderEmail: z.string().email().optional().or(z.literal('')),
+    senderEmail: z.string().email('Invalid email format').optional().or(z.literal('')),
     senderEmailAppPassword: z.string().optional().or(z.literal('')),
-});
+}).transform(data => ({
+    vodafoneCashNumber: data.vodafoneCashNumber?.trim() || '',
+    instapayNumber: data.instapayNumber?.trim() || '',
+    activeUploadThingTokenIndex: data.activeUploadThingTokenIndex ?? 0,
+    senderEmail: data.senderEmail?.trim() || '',
+    senderEmailAppPassword: data.senderEmailAppPassword?.replace(/\s/g, '') || '',
+}));
 router.get('/api/settings', async (_req, res) => {
     try {
         const connections = getAllConnections();
         let settings = null;
         for (const connection of connections) {
-            const SettingsModel = getSiteSettingsModel(connection);
-            const found = await SettingsModel.findOne().lean();
-            if (found) {
-                settings = withId(found);
-                break;
+            try {
+                const SettingsModel = getSiteSettingsModel(connection);
+                const found = await SettingsModel.findOne().lean();
+                if (found) {
+                    settings = withId(found);
+                    break;
+                }
+            }
+            catch (error) {
+                logError('Get settings from database', `Failed to query database: ${error}`);
             }
         }
         if (!settings) {
@@ -52,67 +63,94 @@ router.get('/api/settings', async (_req, res) => {
 });
 router.post('/api/settings', requireAdmin, async (req, res) => {
     try {
+        logInfo('Settings Update', `Received request body: ${JSON.stringify(req.body)}`);
         const data = settingsSchema.parse(req.body);
+        logInfo('Settings Update', `Parsed data: ${JSON.stringify(data)}`);
         // Check if settings already exist across all databases
         const connections = getAllConnections();
+        logInfo('Settings Update', `Found ${connections.length} database connections`);
         let existing = null;
-        let targetConnection = null;
         let targetDbIndex = 0;
         for (let i = 0; i < connections.length; i++) {
-            const SettingsModel = getSiteSettingsModel(connections[i]);
-            const found = await SettingsModel.findOne().lean();
-            if (found) {
-                existing = found;
-                targetConnection = connections[i];
-                targetDbIndex = i;
-                break;
+            try {
+                logInfo('Settings Update', `Searching for settings in database ${i}`);
+                const SettingsModel = getSiteSettingsModel(connections[i]);
+                const found = await SettingsModel.findOne().lean();
+                if (found) {
+                    existing = found;
+                    targetDbIndex = i;
+                    logInfo('Settings Update', `Found existing settings in database ${i}`);
+                    break;
+                }
+            }
+            catch (error) {
+                logError('Find settings in database', `Failed to search database ${i}: ${error}`);
             }
         }
-        if (existing && targetConnection) {
-            // Update existing settings
-            const SettingsModel = getSiteSettingsModel(targetConnection);
+        if (existing) {
+            logInfo('Settings Update', `Updating existing settings in database ${targetDbIndex}`);
+            // Update existing settings using DatabaseRouter
             const updateData = {
                 vodafoneCashNumber: data.vodafoneCashNumber,
                 instapayNumber: data.instapayNumber,
+                activeUploadThingTokenIndex: data.activeUploadThingTokenIndex,
+                senderEmail: data.senderEmail,
+                senderEmailAppPassword: data.senderEmailAppPassword,
             };
-            if (data.activeUploadThingTokenIndex !== undefined) {
-                updateData.activeUploadThingTokenIndex = data.activeUploadThingTokenIndex;
+            logInfo('Settings Update', `Update data: ${JSON.stringify(updateData)}`);
+            try {
+                const updated = await DatabaseRouter.updateOnDatabase(targetDbIndex, async (connection) => {
+                    const SettingsModel = getSiteSettingsModel(connection);
+                    const result = await SettingsModel.findOneAndUpdate({ _id: existing._id }, updateData, { new: true }).lean();
+                    if (!result) {
+                        throw new Error('Settings document not found during update');
+                    }
+                    logInfo('Settings Update', `Successfully updated settings: ${JSON.stringify(result)}`);
+                    return result;
+                }, 'settings');
+                res.json(withId(updated));
             }
-            if (data.senderEmail !== undefined) {
-                updateData.senderEmail = data.senderEmail;
+            catch (dbError) {
+                logError('Database update error', dbError);
+                throw dbError;
             }
-            if (data.senderEmailAppPassword !== undefined) {
-                updateData.senderEmailAppPassword = data.senderEmailAppPassword;
-            }
-            const updated = await SettingsModel.findOneAndUpdate({ _id: existing._id }, updateData, { new: true }).lean();
-            res.json(withId(updated));
         }
         else {
-            // Create new settings on primary database
-            const primary = connections[0];
-            const { result } = await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
-                const SettingsModel = getSiteSettingsModel(connection);
-                const settings = new SettingsModel({
-                    vodafoneCashNumber: data.vodafoneCashNumber,
-                    instapayNumber: data.instapayNumber,
-                    activeUploadThingTokenIndex: data.activeUploadThingTokenIndex ?? 0,
-                    senderEmail: data.senderEmail ?? '',
-                    senderEmailAppPassword: data.senderEmailAppPassword ?? '',
-                    dbIndex,
-                });
-                await settings.save();
-                return settings;
-            }, 'settings');
-            res.status(201).json(result.toJSON());
+            logInfo('Settings Update', 'Creating new settings on primary database');
+            // Create new settings on primary database using DatabaseRouter
+            try {
+                const { result } = await DatabaseRouter.createWithFailover(async (connection, dbIndex) => {
+                    const SettingsModel = getSiteSettingsModel(connection);
+                    const settings = new SettingsModel({
+                        vodafoneCashNumber: data.vodafoneCashNumber,
+                        instapayNumber: data.instapayNumber,
+                        activeUploadThingTokenIndex: data.activeUploadThingTokenIndex ?? 0,
+                        senderEmail: data.senderEmail ?? '',
+                        senderEmailAppPassword: data.senderEmailAppPassword ?? '',
+                        dbIndex,
+                    });
+                    await settings.save();
+                    logInfo('Settings Update', `Successfully created new settings: ${JSON.stringify(settings.toJSON())}`);
+                    return settings;
+                }, 'settings');
+                res.status(201).json(result.toJSON());
+            }
+            catch (dbError) {
+                logError('Database create error', dbError);
+                throw dbError;
+            }
         }
     }
     catch (error) {
         logError('Update settings', error);
         if (error instanceof z.ZodError) {
+            logError('Settings Validation Error', JSON.stringify(error.issues));
             res.status(400).json({ error: 'بيانات غير صحيحة', details: error.issues });
             return;
         }
-        res.status(500).json({ error: 'حدث خطأ في الخادم' });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logError('Settings Server Error', errorMessage);
+        res.status(500).json({ error: 'حدث خطأ في الخادم', message: errorMessage });
     }
 });
 export default router;

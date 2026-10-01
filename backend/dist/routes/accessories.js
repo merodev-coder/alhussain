@@ -7,20 +7,24 @@ import { logError, logInfo } from '../lib/logger.js';
 import { DatabaseRouter } from '../lib/db-router.js';
 import { withIds } from '../lib/json.js';
 import { suggestStockStatus } from '../lib/stock.js';
+import { buildSearchFilter } from '../lib/search.js';
 const router = Router();
 router.get('/api/accessories', async (req, res) => {
     try {
-        const { search, page = '1', limit = '24' } = req.query;
+        const { search, homeSection, page = '1', limit = '24' } = req.query;
         const pageNum = Math.max(1, parseInt(page, 10) || 1);
         const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 24));
         const all = await DatabaseRouter.readAcrossAllDatabases(async (connection) => {
             const query = {};
+            if (homeSection && typeof homeSection === 'string') {
+                query.homeSection = homeSection;
+            }
             if (search && typeof search === 'string') {
-                query.$or = [
-                    { name: { $regex: search, $options: 'i' } },
-                    { description: { $regex: search, $options: 'i' } },
-                    { category: { $regex: search, $options: 'i' } },
-                ];
+                const filter = buildSearchFilter(search, ['name', 'description', 'category'], {
+                    numericField: 'price',
+                });
+                if (filter)
+                    Object.assign(query, filter);
             }
             return getAccessoryModel(connection).find(query).sort({ createdAt: -1 }).lean();
         }, 'accessories');

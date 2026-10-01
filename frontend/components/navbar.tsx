@@ -55,7 +55,9 @@ export default function Navbar() {
       .get_products(debouncedQuery, 1, 6)
       .then(res => {
         if (!active) return
-        const items = Array.isArray(res) ? res : res.items || []
+        const items = (Array.isArray(res) ? res : res.items || []).filter(
+          (p: Product) => p.visible !== false
+        )
         setSearchResults(items)
       })
       .catch(() => {

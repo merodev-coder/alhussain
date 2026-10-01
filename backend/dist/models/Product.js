@@ -7,6 +7,7 @@ const ProductSchema = new Schema({
     gpu: { type: String, default: '' },
     ram: { type: String, default: '' },
     storage: { type: String, default: '' },
+    screen: { type: String, default: '' },
     photos: { type: [String], default: [] },
     stockStatus: {
         type: String,
@@ -15,6 +16,31 @@ const ProductSchema = new Schema({
     },
     quantity: { type: Number, default: 0, min: 0 },
     discountBadge: { type: String },
+    badge: { type: String, default: null },
+    homeSection: {
+        type: String,
+        enum: [
+            'best_sellers',
+            'special_offers',
+            'laptops',
+            'bags',
+            'mice',
+            'ram',
+            'storage',
+            'batteries',
+            'chargers',
+            'monitors',
+            null,
+        ],
+        default: null,
+    },
+    specs: {
+        cpu: { type: String, default: '' },
+        ram: { type: String, default: '' },
+        storage: { type: String, default: '' },
+        screen: { type: String, default: '' },
+        gpu: { type: String, default: '' },
+    },
     visible: { type: Boolean, default: true },
     dbIndex: { type: Number, required: true, default: 0 },
 }, {
@@ -43,6 +69,7 @@ const ProductSchema = new Schema({
     },
 });
 ProductSchema.index({ visible: 1, createdAt: -1 });
+ProductSchema.index({ homeSection: 1 });
 ProductSchema.index({ name: 'text', description: 'text' });
 ProductSchema.index({ dbIndex: 1 });
 export function getProductModel(connection) {
