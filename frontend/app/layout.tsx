@@ -21,7 +21,24 @@ const tajawal = Tajawal({
 
 export const metadata: Metadata = {
   title: 'الحسين للاب توب - أفضل لاب توبات مستوردة في مصر',
-  description: 'شركة الحسين للاب توب is a local shop in Shibin el-Qanater that sells a variety of imported used and refurbished laptops.  متجر الحسين للاب توب - استيراد وبيع أجهزة اللاب توب بأفضل الأسعار في مصر. تشكيلة واسعة من أحدث الموديلات.',
+  description:
+    'متجر الحسين للاب توب في شبين القناطر — لابتوبات مستوردة (جديدة ومستعملة ومجددة) بأفضل الأسعار وضمان حقيقي، مع إكسسوارات وتقسيط وشحن لجميع المحافظات.',
+  applicationName: 'الحسين للاب توب',
+  openGraph: {
+    type: 'website',
+    locale: 'ar_EG',
+    siteName: 'الحسين للاب توب',
+    title: 'الحسين للاب توب - أفضل لاب توبات مستوردة في مصر',
+    description:
+      'لابتوبات مستوردة بأفضل الأسعار وضمان حقيقي، مع إكسسوارات وتقسيط وشحن لجميع المحافظات.',
+    images: [{ url: '/logo.jpeg', width: 512, height: 512, alt: 'الحسين للاب توب' }],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'الحسين للاب توب',
+    description: 'لابتوبات مستوردة بأفضل الأسعار وضمان حقيقي في مصر.',
+    images: ['/logo.jpeg'],
+  },
   // The actual favicon files now live at app/icon.png, app/apple-icon.png,
   // and public/favicon.ico (Next.js's file-based icon convention), which it
   // auto-serves with the right <link> tags and sizes — that's also what
@@ -35,8 +52,11 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  themeColor: '#0EA8A3',
+  // Pinch-zoom stays enabled (accessibility); the old maximumScale: 1 blocked it.
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#0A7F7B' },
+    { media: '(prefers-color-scheme: dark)', color: '#0A0F10' },
+  ],
 }
 
 export default function RootLayout({
@@ -54,6 +74,12 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased font-body text-ink">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:start-3 focus:z-[1000] focus:rounded-lg focus:bg-brand-primary focus:px-4 focus:py-2 focus:text-white"
+        >
+          تخطي إلى المحتوى
+        </a>
         <ThemeProvider>
           <SplashScreen />
           {children}

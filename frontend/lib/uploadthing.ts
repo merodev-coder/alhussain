@@ -1,4 +1,5 @@
 import { authHeaders } from '@/lib/admin-token'
+import { compressImage } from '@/lib/compress-image'
 import {
   generateReactHelpers,
   generateUploadButton,
@@ -22,7 +23,21 @@ const uploadThingConfig = {
   },
 }
 
-export const { useUploadThing, uploadFiles } = generateReactHelpers(uploadThingConfig)
+const helpers = generateReactHelpers(uploadThingConfig)
+
+export const uploadFiles = helpers.uploadFiles
+
+// Same API as the library hook, but every image is shrunk in the browser first.
+// This keeps product/hero/category photos light so the storefront loads fast
+// (the site serves uploaded images as-is, so file size = download size).
+export const useUploadThing = ((endpoint: any, opts?: any) => {
+  const result: any = (helpers.useUploadThing as any)(endpoint, opts)
+  const startUpload = async (files: File[], input?: any) => {
+    const compressed = await Promise.all(files.map(f => compressImage(f, 1920)))
+    return result.startUpload(compressed, input)
+  }
+  return { ...result, startUpload }
+}) as typeof helpers.useUploadThing
 
 export const UploadButton = generateUploadButton(uploadThingConfig)
 export const UploadDropzone = generateUploadDropzone(uploadThingConfig)

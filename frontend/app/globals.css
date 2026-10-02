@@ -4,8 +4,10 @@
 
 @theme inline {
   /* Al-Hussein Brand Tokens (same in light and dark) */
-  --color-brand-primary: #0EA8A3;
-  --color-brand-accent: #F2994A;
+  /* Resolved per theme below: darker teal/orange in light mode so white text
+     on buttons and badges passes WCAG AA (4.5:1). Dark mode keeps the bright brand teal. */
+  --color-brand-primary: var(--brand);
+  --color-brand-accent: var(--brand-accent);
   --color-inverse-canvas: #0E1B1B;
   --color-whatsapp: #25D366;
 
@@ -66,18 +68,20 @@
   --card-foreground: #0E1B1B;
   --popover: #FFFFFF;
   --popover-foreground: #0E1B1B;
-  --primary: #0EA8A3;
+  --brand: #0A7F7B;
+  --brand-accent: #C2570C;
+  --primary: #0A7F7B;
   --primary-foreground: #FFFFFF;
   --secondary: #F5F9F9;
   --secondary-foreground: #0E1B1B;
   --muted: #F5F9F9;
-  --muted-foreground: #6B7A7A;
+  --muted-foreground: #566565;
   --accent: #EAF3F2;
   --accent-foreground: #0E1B1B;
   --destructive: #EF4444;
   --border: #E1E9E8;
   --input: #E1E9E8;
-  --ring: #0EA8A3;
+  --ring: #0A7F7B;
   --radius: 0.75rem;
   --sidebar: #0E1B1B;
   --sidebar-foreground: #FFFFFF;
@@ -93,12 +97,13 @@
   --surface-2: #EAF3F2;
   --hairline: #E1E9E8;
   --ink: #0E1B1B;
-  --ink-muted: #6B7A7A;
+  --ink-muted: #566565;
   --color-canvas: var(--canvas);
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
   --color-hairline: var(--hairline);
   --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --bg-card: #ffffff;
@@ -108,8 +113,11 @@
   --accent-color: #1d4ed8;
 }
 
+
 .dark {
   color-scheme: dark;
+  --brand: #0EA8A3;
+  --brand-accent: #F2994A;
   --background: #0A0F10;
   --foreground: #E8F0EF;
   --card: #121A1A;
@@ -183,11 +191,37 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     @apply bg-canvas text-ink font-body;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-sans;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  summary,
+  select {
+    cursor: pointer;
+  }
+  /* Clearly visible keyboard focus everywhere (mouse clicks stay clean) */
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  /* Browser-autofilled fields keep the theme colours */
+  img {
+    height: auto;
   }
 }
 
@@ -385,10 +419,23 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   .marquee-track,
   .marquee-track-slow,
-  .ticker-track {
-    animation: none;
+  .ticker-track,
+  .whatsapp-pulse,
+  .animate-float-slow,
+  .animate-float-backdrop,
+  .animate-blob-drift,
+  .animate-blob-drift-slow,
+  .animate-shine-sweep,
+  .animate-hint-bounce {
+    animation: none !important;
+  }
+  .card-hover:hover {
+    transform: none;
   }
   .reveal-on-scroll {
     opacity: 1;

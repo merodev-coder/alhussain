@@ -21,7 +21,7 @@ export default function StoreLayout({ children, showTopBar = false }: StoreLayou
           {showTopBar && <TopAnnouncementBar />}
           <Navbar />
         </div>
-        <main className="flex-1">
+        <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
           {children}
         </main>
         <Footer />

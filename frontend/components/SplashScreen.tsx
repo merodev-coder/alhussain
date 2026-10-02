@@ -27,9 +27,9 @@ const WELCOME_WORDS = [
 // every internal navigation, so it doesn't get in the way on repeat views.
 const SESSION_KEY = 'alhussain_splash_seen'
 
-const WORD_STAGGER_S = 0.09
-const HOLD_AFTER_TEXT_MS = 650
-const EXIT_DURATION_S = 0.9
+const WORD_STAGGER_S = 0.04
+const HOLD_AFTER_TEXT_MS = 250
+const EXIT_DURATION_S = 0.5
 
 export default function SplashScreen() {
   // Starts "visible" by default — including on the very first server-rendered
@@ -44,7 +44,9 @@ export default function SplashScreen() {
   useEffect(() => {
     let alreadySeen = false
     try {
-      alreadySeen = sessionStorage.getItem(SESSION_KEY) === '1'
+      alreadySeen =
+        sessionStorage.getItem(SESSION_KEY) === '1' ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
     } catch {
       // sessionStorage unavailable (privacy mode, etc.) — just skip the intro
       alreadySeen = true
@@ -117,7 +119,7 @@ export default function SplashScreen() {
                   initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }}
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   transition={{
-                    duration: 0.55,
+                    duration: 0.4,
                     delay: i * WORD_STAGGER_S,
                     ease: [0.16, 1, 0.3, 1],
                   }}

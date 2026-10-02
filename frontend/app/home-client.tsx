@@ -55,6 +55,12 @@ export default function HomeClient() {
         const firstItems = Array.isArray(first) ? first : first.items || []
         const totalPages = Array.isArray(first) ? 1 : first.pages || 1
 
+        // Paint the rows as soon as the first page arrives; the rest streams in after.
+        if (!cancelled) {
+          setDbProducts(firstItems)
+          setProductsLoading(false)
+        }
+
         let all = firstItems
         if (totalPages > 1) {
           const rest = await Promise.all(
@@ -79,6 +85,8 @@ export default function HomeClient() {
         const first = await api.get_accessories('', 1, PAGE_SIZE)
         const firstItems = Array.isArray(first) ? first : first.items || []
         const totalPages = Array.isArray(first) ? 1 : first.pages || 1
+
+        if (!cancelled) setAccessories(firstItems)
 
         let all = firstItems
         if (totalPages > 1) {
