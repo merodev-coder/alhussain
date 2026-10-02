@@ -3,6 +3,8 @@
  * All requests include credentials for cookie-based JWT auth.
  */
 
+import { authHeaders, setAdminToken, clearAdminToken } from '@/lib/admin-token'
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
 interface ApiRequestOptions extends RequestInit {
@@ -16,6 +18,7 @@ async function apiRequest<T>(endpoint: string, options: ApiRequestOptions = {}):
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
       ...options.headers,
     },
     credentials: 'include', // Include cookies for JWT auth
@@ -178,6 +181,7 @@ export const api = {
       credentials: 'include',
       signal: controller.signal,
       headers: {
+        ...authHeaders(),
         'Content-Type': 'application/pdf',
         'X-Item-Count': String(itemCount),
         'X-Signature': signature,
@@ -215,6 +219,7 @@ export const api = {
     const response = await fetch(`${API_URL}/api/pricelist/${pricelistId}/export`, {
       method: 'GET',
       credentials: 'include',
+      headers: authHeaders(),
     })
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -234,6 +239,7 @@ export const api = {
     const response = await fetch(`${API_URL}/api/pricelist/${pricelistId}/export-v2`, {
       method: 'GET',
       credentials: 'include',
+      headers: authHeaders(),
     })
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }))
@@ -257,6 +263,7 @@ export const api = {
       method: 'POST',
       body: formData,
       credentials: 'include', // Include cookies for JWT auth
+      headers: authHeaders(),
       // Omit Content-Type header so browser sets multipart boundary
     })
 
@@ -278,9 +285,21 @@ export const api = {
     apiRequest<any>('/api/settings', { method: 'POST', body: JSON.stringify(data) }),
 
   // Admin Auth
-  login: (username: string, password: string) =>
-    apiRequest<any>('/admin/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
-  logout: () => apiRequest<any>('/admin/logout', { method: 'POST' }),
+  login: async (username: string, password: string) => {
+    const res = await apiRequest<any>('/admin/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    })
+    if (res?.token) setAdminToken(res.token)
+    return res
+  },
+  logout: async () => {
+    try {
+      return await apiRequest<any>('/admin/logout', { method: 'POST' })
+    } finally {
+      clearAdminToken()
+    }
+  },
 }
 
 export default api

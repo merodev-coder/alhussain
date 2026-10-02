@@ -37,7 +37,14 @@ export async function verifyAdminToken(token: string | undefined): Promise<Admin
 }
 
 export async function getAdminSessionFromRequest(req: Request): Promise<AdminSession | null> {
-  const token = req.cookies?.['ah_admin_session']
+  // Prefer the Authorization header (works even when the browser blocks cross-site
+  // cookies, e.g. Vercel frontend + Render backend). Fall back to the cookie.
+  const header = req.headers?.authorization
+  const bearer =
+    typeof header === 'string' && header.toLowerCase().startsWith('bearer ')
+      ? header.slice(7).trim()
+      : undefined
+  const token = bearer || req.cookies?.['ah_admin_session']
   return verifyAdminToken(token)
 }
 

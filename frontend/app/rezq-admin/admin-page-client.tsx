@@ -1,6 +1,7 @@
 'use client'
 
 import { api } from '@/lib/api'
+import { authHeaders, clearAdminToken } from '@/lib/admin-token'
 import AdminLogin from './admin-login'
 import AdminDashboard from './admin-dashboard'
 import { useEffect, useState } from 'react'
@@ -17,8 +18,10 @@ export default function AdminPageClient() {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/admin/session`, {
           credentials: 'include',
+          headers: authHeaders(),
         })
         const data = await response.json()
+        if (data.authenticated !== true) clearAdminToken()
         setIsAuthenticated(data.authenticated === true)
       } catch (err) {
         clientLogger.error('Auth check failed', err)

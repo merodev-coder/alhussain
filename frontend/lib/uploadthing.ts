@@ -1,3 +1,4 @@
+import { authHeaders } from '@/lib/admin-token'
 import {
   generateReactHelpers,
   generateUploadButton,
@@ -11,7 +12,11 @@ const uploadThingConfig = {
   fetch: (input: RequestInfo | URL, init?: RequestInit) => {
     const href = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
     if (href.startsWith(API_URL)) {
-      return fetch(input, { ...init, credentials: 'include' })
+      return fetch(input, {
+        ...init,
+        credentials: 'include',
+        headers: { ...(init?.headers as Record<string, string> | undefined), ...authHeaders() },
+      })
     }
     return fetch(input, init)
   },

@@ -7,10 +7,10 @@ import { logError, logInfo, logWarn } from '../lib/logger.js'
 
 const router = Router()
 
-// Rate limit login attempts: 5 per 15 minutes per IP
+// Rate limit login attempts: 20 per 15 minutes per IP
 const loginRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+  max: 20,
   message: { error: 'محاولات تسجيل دخول كثيرة جداً، يرجى المحاولة لاحقاً' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -42,7 +42,7 @@ router.post('/admin/login', loginRateLimit, async (req: Request, res: Response):
       const token = await signAdminToken(fallbackUsername)
       await setAdminCookie(res, token)
       logInfo('Admin login', `User logged in: ${fallbackUsername} (fallback)`)
-      res.json({ success: true, message: 'تم تسجيل الدخول بنجاح' })
+      res.json({ success: true, message: 'تم تسجيل الدخول بنجاح', token })
       return
     }
 
@@ -54,7 +54,7 @@ router.post('/admin/login', loginRateLimit, async (req: Request, res: Response):
     const token = await signAdminToken(body.username)
     await setAdminCookie(res, token)
     logInfo('Admin login', `User logged in: ${body.username}`)
-    res.json({ success: true, message: 'تم تسجيل الدخول بنجاح' })
+    res.json({ success: true, message: 'تم تسجيل الدخول بنجاح', token })
   } catch (error) {
     logError('Admin login', error)
     if (error instanceof z.ZodError) {
